@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useLayoutEffect, useState, useEffect } from "react";
+import React, { useLayoutEffect, useState } from "react";
 // 为了在 React 中使用图标，通常会使用一个库，这里我们用 SVG 模拟图标
 // 在实际项目中，可以替换为 `lucide-react` 或其他图标库
 const HomeIcon = () => (
@@ -89,21 +89,21 @@ const useDynamicViewportHeight = () => {
 // [新增] 这是一个独立的组件，用于检测并显示当前所采用的布局方案。
 // 它的逻辑与核心实现完全解耦。
 const StrategyInfo = () => {
-  const [strategy, setStrategy] = useState("检测中...");
-
-  useEffect(() => {
-    // 此检测逻辑在组件挂载后于客户端执行
+  // 使用 lazy initialization 来在初始化时计算策略，避免在 effect 中调用 setState
+  const [strategy] = useState(() => {
+    // 此检测逻辑在组件初始化时执行
     // 与 useDynamicViewportHeight Hook 中的检测逻辑保持一致
     if (
+      typeof window !== "undefined" &&
       window.CSS &&
       window.CSS.supports &&
       window.CSS.supports("height", "100dvh")
     ) {
-      setStrategy("原生 CSS `dvh` 方案 (性能最佳)");
+      return "原生 CSS `dvh` 方案 (性能最佳)";
     } else {
-      setStrategy("JavaScript Polyfill `--app-height` 方案 (兼容性最佳)");
+      return "JavaScript Polyfill `--app-height` 方案 (兼容性最佳)";
     }
-  }, []); // 空依赖数组确保此 effect 仅在挂载时运行一次
+  });
 
   return (
     <div className="bg-white p-6 rounded-lg shadow text-gray-600">
