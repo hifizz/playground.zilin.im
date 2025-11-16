@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useLayoutEffect, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useLayoutEffect,
+  useState,
+} from "react";
+import { get, throttle } from "lodash";
 // 为了在 React 中使用图标，通常会使用一个库，这里我们用 SVG 模拟图标
 // 在实际项目中，可以替换为 `lucide-react` 或其他图标库
 const HomeIcon = () => (
@@ -52,63 +58,125 @@ const UserIcon = () => (
   </svg>
 );
 
-/**
- * [社区最佳实践 - 渐进增强版]
- * 这是一个自定义Hook，用于解决移动端100vh的布局问题。
- * 它会先检测浏览器是否支持dvh单位，如果支持，则不执行任何操作，依赖纯CSS方案。
- * 如果不支持，它会通过JS计算实时高度作为兜底方案(Polyfill)。
- */
-const useDynamicViewportHeight = () => {
+type ViewportStrategy = {
+  supportsDvh: boolean;
+  label: string;
+};
+
+const DEFAULT_POLYFILL_LABEL = "JavaScript Polyfill `--app-height` 方案 (兼容性最佳)";
+
+const ViewportStrategyContext = createContext<ViewportStrategy | null>(null);
+
+const detectViewportStrategy = (): ViewportStrategy => {
+  if (typeof window === "undefined") {
+    return {
+      supportsDvh: false,
+      label: DEFAULT_POLYFILL_LABEL,
+    };
+  }
+
+  const cssSupports = get(
+    window,
+    ["CSS", "supports"],
+    null
+  ) as ((property: string, value: string) => boolean) | null;
+
+  const supportsDvh =
+    typeof cssSupports === "function" ? cssSupports("height", "100dvh") : false;
+
+  return {
+    supportsDvh,
+    label: supportsDvh
+      ? "原生 CSS `dvh` 方案 (性能最佳)"
+      : DEFAULT_POLYFILL_LABEL,
+  };
+};
+
+const useProvideViewportStrategy = (): ViewportStrategy => {
+  const [strategy, setStrategy] = useState<ViewportStrategy>(detectViewportStrategy);
+
   useLayoutEffect(() => {
-    // 1. 特性检测：如果浏览器支持dvh，则不执行JS逻辑，依赖纯CSS。
-    if (
-      window.CSS &&
-      window.CSS.supports &&
-      window.CSS.supports("height", "100dvh")
-    ) {
+    if (typeof window === "undefined") {
       return;
     }
 
-    // 2. 降级方案：对于不支持dvh的旧版浏览器，使用JS计算并设置高度。
+    const updateStrategy = throttle(() => {
+      setStrategy(detectViewportStrategy());
+    }, 200);
+
+    window.addEventListener("resize", updateStrategy);
+    window.addEventListener("orientationchange", updateStrategy);
+
+    return () => {
+      window.removeEventListener("resize", updateStrategy);
+      window.removeEventListener("orientationchange", updateStrategy);
+      updateStrategy.cancel();
+    };
+  }, []);
+
+  return strategy;
+};
+
+const useViewportHeightPolyfill = (shouldApplyPolyfill: boolean) => {
+  useLayoutEffect(() => {
+    if (typeof window === "undefined" || typeof document === "undefined") {
+      return;
+    }
+
+    if (!shouldApplyPolyfill) {
+      document.documentElement.style.removeProperty("--app-height");
+      return;
+    }
+
     const setAppHeight = () => {
-      const appHeight = window.innerHeight + "px";
+      const appHeight = `${window.innerHeight}px`;
       document.documentElement.style.setProperty("--app-height", appHeight);
     };
 
+    const syncAppHeight = throttle(setAppHeight, 100);
+
     setAppHeight();
-    window.addEventListener("resize", setAppHeight);
-    window.addEventListener("orientationchange", setAppHeight);
+    window.addEventListener("resize", syncAppHeight);
+    window.addEventListener("orientationchange", syncAppHeight);
 
     return () => {
-      window.removeEventListener("resize", setAppHeight);
-      window.removeEventListener("orientationchange", setAppHeight);
+      syncAppHeight.cancel();
+      window.removeEventListener("resize", syncAppHeight);
+      window.removeEventListener("orientationchange", syncAppHeight);
     };
-  }, []);
+  }, [shouldApplyPolyfill]);
+};
+
+const ViewportStrategyProvider = ({ children }: { children: React.ReactNode }) => {
+  const strategy = useProvideViewportStrategy();
+  useViewportHeightPolyfill(!strategy.supportsDvh);
+
+  return (
+    <ViewportStrategyContext.Provider value={strategy}>
+      {children}
+    </ViewportStrategyContext.Provider>
+  );
+};
+
+const useViewportStrategy = () => {
+  const context = useContext(ViewportStrategyContext);
+  if (!context) {
+    throw new Error(
+      "useViewportStrategy 必须在 ViewportStrategyProvider 中使用"
+    );
+  }
+  return context;
 };
 
 // [新增] 这是一个独立的组件，用于检测并显示当前所采用的布局方案。
 // 它的逻辑与核心实现完全解耦。
 const StrategyInfo = () => {
-  // 使用 lazy initialization 来在初始化时计算策略，避免在 effect 中调用 setState
-  const [strategy] = useState(() => {
-    // 此检测逻辑在组件初始化时执行
-    // 与 useDynamicViewportHeight Hook 中的检测逻辑保持一致
-    if (
-      typeof window !== "undefined" &&
-      window.CSS &&
-      window.CSS.supports &&
-      window.CSS.supports("height", "100dvh")
-    ) {
-      return "原生 CSS `dvh` 方案 (性能最佳)";
-    } else {
-      return "JavaScript Polyfill `--app-height` 方案 (兼容性最佳)";
-    }
-  });
+  const { label } = useViewportStrategy();
 
   return (
     <div className="bg-white p-6 rounded-lg shadow text-gray-600">
       <h3 className="font-bold mb-1">当前布局方案:</h3>
-      <p>{strategy}</p>
+      <p>{label}</p>
     </div>
   );
 };
@@ -123,31 +191,39 @@ const Header = () => {
 };
 
 // Footer Component (Single Responsibility: Displaying the footer navigation)
+
+type FooterNavItemConfig = {
+  href: string;
+  label: string;
+  Icon: React.ComponentType;
+  isActive?: boolean;
+};
+
+const footerNavItems: FooterNavItemConfig[] = [
+  { href: "#home", label: "首页", Icon: HomeIcon, isActive: true },
+  { href: "#search", label: "发现", Icon: SearchIcon },
+  { href: "#profile", label: "我的", Icon: UserIcon },
+];
+
+const FooterNavItem = ({ href, label, Icon, isActive }: FooterNavItemConfig) => (
+  <a
+    href={href}
+    className={`flex flex-col items-center ${
+      isActive ? "text-blue-600" : "text-gray-600"
+    } hover:text-blue-800 transition-colors`}
+  >
+    <Icon />
+    <span className="text-xs mt-1">{label}</span>
+  </a>
+);
+
 const Footer = () => {
   return (
     <footer className="bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] w-full p-2 z-10">
       <nav className="flex justify-around items-center">
-        <a
-          href="#home"
-          className="flex flex-col items-center text-blue-600 hover:text-blue-800 transition-colors"
-        >
-          <HomeIcon />
-          <span className="text-xs mt-1">首页</span>
-        </a>
-        <a
-          href="#search"
-          className="flex flex-col items-center text-gray-600 hover:text-blue-800 transition-colors"
-        >
-          <SearchIcon />
-          <span className="text-xs mt-1">发现</span>
-        </a>
-        <a
-          href="#profile"
-          className="flex flex-col items-center text-gray-600 hover:text-blue-800 transition-colors"
-        >
-          <UserIcon />
-          <span className="text-xs mt-1">我的</span>
-        </a>
+        {footerNavItems.map((item) => (
+          <FooterNavItem key={item.href} {...item} />
+        ))}
       </nav>
     </footer>
   );
@@ -186,9 +262,6 @@ const PageContent = () => {
 
 // Layout Component (Single Responsibility: Defining the page grid structure)
 const MobileLayout = ({ children }: { children: React.ReactNode }) => {
-  // 调用自定义Hook来激活动态高度计算（如果需要）
-  useDynamicViewportHeight();
-
   return (
     <>
       <style>{`
@@ -219,8 +292,10 @@ const MobileLayout = ({ children }: { children: React.ReactNode }) => {
 // App Component: The entry point that assembles the layout and content.
 export default function App() {
   return (
-    <MobileLayout>
-      <PageContent />
-    </MobileLayout>
+    <ViewportStrategyProvider>
+      <MobileLayout>
+        <PageContent />
+      </MobileLayout>
+    </ViewportStrategyProvider>
   );
 }
