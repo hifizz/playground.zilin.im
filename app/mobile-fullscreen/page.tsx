@@ -1,14 +1,13 @@
-"use client";
+'use client';
 
-import React, {
-  createContext,
-  useContext,
-  useLayoutEffect,
-  useState,
-} from "react";
-import { get, throttle } from "lodash";
-// 为了在 React 中使用图标，通常会使用一个库，这里我们用 SVG 模拟图标
-// 在实际项目中，可以替换为 `lucide-react` 或其他图标库
+import React, { useState, useMemo } from 'react';
+import {
+  ViewportStrategyProvider,
+  useViewportStrategy,
+} from '@/app/mobile-fullscreen/hooks/use-mobile-viewport';
+import { PROMPT_TEXT } from './PROMPT';
+
+// Icons
 const HomeIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -58,125 +57,89 @@ const UserIcon = () => (
   </svg>
 );
 
-type ViewportStrategy = {
-  supportsDvh: boolean;
-  label: string;
-};
+// [新增] 这是一个独立的组件，用于检测并显示当前所采用的布局方案。
+const StrategyInfo = () => {
+  const { supportsDvh } = useViewportStrategy();
 
-const DEFAULT_POLYFILL_LABEL = "JavaScript Polyfill `--app-height` 方案 (兼容性最佳)";
-
-const ViewportStrategyContext = createContext<ViewportStrategy | null>(null);
-
-const detectViewportStrategy = (): ViewportStrategy => {
-  if (typeof window === "undefined") {
-    return {
-      supportsDvh: false,
-      label: DEFAULT_POLYFILL_LABEL,
-    };
-  }
-
-  const cssSupports = get(
-    window,
-    ["CSS", "supports"],
-    null
-  ) as ((property: string, value: string) => boolean) | null;
-
-  const supportsDvh =
-    typeof cssSupports === "function" ? cssSupports("height", "100dvh") : false;
-
-  return {
-    supportsDvh,
-    label: supportsDvh
-      ? "原生 CSS `dvh` 方案 (性能最佳)"
-      : DEFAULT_POLYFILL_LABEL,
-  };
-};
-
-const useProvideViewportStrategy = (): ViewportStrategy => {
-  const [strategy, setStrategy] = useState<ViewportStrategy>(detectViewportStrategy);
-
-  useLayoutEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    const updateStrategy = throttle(() => {
-      setStrategy(detectViewportStrategy());
-    }, 200);
-
-    window.addEventListener("resize", updateStrategy);
-    window.addEventListener("orientationchange", updateStrategy);
-
-    return () => {
-      window.removeEventListener("resize", updateStrategy);
-      window.removeEventListener("orientationchange", updateStrategy);
-      updateStrategy.cancel();
-    };
-  }, []);
-
-  return strategy;
-};
-
-const useViewportHeightPolyfill = (shouldApplyPolyfill: boolean) => {
-  useLayoutEffect(() => {
-    if (typeof window === "undefined" || typeof document === "undefined") {
-      return;
-    }
-
-    if (!shouldApplyPolyfill) {
-      document.documentElement.style.removeProperty("--app-height");
-      return;
-    }
-
-    const setAppHeight = () => {
-      const appHeight = `${window.innerHeight}px`;
-      document.documentElement.style.setProperty("--app-height", appHeight);
-    };
-
-    const syncAppHeight = throttle(setAppHeight, 100);
-
-    setAppHeight();
-    window.addEventListener("resize", syncAppHeight);
-    window.addEventListener("orientationchange", syncAppHeight);
-
-    return () => {
-      syncAppHeight.cancel();
-      window.removeEventListener("resize", syncAppHeight);
-      window.removeEventListener("orientationchange", syncAppHeight);
-    };
-  }, [shouldApplyPolyfill]);
-};
-
-const ViewportStrategyProvider = ({ children }: { children: React.ReactNode }) => {
-  const strategy = useProvideViewportStrategy();
-  useViewportHeightPolyfill(!strategy.supportsDvh);
+  const label = useMemo(() => {
+    if (supportsDvh === null) return '布局方案检测中...';
+    if (supportsDvh) return '原生 CSS `dvh` 方案 (性能最佳)';
+    return 'JavaScript Polyfill `--app-height` 方案 (兼容性最佳)';
+  }, [supportsDvh]);
 
   return (
-    <ViewportStrategyContext.Provider value={strategy}>
-      {children}
-    </ViewportStrategyContext.Provider>
+    <div className="bg-white dark:bg-neutral-900 p-6 rounded-lg shadow ">
+      <h3 className="font-bold mb-1">当前布局方案:</h3>
+      <p>{label}</p>
+    </div>
   );
 };
 
-const useViewportStrategy = () => {
-  const context = useContext(ViewportStrategyContext);
-  if (!context) {
-    throw new Error(
-      "useViewportStrategy 必须在 ViewportStrategyProvider 中使用"
-    );
-  }
-  return context;
-};
+const CopyPromptButton = () => {
+  const [copied, setCopied] = useState(false);
 
-// [新增] 这是一个独立的组件，用于检测并显示当前所采用的布局方案。
-// 它的逻辑与核心实现完全解耦。
-const StrategyInfo = () => {
-  const { label } = useViewportStrategy();
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(PROMPT_TEXT);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow text-gray-600">
-      <h3 className="font-bold mb-1">当前布局方案:</h3>
-      <p>{label}</p>
+    <div className="bg-white dark:bg-neutral-900 p-6 rounded-lg shadow">
+      <h3 className="font-bold mb-2">如何复用此方案？</h3>
+      <p className=" mb-4 text-sm">
+        点击下方按钮复制 Prompt，发送给 LLM (如 ChatGPT,
+        Claude)，让它帮你快速集成这个移动端高度解决方案。
+      </p>
+      <button
+        onClick={handleCopy}
+        className={`w-full py-2 px-4 rounded-md transition-colors flex items-center justify-center gap-2 ${
+          copied
+            ? 'bg-green-100 text-green-700'
+            : 'bg-neutral-600 text-white hover:bg-neutral-700 active:bg-neutral-800'
+        }`}
+      >
+        {copied ? (
+          <>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            已复制 Prompt
+          </>
+        ) : (
+          <>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+              <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+            </svg>
+            复制集成方案 Prompt
+          </>
+        )}
+      </button>
     </div>
   );
 };
@@ -184,8 +147,10 @@ const StrategyInfo = () => {
 // Header Component (Single Responsibility: Displaying the header)
 const Header = () => {
   return (
-    <header className="bg-white shadow-md w-full p-4 flex items-center justify-center z-10">
-      <h1 className="text-xl font-bold text-gray-800">移动应用标题</h1>
+    <header className="bg-white dark:bg-neutral-900 shadow-md w-full p-4 flex items-center justify-center z-10">
+      <h1 className="text-xl font-bold text-gray-800 dark:text-gray-50">
+        移动应用标题
+      </h1>
     </header>
   );
 };
@@ -200,16 +165,21 @@ type FooterNavItemConfig = {
 };
 
 const footerNavItems: FooterNavItemConfig[] = [
-  { href: "#home", label: "首页", Icon: HomeIcon, isActive: true },
-  { href: "#search", label: "发现", Icon: SearchIcon },
-  { href: "#profile", label: "我的", Icon: UserIcon },
+  { href: '#home', label: '首页', Icon: HomeIcon, isActive: true },
+  { href: '#search', label: '发现', Icon: SearchIcon },
+  { href: '#profile', label: '我的', Icon: UserIcon },
 ];
 
-const FooterNavItem = ({ href, label, Icon, isActive }: FooterNavItemConfig) => (
+const FooterNavItem = ({
+  href,
+  label,
+  Icon,
+  isActive,
+}: FooterNavItemConfig) => (
   <a
     href={href}
     className={`flex flex-col items-center ${
-      isActive ? "text-blue-600" : "text-gray-600"
+      isActive ? 'text-blue-600' : 'text-gray-600'
     } hover:text-blue-800 transition-colors`}
   >
     <Icon />
@@ -219,7 +189,7 @@ const FooterNavItem = ({ href, label, Icon, isActive }: FooterNavItemConfig) => 
 
 const Footer = () => {
   return (
-    <footer className="bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] w-full p-2 z-10">
+    <footer className="bg-white dark:bg-neutral-900 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] w-full p-2 z-10">
       <nav className="flex justify-around items-center">
         {footerNavItems.map((item) => (
           <FooterNavItem key={item.href} {...item} />
@@ -233,9 +203,9 @@ const Footer = () => {
 const PageContent = () => {
   return (
     <div className="p-4 space-y-4">
-      <div className="bg-white p-6 rounded-lg shadow">
+      <div className="bg-white dark:bg-neutral-900 p-6 rounded-lg shadow">
         <h2 className="text-lg font-semibold mb-2">欢迎！</h2>
-        <p className="text-gray-600">
+        <p className="">
           向下滚动以查看更多内容。此布局可以完美适配移动设备，并解决了 iOS
           浏览器滚动时底部工具栏高度变化带来的页面跳动问题。
         </p>
@@ -243,18 +213,19 @@ const PageContent = () => {
 
       {/* 在这里新增了用于展示当前方案的组件 */}
       <StrategyInfo />
+      <CopyPromptButton />
 
       {Array.from({ length: 20 }).map((_, index) => (
         <div
           key={index}
-          className="bg-white p-4 rounded-lg shadow animate-pulse"
+          className="bg-white dark:bg-neutral-900 p-4 rounded-lg shadow animate-pulse"
         >
-          <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+          <div className="h-4 bg-gray-200 dark:bg-neutral-700 rounded w-3/4 mb-2"></div>
+          <div className="h-4 bg-gray-200 dark:bg-neutral-700 rounded w-1/2"></div>
         </div>
       ))}
-      <div className="bg-white p-6 rounded-lg shadow mt-4 text-center">
-        <p className="text-gray-700 font-semibold">内容到底啦！</p>
+      <div className="bg-white dark:bg-neutral-800 p-6 rounded-lg shadow mt-4 text-center">
+        <p className=" font-semibold">内容到底啦！</p>
       </div>
     </div>
   );
@@ -278,7 +249,7 @@ const MobileLayout = ({ children }: { children: React.ReactNode }) => {
         }
       `}</style>
 
-      <div className="h-dynamic-screen bg-gray-100 grid grid-rows-[auto_1fr_auto] font-sans">
+      <div className="h-dynamic-screen bg-gray-100 dark:bg-black grid grid-rows-[auto_1fr_auto] font-sans">
         <Header />
 
         <main className="overflow-y-auto">{children}</main>
