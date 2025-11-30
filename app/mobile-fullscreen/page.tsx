@@ -136,7 +136,7 @@ const CopyPromptButton = () => {
               <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
               <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
             </svg>
-            复制集成方案 Prompt
+            一键复制 Prompt 去 Vibe Coding
           </>
         )}
       </button>
@@ -179,8 +179,8 @@ const FooterNavItem = ({
   <a
     href={href}
     className={`flex flex-col items-center ${
-      isActive ? 'text-blue-600' : 'text-gray-600'
-    } hover:text-blue-800 transition-colors`}
+      isActive ? 'text-neutral-600 dark:text-neutral-100' : 'text-neutral-600 dark:text-neutral-400'
+    } hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors`}
   >
     <Icon />
     <span className="text-xs mt-1">{label}</span>
