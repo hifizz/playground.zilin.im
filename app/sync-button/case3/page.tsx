@@ -96,9 +96,9 @@ const RenderingDots = () => (
 /**
  * 核心交互容器组件
  */
-const AnimatedContainer = ({ status, onClick }) => {
-  const containerRef = useRef(null);
-  const contentRef = useRef(null);
+const AnimatedContainer = ({ status, onClick }: { status: string; onClick?: () => void }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   // 状态管理
   const [displayStatus, setDisplayStatus] = useState(status);
@@ -128,6 +128,7 @@ const AnimatedContainer = ({ status, onClick }) => {
     rendering: {
       borderColor: "rgba(255, 255, 255, 0.15)",
       backgroundColor: "rgba(0, 0, 0, 0.8)",
+      boxShadow: "0px 0px 0px rgba(0,0,0,0)",
       animation: "shadow-pulse 2s ease-in-out infinite",
       dotColor: "bg-yellow-400",
       textColor: "text-white/90"
@@ -166,7 +167,15 @@ const AnimatedContainer = ({ status, onClick }) => {
   // 动态宽度计算
   useLayoutEffect(() => {
     const calculateWidth = () => {
-      if (!containerRef.current || !contentRef.current) return;
+      if (!containerRef.current) return;
+
+      // idle 状态时为圆形，宽度等于高度
+      if (displayStatus === 'idle') {
+        containerRef.current.style.width = '34px';
+        return;
+      }
+
+      if (!contentRef.current) return;
 
       const newContentWidth = contentRef.current.scrollWidth;
       // 兜底最小宽度，防止初次渲染文字未加载时的塌陷
@@ -185,7 +194,7 @@ const AnimatedContainer = ({ status, onClick }) => {
   }, [displayStatus]);
 
   // 鼠标交互处理
-  const handleMouseDown = (e) => {
+  const handleMouseDown = (e: React.MouseEvent) => {
     // 仅允许左键拖动
     if (e.button !== 0) return;
 
@@ -199,7 +208,7 @@ const AnimatedContainer = ({ status, onClick }) => {
 
     setIsGrabbing(true);
 
-    const handleMouseMove = (moveEvent) => {
+    const handleMouseMove = (moveEvent: MouseEvent) => {
       const dx = moveEvent.clientX - dragRef.current.startX;
       const dy = moveEvent.clientY - dragRef.current.startY;
 
@@ -259,15 +268,17 @@ const AnimatedContainer = ({ status, onClick }) => {
     }
   };
 
-  const activeStyle = containerStyles[status] || containerStyles.idle;
-  const contentStyle = containerStyles[displayStatus] || containerStyles.idle;
+  const activeStyle = containerStyles[status as keyof typeof containerStyles] || containerStyles.idle;
+  const contentStyle = containerStyles[displayStatus as keyof typeof containerStyles] || containerStyles.idle;
+
+  // 是否为圆形状态（idle 时不显示文字）
+  const isCircle = displayStatus === 'idle';
 
   // 渲染内部文本内容
   const renderContent = () => {
+    if (displayStatus === 'idle') return null;
     const commonClasses = "text-xs font-medium whitespace-nowrap flex items-center";
     switch (displayStatus) {
-      case 'idle':
-        return <span className={`${commonClasses} ${contentStyle.textColor}`}>Start Sync</span>;
       case 'rendering':
         return <span className={`${commonClasses} ${contentStyle.textColor}`}>Syncing<RenderingDots /></span>;
       case 'success':
@@ -294,7 +305,7 @@ const AnimatedContainer = ({ status, onClick }) => {
 
       <div
         ref={containerRef}
-        className={`relative flex items-center gap-2 px-2.5 h-[34px] rounded-full border border-solid backdrop-blur-xl select-none overflow-hidden origin-left btn-active min-w-[80px] ${isGrabbing ? 'cursor-grabbing' : 'cursor-grab'}`}
+        className={`relative flex items-center justify-center h-[34px] rounded-full border border-solid backdrop-blur-xl select-none overflow-hidden btn-active ${isGrabbing ? 'cursor-grabbing' : 'cursor-grab'}`}
         style={{
           borderColor: activeStyle.borderColor,
           backgroundColor: activeStyle.backgroundColor,
@@ -302,12 +313,16 @@ const AnimatedContainer = ({ status, onClick }) => {
           animation: activeStyle.animation,
           willChange: "width, background-color, border-color, transform",
           transition: dynamicTransition,
-          transform: `translate3d(${position.x}px, ${position.y}px, 0)`
+          transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
+          width: '34px', // 初始宽度
+          paddingLeft: isCircle ? '0' : '10px',
+          paddingRight: isCircle ? '0' : '10px',
+          gap: isCircle ? '0' : '8px',
         }}
         onMouseDown={handleMouseDown}
         onClick={handleSmartClick}
       >
-        {/* 左侧状态指示灯 */}
+        {/* 状态指示灯 */}
         <div className="relative flex items-center justify-center w-2.5 h-2.5 flex-shrink-0">
            <div className={`w-1.5 h-1.5 rounded-full absolute z-10 transition-colors duration-500 ${activeStyle.dotColor}`}></div>
            {status === 'rendering' && (
@@ -318,17 +333,19 @@ const AnimatedContainer = ({ status, onClick }) => {
            )}
         </div>
 
-        {/* 文本容器 */}
-        <div className="relative flex items-center overflow-hidden h-full w-full">
-          {/* 隐形占位层 (用于测量宽度) */}
-          <div ref={contentRef} className="opacity-0 pointer-events-none absolute w-max" aria-hidden="true">
-            {renderContent()}
+        {/* 文本容器 - 仅在非 idle 状态显示 */}
+        {!isCircle && (
+          <div className="relative flex items-center overflow-hidden h-full flex-1">
+            {/* 隐形占位层 (用于测量宽度) */}
+            <div ref={contentRef} className="opacity-0 pointer-events-none absolute w-max" aria-hidden="true">
+              {renderContent()}
+            </div>
+            {/* 实际显示层 (用于动画过渡) */}
+            <div className={`absolute left-0 top-1/2 -translate-y-1/2 ${getTextClasses()}`}>
+               {renderContent()}
+            </div>
           </div>
-          {/* 实际显示层 (用于动画过渡) */}
-          <div className={`absolute left-0 top-1/2 -translate-y-1/2 ${getTextClasses()}`}>
-             {renderContent()}
-          </div>
-        </div>
+        )}
       </div>
     </>
   );
