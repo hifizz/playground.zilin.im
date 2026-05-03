@@ -1,88 +1,27 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 
 /**
- * --------------------------------------------------------------------------
- * 样式定义 (Styles)
- * 为了保持单文件组件的便携性，我们将 Keyframes 和复杂样式注入到组件内部。
- * 在生产环境中，建议将这些移动到 global.css 或 module.css 中。
- * --------------------------------------------------------------------------
+ * 样式定义
  */
 const STYLE_TAG = `
   @keyframes dot-fade {
-      0%, 100% { opacity: 0.3; }
-      20% { opacity: 1; }
-      50% { opacity: 0.6; }
+    0%, 100% { opacity: 0.3; }
+    20% { opacity: 1; }
+    50% { opacity: 0.6; }
   }
 
-  /* 呼吸光晕 */
   @keyframes shadow-pulse {
-      0%, 100% { box-shadow: 0px 0px 0px 0px rgba(255, 255, 255, 0); }
-      50% { box-shadow: 0px 0px 12px 0px rgba(255, 255, 255, 0.05); }
-  }
-
-  @keyframes ripple-ping-green {
-      0% { transform: scale(1); opacity: 0.5; }
-      100% { transform: scale(2.5); opacity: 0; }
-  }
-
-  @keyframes ripple-ping-yellow {
-      0% { transform: scale(1); opacity: 0.5; }
-      100% { transform: scale(2.5); opacity: 0; }
+    0%, 100% { box-shadow: 0px 0px 0px 0px rgba(255, 255, 255, 0); }
+    50% { box-shadow: 0px 0px 12px 0px rgba(255, 255, 255, 0.05); }
   }
 
   .anim-dot {
-      animation: dot-fade 1.2s ease-in-out infinite;
+    animation: dot-fade 1.2s ease-in-out infinite;
   }
-
-  .text-enter {
-      opacity: 0;
-      filter: blur(4px);
-  }
-
-  .text-enter-active {
-      opacity: 1;
-      filter: blur(0px);
-      transition: opacity 0.4s ease-out, filter 0.4s ease-out;
-      transition-delay: 0.1s;
-  }
-
-  .text-exit {
-      opacity: 1;
-      filter: blur(0px);
-  }
-
-  .text-exit-active {
-      opacity: 0;
-      filter: blur(4px);
-      transition: opacity 0.15s ease-in, filter 0.15s ease-in;
-  }
-
-  .btn-active:active {
-      transform: scale(0.98);
-      transition: transform 0.1s;
-  }
-
-  .cursor-grab { cursor: grab; }
-  .cursor-grabbing { cursor: grabbing; }
 `;
-
-// 图标组件
-const CheckIcon = ({ size = 12, strokeWidth = 3 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth={strokeWidth}
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <polyline points="20 6 9 17 4 12"></polyline>
-  </svg>
-);
 
 // 加载点组件
 const RenderingDots = () => (
@@ -93,20 +32,43 @@ const RenderingDots = () => (
   </span>
 );
 
+// 勾选图标
+const CheckIcon = ({ size = 10, strokeWidth = 3 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="20 6 9 17 4 12"></polyline>
+  </svg>
+);
+
+// Logo 组件（带状态指示点）
+const LogoWithStatus = ({ status }: { status: string }) => {
+  const dotColor = status === 'rendering' ? 'bg-yellow-400' : 'bg-emerald-400';
+
+  return (
+    <div className="relative w-5 h-5 flex-shrink-0">
+      <Image
+        src="/chatkeep_logo.png"
+        alt="ChatKeep"
+        width={20}
+        height={20}
+        className="w-full h-full object-contain"
+        draggable={false}
+        onDragStart={(e) => e.preventDefault()}
+      />
+      {/* 状态指示点 - 右下角 */}
+      <div className={`absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full ${dotColor} border border-black`} />
+    </div>
+  );
+};
+
 /**
- * 核心交互容器组件
+ * SyncButton 组件
  */
-const AnimatedContainer = ({ status, onClick }: { status: string; onClick?: () => void }) => {
+const SyncButton = ({ status, onClick }: { status: string; onClick?: () => void }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
-
-  // 状态管理
-  const [displayStatus, setDisplayStatus] = useState(status);
-  const [animState, setAnimState] = useState('idle'); // 'entering', 'exiting', 'idle'
-
-  // 拖拽与位置状态
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isGrabbing, setIsGrabbing] = useState(false);
+  const [snapSide, setSnapSide] = useState<'left' | 'right' | 'none'>('none');
+  const [isHovered, setIsHovered] = useState(false);
 
   const dragRef = useRef({
     startX: 0, startY: 0,
@@ -115,95 +77,65 @@ const AnimatedContainer = ({ status, onClick }: { status: string; onClick?: () =
     isDragging: false
   });
 
-  // 样式配置字典
-  const containerStyles = {
-    idle: {
-      borderColor: "rgba(255, 255, 255, 0.08)",
-      backgroundColor: "rgba(0, 0, 0, 0.6)",
-      boxShadow: "0px 0px 0px rgba(0,0,0,0)",
-      animation: "none",
-      dotColor: "bg-emerald-400",
-      textColor: "text-white/90"
-    },
-    rendering: {
-      borderColor: "rgba(255, 255, 255, 0.15)",
-      backgroundColor: "rgba(0, 0, 0, 0.8)",
-      boxShadow: "0px 0px 0px rgba(0,0,0,0)",
-      animation: "shadow-pulse 2s ease-in-out infinite",
-      dotColor: "bg-yellow-400",
-      textColor: "text-white/90"
-    },
-    success: {
-      borderColor: "rgba(74, 222, 128, 0.3)",
-      backgroundColor: "rgba(0, 0, 0, 0.8)",
-      boxShadow: "0px 0px 15px rgba(74, 222, 128, 0.1)",
-      animation: "none",
-      dotColor: "bg-emerald-400",
-      textColor: "text-emerald-400"
+  // 固定宽度
+  const BUTTON_WIDTH = 106;
+  const BUTTON_HEIGHT = 40;
+  const LOGO_SECTION_WIDTH = 20;
+  const REVEAL_WIDTH = 14;
+  const EDGE_PADDING = 24;
+
+  const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+
+  const getSnappedX = (side: 'left' | 'right', screenWidth: number) => {
+    if (side === 'left') {
+      return EDGE_PADDING - (BUTTON_WIDTH - REVEAL_WIDTH);
     }
+    return screenWidth - EDGE_PADDING - REVEAL_WIDTH;
   };
 
-  // 状态切换与动画序列控制
   useEffect(() => {
-    if (status === displayStatus) return;
+    const initX = (window.innerWidth - BUTTON_WIDTH) / 2;
+    const initY = (window.innerHeight - BUTTON_HEIGHT) / 2;
+    setPosition({
+      x: clamp(initX, 0, window.innerWidth - BUTTON_WIDTH),
+      y: clamp(initY, 0, window.innerHeight - BUTTON_HEIGHT),
+    });
+  }, []);
 
-    // 1. 开始退出旧状态
-    setAnimState('exiting');
-
-    const timer = setTimeout(() => {
-      // 2. 切换到新状态
-      setDisplayStatus(status);
-      setAnimState('entering');
-
-      // 3. 动画结束，回到空闲态
-      setTimeout(() => {
-        setAnimState('idle');
-      }, 400);
-    }, 150);
-
-    return () => clearTimeout(timer);
-  }, [status, displayStatus]);
-
-  // 动态宽度计算
-  useLayoutEffect(() => {
-    const calculateWidth = () => {
-      if (!containerRef.current) return;
-
-      // idle 状态时为圆形，宽度等于高度
-      if (displayStatus === 'idle') {
-        containerRef.current.style.width = '34px';
-        return;
-      }
-
-      if (!contentRef.current) return;
-
-      const newContentWidth = contentRef.current.scrollWidth;
-      // 兜底最小宽度，防止初次渲染文字未加载时的塌陷
-      const safeWidth = newContentWidth > 0 ? newContentWidth : 65;
-
-      // Padding (20px) + Gap + Icon + Buffer
-      const targetWidth = Math.ceil(safeWidth) + 38 + 6;
-
-      containerRef.current.style.width = `${targetWidth}px`;
+  useEffect(() => {
+    const handleResize = () => {
+      setPosition((prev) => {
+        const maxX = window.innerWidth - BUTTON_WIDTH;
+        const maxY = window.innerHeight - BUTTON_HEIGHT;
+        if (snapSide !== 'none') {
+          return {
+            x: getSnappedX(snapSide, window.innerWidth),
+            y: clamp(prev.y, 0, maxY),
+          };
+        }
+        return {
+          x: clamp(prev.x, 0, maxX),
+          y: clamp(prev.y, 0, maxY),
+        };
+      });
     };
 
-    calculateWidth();
-    // 双重保险
-    requestAnimationFrame(calculateWidth);
-
-  }, [displayStatus]);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [snapSide]);
 
   // 鼠标交互处理
   const handleMouseDown = (e: React.MouseEvent) => {
-    // 仅允许左键拖动
     if (e.button !== 0) return;
+
+    const visualX = position.x + getHoverTranslateX();
 
     dragRef.current.isDragging = false;
     dragRef.current.startX = e.clientX;
     dragRef.current.startY = e.clientY;
-    dragRef.current.initialX = position.x;
+    dragRef.current.initialX = visualX;
     dragRef.current.initialY = position.y;
-    dragRef.current.lastX = position.x;
+    dragRef.current.lastX = visualX;
     dragRef.current.lastY = position.y;
 
     setIsGrabbing(true);
@@ -212,49 +144,51 @@ const AnimatedContainer = ({ status, onClick }: { status: string; onClick?: () =
       const dx = moveEvent.clientX - dragRef.current.startX;
       const dy = moveEvent.clientY - dragRef.current.startY;
 
-      // 简单的防抖阈值，区分点击和拖拽
       if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
         dragRef.current.isDragging = true;
+        setIsHovered(false);
       }
 
-      const newX = dragRef.current.initialX + dx;
-      const newY = dragRef.current.initialY + dy;
+      const maxX = window.innerWidth - BUTTON_WIDTH;
+      const maxY = window.innerHeight - BUTTON_HEIGHT;
+      const newX = clamp(dragRef.current.initialX + dx, 0, maxX);
+      const newY = clamp(dragRef.current.initialY + dy, 0, maxY);
 
       dragRef.current.lastX = newX;
       dragRef.current.lastY = newY;
-
       setPosition({ x: newX, y: newY });
+      setSnapSide('none');
     };
 
     const handleMouseUp = () => {
-      setIsGrabbing(false); // 启用 Transition 过渡
+      setIsGrabbing(false);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
 
-      // --- 吸附逻辑 (Snap to Edge) ---
-      if (dragRef.current.isDragging && containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
+      if (dragRef.current.isDragging) {
         const screenWidth = window.innerWidth;
-        const centerX = rect.left + rect.width / 2;
+        const centerX = dragRef.current.lastX + BUTTON_WIDTH / 2;
+        const maxX = window.innerWidth - BUTTON_WIDTH;
+        const maxY = window.innerHeight - BUTTON_HEIGHT;
 
-        let targetVisualLeft;
+        let newSnapSide: 'left' | 'right' | 'none';
+        let finalX: number;
 
         // 判断吸附方向
-        if (centerX < screenWidth / 2) {
-          targetVisualLeft = 24; // 左侧 Padding
+        if (centerX < screenWidth * 0.3) {
+          newSnapSide = 'left';
+          finalX = getSnappedX('left', screenWidth);
+        } else if (centerX > screenWidth * 0.7) {
+          newSnapSide = 'right';
+          finalX = getSnappedX('right', screenWidth);
         } else {
-          targetVisualLeft = screenWidth - rect.width - 24; // 右侧 Padding
+          // 不吸附，保持当前位置
+          newSnapSide = 'none';
+          finalX = clamp(dragRef.current.lastX, 0, maxX);
         }
 
-        const currentVisualLeft = rect.left;
-        const deltaX = targetVisualLeft - currentVisualLeft;
-        const finalX = dragRef.current.lastX + deltaX;
-
-        // 应用吸附，Y轴保持不变
-        setPosition({
-          x: finalX,
-          y: dragRef.current.lastY
-        });
+        setSnapSide(newSnapSide);
+        setPosition({ x: finalX, y: clamp(dragRef.current.lastY, 0, maxY) });
       }
     };
 
@@ -264,92 +198,95 @@ const AnimatedContainer = ({ status, onClick }: { status: string; onClick?: () =
 
   const handleSmartClick = () => {
     if (!dragRef.current.isDragging) {
-      onClick && onClick();
+      onClick?.();
     }
   };
 
-  const activeStyle = containerStyles[status as keyof typeof containerStyles] || containerStyles.idle;
-  const contentStyle = containerStyles[displayStatus as keyof typeof containerStyles] || containerStyles.idle;
+  // 计算 hover 时的位移
+  const getHoverTranslateX = () => {
+    if (!isHovered || snapSide === 'none') return 0;
+    const hiddenWidth = BUTTON_WIDTH - REVEAL_WIDTH;
+    return snapSide === 'left' ? hiddenWidth : -hiddenWidth;
+  };
 
-  // 是否为圆形状态（idle 时不显示文字）
-  const isCircle = displayStatus === 'idle';
+  // 是否反转布局（左边吸附时 logo 在右边）
+  const isReversed = snapSide === 'left';
+  const isCollapsed = snapSide !== 'none' && !isHovered;
 
-  // 渲染内部文本内容
-  const renderContent = () => {
-    if (displayStatus === 'idle') return null;
-    const commonClasses = "text-xs font-medium whitespace-nowrap flex items-center";
-    switch (displayStatus) {
-      case 'rendering':
-        return <span className={`${commonClasses} ${contentStyle.textColor}`}>Syncing<RenderingDots /></span>;
-      case 'success':
-        return <span className={`${commonClasses} ${contentStyle.textColor} gap-1.5`}>Success<CheckIcon /></span>;
-      default: return null;
+  // 获取状态文字
+  const getStatusText = () => {
+    switch (status) {
+      case 'idle': return 'Auto save';
+      case 'rendering': return <span className="flex items-center">Syncing<RenderingDots /></span>;
+      case 'success': return <span className="flex items-center gap-1">Success <CheckIcon /></span>;
+      default: return 'Auto save';
     }
   };
 
-  const getTextClasses = () => {
-    if (animState === 'exiting') return 'text-exit text-exit-active';
-    if (animState === 'entering') return 'text-enter text-enter-active';
-    return '';
+  // 获取 tooltip 文字
+  const getTooltipText = () => {
+    switch (status) {
+      case 'idle': return 'Auto save, click will sync instantly';
+      case 'rendering': return 'Syncing in progress...';
+      case 'success': return 'Sync completed!';
+      default: return 'ChatKeep Sync';
+    }
   };
 
-  // 动态过渡样式
   const dynamicTransition = isGrabbing
     ? "none"
-    : "width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.4s, border-color 0.4s, box-shadow 0.4s, transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28)";
+    : "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s, border-color 0.3s";
 
   return (
     <>
-      {/* 注入 CSS */}
       <style>{STYLE_TAG}</style>
 
       <div
-        ref={containerRef}
-        className={`relative flex items-center justify-center h-[34px] rounded-full border border-solid backdrop-blur-xl select-none overflow-hidden btn-active ${isGrabbing ? 'cursor-grabbing' : 'cursor-grab'}`}
+        className="absolute left-0 top-0"
         style={{
-          borderColor: activeStyle.borderColor,
-          backgroundColor: activeStyle.backgroundColor,
-          boxShadow: activeStyle.boxShadow,
-          animation: activeStyle.animation,
-          willChange: "width, background-color, border-color, transform",
-          transition: dynamicTransition,
+          width: BUTTON_WIDTH,
+          height: BUTTON_HEIGHT,
           transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
-          width: '34px', // 初始宽度
-          paddingLeft: isCircle ? '0' : '10px',
-          paddingRight: isCircle ? '0' : '10px',
-          gap: isCircle ? '0' : '8px',
         }}
         onMouseDown={handleMouseDown}
         onClick={handleSmartClick}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        title={getTooltipText()}
       >
-        {/* 状态指示灯 */}
-        <div className="relative flex items-center justify-center w-2.5 h-2.5 flex-shrink-0">
-           <div className={`w-1.5 h-1.5 rounded-full absolute z-10 transition-colors duration-500 ${activeStyle.dotColor}`}></div>
-           {status === 'rendering' && (
-             <div className="absolute inset-0 bg-yellow-400 rounded-full" style={{ animation: 'ripple-ping-yellow 1.5s ease-out infinite' }}></div>
-           )}
-           {status === 'success' && (
-             <div className="absolute inset-0 bg-emerald-400 rounded-full" style={{ animation: 'ripple-ping-green 1s ease-out forwards' }}></div>
-           )}
-        </div>
-
-        {/* 文本容器 - 仅在非 idle 状态显示 */}
-        {!isCircle && (
-          <div className="relative flex items-center overflow-hidden h-full flex-1">
-            {/* 隐形占位层 (用于测量宽度) */}
-            <div ref={contentRef} className="opacity-0 pointer-events-none absolute w-max" aria-hidden="true">
-              {renderContent()}
-            </div>
-            {/* 实际显示层 (用于动画过渡) */}
-            <div className={`absolute left-0 top-1/2 -translate-y-1/2 ${getTextClasses()}`}>
-               {renderContent()}
-            </div>
+        <div
+          ref={containerRef}
+          className={`flex items-center px-2.5 gap-2 rounded-full border border-white/10 backdrop-blur-xl select-none overflow-hidden cursor-grab active:cursor-grabbing ${isGrabbing ? 'cursor-grabbing' : ''}`}
+          style={{
+            width: BUTTON_WIDTH,
+            height: BUTTON_HEIGHT,
+            backgroundColor: "rgba(0, 0, 0, 0.8)",
+            willChange: "transform",
+            transition: dynamicTransition,
+            transform: `translate3d(${getHoverTranslateX()}px, 0, 0)`,
+            flexDirection: isReversed ? 'row-reverse' : 'row',
+          }}
+        >
+          {/* Logo 区域 */}
+          <div
+            className="flex items-center justify-center flex-shrink-0"
+            style={{ width: LOGO_SECTION_WIDTH }}
+          >
+            <LogoWithStatus status={status} />
           </div>
-        )}
+
+          {/* 文字区域 */}
+          <div className="flex-1 flex items-center pr-1.5">
+            <span className={`text-[11px] font-medium whitespace-nowrap ${status === 'success' ? 'text-emerald-400' : 'text-white/90'}`}>
+              {getStatusText()}
+            </span>
+          </div>
+        </div>
       </div>
     </>
   );
 };
+
 
 /**
  * 主演示组件
@@ -379,12 +316,12 @@ export default function DynamicSnapButton() {
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-purple-500/10 rounded-full blur-[100px]"></div>
 
-      {/* 按钮容器 */}
-      <div className="relative z-10 w-[300px] flex justify-start pl-8">
-        <AnimatedContainer status={status} onClick={handleProcess} />
-        <div className="absolute -bottom-12 left-8 text-zinc-600 text-[10px] font-mono whitespace-nowrap pointer-events-none">
-          Drag me · Snap to edge · Click to sync
-        </div>
+      {/* 按钮 */}
+      <SyncButton status={status} onClick={handleProcess} />
+
+      {/* 提示文字 */}
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-zinc-600 text-xs font-mono whitespace-nowrap pointer-events-none">
+        Drag to edges · Hover to expand · Click to sync
       </div>
     </div>
   );
