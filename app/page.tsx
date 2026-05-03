@@ -1,65 +1,149 @@
-import Image from "next/image";
+import Link from "next/link";
+
+type DemoEntry = {
+  title: string;
+  description: string;
+  route: string;
+  category: "Interaction" | "Text Demo" | "Explored Demo" | "Agent UX/UI";
+  tags?: string[];
+};
+
+const demos: DemoEntry[] = [
+  {
+    title: "Dynamic Island",
+    description: "iOS Dynamic Island — 12 interaction states with Framer Motion spring physics.",
+    route: "/dynamic-island",
+    category: "Interaction",
+    tags: ["Framer Motion", "iOS"],
+  },
+  {
+    title: "Notification Stack",
+    description: "macOS-style glass-morphism notification stack with configurable spring presets.",
+    route: "/notification-spring-macos",
+    category: "Interaction",
+    tags: ["Framer Motion", "Glass"],
+  },
+  {
+    title: "Share Dialog",
+    description: "Multi-state share modal with public / access-code modes and layout animations.",
+    route: "/share-dialog",
+    category: "Interaction",
+    tags: ["Framer Motion"],
+  },
+  {
+    title: "List Animation",
+    description: "Configurable spring list with top-insert enter effects and preset switching.",
+    route: "/list-animation",
+    category: "Interaction",
+    tags: ["Framer Motion"],
+  },
+  {
+    title: "Timeline Minimap",
+    description: "Chat timeline navigator with IntersectionObserver highlights and scroll-jump.",
+    route: "/minimap",
+    category: "Interaction",
+    tags: ["IntersectionObserver"],
+  },
+  {
+    title: "Sync Button",
+    description: "Three variants of an animated sync / loading button — Framer Motion & pure CSS.",
+    route: "/sync-button",
+    category: "Interaction",
+    tags: ["CSS Animation"],
+  },
+  {
+    title: "Stock Calculator",
+    description: "USD / CNY P&L calculator with buy, sell, and target-price inputs.",
+    route: "/calc",
+    category: "Interaction",
+    tags: ["Utility"],
+  },
+  {
+    title: "Mobile Fullscreen",
+    description: "Feature-detection based viewport-height adaptation for mobile browsers.",
+    route: "/mobile-fullscreen",
+    category: "Explored Demo",
+    tags: ["Mobile"],
+  },
+];
+
+function groupByCategory(items: DemoEntry[]) {
+  const map = new Map<string, DemoEntry[]>();
+  for (const item of items) {
+    if (!map.has(item.category)) map.set(item.category, []);
+    map.get(item.category)!.push(item);
+  }
+  return map;
+}
 
 export default function Home() {
+  const groups = groupByCategory(demos);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans">
+      <header className="border-b border-white/[0.06] px-6 py-5 sm:px-10">
+        <p className="font-mono text-xs text-zinc-500 tracking-widest uppercase">
+          playground.zilin.im
+        </p>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white">
+          Interactive Demos
+        </h1>
+      </header>
+
+      <main className="mx-auto max-w-5xl px-6 py-10 sm:px-10">
+        {Array.from(groups.entries()).map(([category, items]) => (
+          <section key={category} className="mb-12">
+            <h2 className="mb-5 text-xs font-semibold tracking-widest uppercase text-zinc-500">
+              {category}
+            </h2>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {items.map((demo) => (
+                <Link
+                  key={demo.route}
+                  href={demo.route}
+                  className="group relative flex flex-col gap-2 rounded-2xl border border-white/[0.06] bg-white/[0.03] p-5 transition-all duration-200 hover:border-white/[0.12] hover:bg-white/[0.06]"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-sm font-semibold text-zinc-100 transition-colors group-hover:text-white">
+                      {demo.title}
+                    </span>
+                    <svg
+                      className="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-600 transition-transform group-hover:translate-x-0.5 group-hover:text-zinc-400"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                    >
+                      <path d="M2.5 6h7M6.5 3l3 3-3 3" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                  <p className="text-xs leading-relaxed text-zinc-500">
+                    {demo.description}
+                  </p>
+                  {demo.tags && (
+                    <div className="mt-auto flex flex-wrap gap-1.5 pt-2">
+                      {demo.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="rounded-full border border-white/[0.06] px-2 py-0.5 font-mono text-[10px] text-zinc-600"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </Link>
+              ))}
+            </div>
+          </section>
+        ))}
       </main>
+
+      <footer className="border-t border-white/[0.04] px-6 py-4 sm:px-10">
+        <p className="text-xs text-zinc-700">
+          zilin · {new Date().getFullYear()}
+        </p>
+      </footer>
     </div>
   );
 }
