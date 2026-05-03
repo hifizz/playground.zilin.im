@@ -17,7 +17,19 @@ import { Card, CardContent } from "@/components/ui/card";
 
 const MAX_NOTIFICATIONS = 5;
 const COLLAPSED_VISIBLE = 3;
-const DEFAULT_CONFIG = {
+
+type AnimationPresetKey = "slide-right" | "slide-left" | "slide-top" | "scale" | "fade" | "slide-top-scale";
+type SpringPresetKey = "gentle" | "snappy" | "bouncy" | "heavy" | "elastic";
+
+interface Config {
+  blurBackground: boolean;
+  cardTheme: string;
+  cardOpacity: number;
+  animationPreset: AnimationPresetKey;
+  springPreset: SpringPresetKey;
+}
+
+const DEFAULT_CONFIG: Config = {
   blurBackground: true,
   cardTheme: "neutral",
   cardOpacity: 0.72,
@@ -68,7 +80,7 @@ function uid() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
-function createNotification(template, index) {
+function createNotification(template: typeof templates[number], index: number) {
   return {
     id: uid(),
     title: template.title,
@@ -119,35 +131,35 @@ const ANIMATION_PRESETS = {
 const SPRING_PRESETS = {
   gentle: {
     label: "Gentle",
-    type: "spring",
+    type: "spring" as const,
     stiffness: 140,
     damping: 22,
     mass: 0.95,
   },
   snappy: {
     label: "Snappy",
-    type: "spring",
+    type: "spring" as const,
     stiffness: 240,
     damping: 24,
     mass: 0.8,
   },
   bouncy: {
     label: "Bouncy",
-    type: "spring",
+    type: "spring" as const,
     stiffness: 280,
     damping: 18,
     mass: 0.78,
   },
   heavy: {
     label: "Heavy",
-    type: "spring",
+    type: "spring" as const,
     stiffness: 180,
     damping: 28,
     mass: 1.08,
   },
   elastic: {
     label: "Elastic",
-    type: "spring",
+    type: "spring" as const,
     stiffness: 320,
     damping: 16,
     mass: 0.72,
@@ -163,6 +175,19 @@ function GlassOrb({ className = "" }) {
   );
 }
 
+interface NotificationCardProps {
+  notification: ReturnType<typeof createNotification>;
+  index: number;
+  expanded: boolean;
+  onClose: (id: string) => void;
+  totalVisible: number;
+  blurBackground: boolean;
+  cardTheme: string;
+  cardOpacity: number;
+  animationPreset: AnimationPresetKey;
+  springPreset: SpringPresetKey;
+}
+
 function NotificationCard({
   notification,
   index,
@@ -174,7 +199,7 @@ function NotificationCard({
   cardOpacity,
   animationPreset,
   springPreset,
-}) {
+}: NotificationCardProps) {
   const Icon = notification.icon || Info;
 
   const collapsedDepth = Math.min(index, COLLAPSED_VISIBLE - 1);
@@ -237,7 +262,7 @@ function NotificationCard({
 
   const activeAnimationPreset =
     ANIMATION_PRESETS[animationPreset] ?? ANIMATION_PRESETS["slide-right"];
-  const activeSpringPreset =
+  const { label: _label, ...activeSpringPreset } =
     SPRING_PRESETS[springPreset] ?? SPRING_PRESETS.snappy;
 
   return (
@@ -334,7 +359,7 @@ export default function NotificationLiquidGlassDemo() {
   const [config, setConfig] = useState(DEFAULT_CONFIG);
 
   const opacityPresets = [0.48, 0.64, 0.8, 0.94];
-  const animationPresetOrder = [
+  const animationPresetOrder: AnimationPresetKey[] = [
     "slide-right",
     "slide-left",
     "slide-top",
@@ -342,8 +367,8 @@ export default function NotificationLiquidGlassDemo() {
     "scale",
     "fade",
   ];
-  const springPresetOrder = ["gentle", "snappy", "bouncy", "heavy", "elastic"];
-  const opacityLabelMap = {
+  const springPresetOrder: SpringPresetKey[] = ["gentle", "snappy", "bouncy", "heavy", "elastic"];
+  const opacityLabelMap: Record<number, string> = {
     0.48: "48%",
     0.64: "64%",
     0.8: "80%",
@@ -352,7 +377,7 @@ export default function NotificationLiquidGlassDemo() {
 
   const visibleNotifications = useMemo(() => notifications, [notifications]);
 
-  const pushNotification = (template) => {
+  const pushNotification = (template: typeof templates[number]) => {
     setNotifications((prev) => {
       const next = [createNotification(template, counter), ...prev];
       return next.slice(0, MAX_NOTIFICATIONS);
@@ -365,7 +390,7 @@ export default function NotificationLiquidGlassDemo() {
     pushNotification(template);
   };
 
-  const closeNotification = (id) => {
+  const closeNotification = (id: string) => {
     setNotifications((prev) => prev.filter((item) => item.id !== id));
   };
 

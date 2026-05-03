@@ -17,13 +17,19 @@ export function Hero({ demoCount }: { demoCount: number }) {
         <p className="mb-5 font-mono text-[11px] tracking-[0.18em] uppercase text-neutral-500">
           playground.zilin.im
         </p>
-        <h1 className="mb-3 text-5xl font-bold tracking-tight text-neutral-50 sm:text-7xl">
+        <h1
+          className="mb-3 text-5xl font-extrabold text-neutral-50 sm:text-7xl"
+          style={{ letterSpacing: "-0.04em", lineHeight: 1.05 }}
+        >
           Playground
         </h1>
-        <p className="mb-1 text-lg text-neutral-300 sm:text-xl">
+        <p
+          className="mb-1 text-lg font-medium text-neutral-300 sm:text-xl"
+          style={{ letterSpacing: "-0.01em" }}
+        >
           AI 时代的 UI/UX 实验室
         </p>
-        <p className="mb-8 max-w-md text-sm leading-relaxed text-neutral-500">
+        <p className="mb-8 max-w-md text-sm leading-relaxed text-neutral-400">
           研究 UI Agent 所需的各种交互效果，以 shadcn/ui 可安装形式维护与分发。
         </p>
         <div className="flex flex-wrap gap-2">

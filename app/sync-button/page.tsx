@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { Check } from 'lucide-react';
 
 /**
@@ -12,7 +12,7 @@ import { Check } from 'lucide-react';
 // 1. 三个点的动画序列 (保持经典波浪效果)
 const dotVariants = {
   initial: { opacity: 0.3 },
-  animate: (i) => ({
+  animate: (i: number) => ({
     opacity: [0.3, 1, 0.6, 0.3],
     transition: {
       duration: 1.2,
@@ -91,7 +91,7 @@ const RenderingDots = () => (
       <motion.span
         key={i}
         custom={i}
-        variants={dotVariants}
+        variants={dotVariants as Variants}
         initial="initial"
         animate="animate"
         className="text-white mx-[1px]"
@@ -138,7 +138,7 @@ export default function App() {
         <motion.button
           layout // 开启布局投影动画
           onClick={handleProcess}
-          variants={containerVariants}
+          variants={containerVariants as Variants}
           initial="idle"
           animate={status}
           whileTap={{ scale: 0.98 }}
@@ -183,7 +183,7 @@ export default function App() {
               {status === 'idle' && (
                 <motion.span
                   key="idle"
-                  variants={textVariants}
+                  variants={textVariants as Variants}
                   initial="initial"
                   animate="animate"
                   exit="exit"
@@ -196,7 +196,7 @@ export default function App() {
               {status === 'rendering' && (
                 <motion.span
                   key="rendering"
-                  variants={textVariants}
+                  variants={textVariants as Variants}
                   initial="initial"
                   animate="animate"
                   exit="exit"
@@ -210,7 +210,7 @@ export default function App() {
               {status === 'success' && (
                 <motion.span
                   key="success"
-                  variants={textVariants}
+                  variants={textVariants as Variants}
                   initial="initial"
                   animate="animate"
                   exit="exit"

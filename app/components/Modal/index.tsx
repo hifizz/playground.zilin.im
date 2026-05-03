@@ -6,7 +6,7 @@ import { createPortal } from 'react-dom';
 import { AlertTriangleIcon } from './AlertTriangleIcon'; // 假设这些图标存在
 import { XIcon } from './XIcon'; // 假设这些图标存在
 import ReactDOM from 'react-dom/client';
-import { InfoIcon } from '../Toast/icons'; // 假设这些图标存在
+import { InfoIcon } from './InfoIcon';
 
 // 新增：简版模态框的 Props 类型
 interface ShortModalProps {

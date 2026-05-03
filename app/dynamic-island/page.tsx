@@ -24,13 +24,13 @@ import {
 
 // 动画物理参数配置 - 模拟 iOS 阻尼感
 const SPRING_CONFIG = {
-  type: "spring",
+  type: "spring" as const,
   stiffness: 380,
   damping: 30,
 };
 
 // 灵动岛组件
-const DynamicIsland = ({ state }) => {
+const DynamicIsland = ({ state }: { state: string }) => {
   // 定义不同状态下的尺寸与圆角
   const variants = {
     idle: {
@@ -451,7 +451,7 @@ export default function App() {
   const [islandState, setIslandState] = useState('idle');
 
   // 控制按钮组件
-  const ControlButton = ({ label, targetState, icon: Icon, colorClass }) => (
+  const ControlButton = ({ label, targetState, icon: Icon, colorClass }: { label: string; targetState: string; icon: React.ElementType; colorClass: string }) => (
     <motion.button
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
