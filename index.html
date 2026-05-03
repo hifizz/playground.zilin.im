@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <!-- /**
+  实现一个container能够在body的中间水平和垂直方向中心对齐，底色为灰色，有一个子元素List作为items的容器；List容器是一个无背景的容器，无margin、无padding；list有一个div容器，容器内有6个item，每个item的底色为红色，宽高为40px，item之间有10px的间距。
+  随着浏览器窗口的缩放，container和list的宽高会随之变化，但item的宽高和间距不会变化。
+*/ -->
+    <div class="container">
+      <div class="list">
+        <div class="item-container">
+          <div class="item-block"></div>
+          <div class="item-block"></div>
+          <div class="item-block"></div>
+          <div class="item-block"></div>
+          <div class="item-block"></div>
+          <div class="item-block"></div>
+        </div>
+      </div>
+    </div>
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html, body {
+        height: 100%;
+        width: 100%;
+      }
+
+      .container {
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .list {
+        background-color: gray;
+        padding: 20px;
+        border-radius: 8px;
+        min-width: 200px;
+        width: fit-content;
+        max-width: 90vw;
+      }
+
+      .item-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(40px, 40px));
+        gap: 10px;
+        justify-content: center;
+        align-content: center;
+        width: 100%;
+      }
+
+      .item-block {
+        width: 40px;
+        height: 40px;
+        background-color: red;
+        border-radius: 4px;
+      }
+
+      /* 响应式断点 */
+      @media (max-width: 280px) {
+        .item-container {
+          grid-template-columns: repeat(2, 40px);
+        }
+        .list {
+          padding: 15px;
+        }
+      }
+
+      @media (min-width: 281px) and (max-width: 380px) {
+        .item-container {
+          grid-template-columns: repeat(3, 40px);
+        }
+      }
+
+      @media (min-width: 381px) and (max-width: 480px) {
+        .item-container {
+          grid-template-columns: repeat(4, 40px);
+        }
+      }
+
+      @media (min-width: 481px) and (max-width: 580px) {
+        .item-container {
+          grid-template-columns: repeat(5, 40px);
+        }
+      }
+
+      @media (min-width: 581px) {
+        .item-container {
+          grid-template-columns: repeat(6, 40px);
+        }
+      }
+    </style>
+  </body>
+</html>
