@@ -4,20 +4,14 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
 /**
- * Timeline Navigator (NOT a TOC panel)
+ * Chat TOC · 时间线高亮
  *
- * - Left side is a thin vertical rail like a timeline/ruler.
- * - Each node = ONE message.
- * - Under each message node, we surface H2 (secondary titles).
- * - Highlights: select text in content -> create highlight. (only highlight, no memo)
- * - Timeline shows highlight badges at message-level and H2-level.
- * - Click message dot -> jump to message.
- * - Click H2 -> jump to that H2 block.
- * - Click highlight-count badge -> popover list of highlights; click one -> jump to its mark.
- *
- * Notes:
- * - We only support selection within a single rendered block (title line or paragraph).
- * - This demo intentionally uses longer markdown to stress scroll + linkage.
+ * TOC 方案探索：左侧时间线轨道作为对话索引。
+ * - Each node = ONE message, with H2 sub-nodes below.
+ * - Select text in content -> create highlight badge on the timeline.
+ * - Click message node -> jump to message.
+ * - Click H2 -> jump to that section.
+ * - Click highlight badge -> popover list; click entry -> jump to mark.
  */
 
 // ----------------------------
@@ -980,10 +974,10 @@ export default function TimelineNavigatorDemo() {
           <header className="mb-8">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <div className="text-sm font-medium text-zinc-600">New Navigator</div>
-                <h1 className="mt-1 text-2xl font-semibold tracking-tight">Message Timeline + H2 + Highlights</h1>
+                <div className="text-sm font-medium text-zinc-600">TOC 方案探索</div>
+                <h1 className="mt-1 text-2xl font-semibold tracking-tight">Chat TOC · 时间线高亮</h1>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-600">
-                  左侧是一条时间线/标尺: 每条消息一个节点, 节点下挂二级标题与高亮标记; 点击可跳转与查看高亮。
+                  左侧时间线轨道：每条消息一个节点，节点下挂 H2 二级索引与高亮标记；点击可跳转与查看高亮。
                 </p>
               </div>
               <div className="hidden sm:flex items-center gap-2">

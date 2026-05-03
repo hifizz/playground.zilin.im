@@ -3,6 +3,7 @@ import { NotificationStackThumb } from "./thumbs/notification-stack";
 import { ShareDialogThumb } from "./thumbs/share-dialog";
 import { ListAnimationThumb } from "./thumbs/list-animation";
 import { TimelineMinimapThumb } from "./thumbs/timeline-minimap";
+import { MinimapTocThumb } from "./thumbs/minimap-toc";
 import { SyncButtonThumb } from "./thumbs/sync-button";
 import { StockCalcThumb } from "./thumbs/stock-calc";
 import { MobileFullscreenThumb } from "./thumbs/mobile-fullscreen";
@@ -54,12 +55,20 @@ export const demos: DemoEntry[] = [
     preview: <ListAnimationThumb />,
   },
   {
-    title: "Timeline Minimap",
-    description: "Chat timeline navigator with IntersectionObserver highlights and scroll-jump.",
+    title: "Chat TOC · 时间线高亮",
+    description: "TOC 方案探索：左侧时间线轨道 + H2 索引 + 选文高亮标记，可点击跳转。",
     route: "/minimap",
-    category: "Interaction",
-    tags: ["IntersectionObserver"],
+    category: "Explored Demo",
+    tags: ["TOC", "Framer Motion"],
     preview: <TimelineMinimapThumb />,
+  },
+  {
+    title: "Chat TOC · 缩略线导航",
+    description: "TOC 方案探索：右侧缩略线面板以 IntersectionObserver 同步当前阅读位置。",
+    route: "/minimap-toc",
+    category: "Explored Demo",
+    tags: ["TOC", "IntersectionObserver"],
+    preview: <MinimapTocThumb />,
   },
   {
     title: "Sync Button",
