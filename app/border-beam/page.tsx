@@ -1037,11 +1037,11 @@ function ConicVariants() {
             Connecting to network
           </div>
           <div className="mt-1 text-[11px] leading-relaxed text-white/40">
-            三个亮点等距 120° 分布，1.4 秒一圈快速旋转。
+            三个亮点等距 120° 分布，3.2 秒一圈匀速旋转。
           </div>
-          {/* 关键：conic 里 3 个亮"楔形"，间隔 120°，高速旋转 → 像 3 根光带一起追 */}
+          {/* 关键：conic 里 3 个亮"楔形"，间隔 120°，匀速旋转 → 像 3 根光带一起追 */}
           <ConicBorder
-            duration={1.4}
+            duration={3.2}
             borderWidth={1.5}
             gradient="conic-gradient(from var(--bb-angle),
               transparent 0deg, #FF5C5C 25deg, transparent 40deg,
@@ -1082,12 +1082,12 @@ function ConicVariants() {
             两层 conic 反向旋转叠加，亮弧周期性相向交汇。
           </div>
           <ConicBorder
-            duration={5}
+            duration={9}
             borderWidth={1.5}
             gradient="conic-gradient(from var(--bb-angle), transparent 0deg, transparent 280deg, #22d3ee 340deg, #ffffff 360deg)"
           />
           <ConicBorder
-            duration={5}
+            duration={9}
             reverse
             borderWidth={1.5}
             gradient="conic-gradient(from var(--bb-angle), transparent 0deg, transparent 280deg, #FF5C5C 340deg, #ffffff 360deg)"
@@ -1101,7 +1101,7 @@ function ConicVariants() {
           <Download size={14} className="text-white/60" />
           <span>Downloading model · 8 MB/s</span>
           <ConicBorder
-            duration={1.6}
+            duration={3}
             borderWidth={1.5}
             gradient="conic-gradient(from var(--bb-angle), transparent 0deg, transparent 300deg, #34d399 350deg, #ffffff 360deg)"
           />
@@ -1112,7 +1112,7 @@ function ConicVariants() {
           <span>Live · streaming</span>
           {/* 慢速彩虹 pill */}
           <ConicBorder
-            duration={6}
+            duration={9}
             borderWidth={1.5}
             gradient="conic-gradient(from var(--bb-angle),
               #FF5C5C, #FF8A3D, #FFB347, #fbbf24, #34d399, #06b6d4, #4F8FFF, #FF5C5C)"
@@ -1160,7 +1160,7 @@ function ProgressRingCard() {
             // from -90deg 让起点在 12 点钟方向；填充弧从 0 到 progress*3.6°
             background:
               "conic-gradient(from -90deg, #34d399 0deg, #06b6d4 calc(var(--bb-progress) * 3.6deg), rgba(255,255,255,0.06) calc(var(--bb-progress) * 3.6deg + 0.5deg))",
-            animation: "border-beam-progress 4s ease-in-out infinite",
+            animation: "border-beam-progress 6s ease-in-out infinite",
           }}
         />
       </div>
