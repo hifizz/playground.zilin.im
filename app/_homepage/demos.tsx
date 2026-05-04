@@ -7,6 +7,7 @@ import { MinimapTocThumb } from "./thumbs/minimap-toc";
 import { SyncButtonThumb } from "./thumbs/sync-button";
 import { StockCalcThumb } from "./thumbs/stock-calc";
 import { MobileFullscreenThumb } from "./thumbs/mobile-fullscreen";
+import { FloatingDockThumb } from "./thumbs/floating-dock";
 
 export type DemoCategory = "Interaction" | "Text Demo" | "Explored Demo" | "Agent UX/UI";
 
@@ -93,5 +94,13 @@ export const demos: DemoEntry[] = [
     category: "Explored Demo",
     tags: ["Mobile"],
     preview: <MobileFullscreenThumb />,
+  },
+  {
+    title: "Floating Dock",
+    description: "iOS-style glassmorphism bottom navigation bar with animated active indicator.",
+    route: "/floating-dock",
+    category: "Interaction",
+    tags: ["Framer Motion", "iOS"],
+    preview: <FloatingDockThumb />,
   },
 ];
