@@ -8,6 +8,7 @@ import { SyncButtonThumb } from "./thumbs/sync-button";
 import { StockCalcThumb } from "./thumbs/stock-calc";
 import { MobileFullscreenThumb } from "./thumbs/mobile-fullscreen";
 import { FloatingDockThumb } from "./thumbs/floating-dock";
+import { ShimmerTextThumb } from "./thumbs/shimmer-text";
 
 export type DemoCategory = "Interaction" | "Text Demo" | "Explored Demo" | "Agent UX/UI";
 
@@ -102,5 +103,13 @@ export const demos: DemoEntry[] = [
     category: "Interaction",
     tags: ["Framer Motion", "iOS"],
     preview: <FloatingDockThumb />,
+  },
+  {
+    title: "Shimmer Text",
+    description: "Cursor-style 文本闪光：基色 + 一道窄高光循环穿过，暗示 agent 正在执行。",
+    route: "/shimmer-text",
+    category: "Agent UX/UI",
+    tags: ["CSS Animation", "Agent"],
+    preview: <ShimmerTextThumb />,
   },
 ];
