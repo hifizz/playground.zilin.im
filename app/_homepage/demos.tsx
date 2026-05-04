@@ -9,6 +9,7 @@ import { StockCalcThumb } from "./thumbs/stock-calc";
 import { MobileFullscreenThumb } from "./thumbs/mobile-fullscreen";
 import { FloatingDockThumb } from "./thumbs/floating-dock";
 import { ShimmerTextThumb } from "./thumbs/shimmer-text";
+import { BorderBeamThumb } from "./thumbs/border-beam";
 
 export type DemoCategory = "Interaction" | "Text Demo" | "Explored Demo" | "Agent UX/UI";
 
@@ -111,5 +112,13 @@ export const demos: DemoEntry[] = [
     category: "Agent UX/UI",
     tags: ["CSS Animation", "Agent"],
     preview: <ShimmerTextThumb />,
+  },
+  {
+    title: "Border Beam",
+    description: "光束沿圆角描边匀速绕行：CSS offset-path + mask-composite 实现，含 5 种用法。",
+    route: "/border-beam",
+    category: "Interaction",
+    tags: ["CSS Animation", "Framer Motion"],
+    preview: <BorderBeamThumb />,
   },
 ];
