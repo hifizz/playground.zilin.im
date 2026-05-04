@@ -21,7 +21,7 @@ export function BorderBeamThumb() {
     <div
       className="w-full h-full flex items-center justify-center"
       style={{
-        background: "linear-gradient(160deg, #0a0a12 0%, #15101f 60%, #0c0c14 100%)",
+        background: "linear-gradient(160deg, #0c0a0a 0%, #1a1413 60%, #0d0c0e 100%)",
       }}
     >
       <style>{keyframes}</style>
@@ -82,7 +82,7 @@ export function BorderBeamThumb() {
               inset: 0,
               borderRadius: "inherit",
               background:
-                "conic-gradient(from 0deg, transparent 0deg, transparent 280deg, #ffaa40 330deg, #9c40ff 355deg, transparent 360deg)",
+                "conic-gradient(from 0deg, transparent 0deg, transparent 280deg, #FF8A3D 330deg, #FF5C5C 355deg, transparent 360deg)",
               animation: "border-beam-thumb-spin 4s linear infinite",
             }}
           />
@@ -108,7 +108,7 @@ export function BorderBeamThumb() {
               inset: 0,
               borderRadius: "inherit",
               background:
-                "conic-gradient(from 0deg, transparent 0deg, transparent 280deg, #06b6d4 330deg, #a855f7 355deg, transparent 360deg)",
+                "conic-gradient(from 0deg, transparent 0deg, transparent 280deg, #BFE9FF 330deg, #4F8FFF 355deg, transparent 360deg)",
               animation: "border-beam-thumb-spin-rev 4s linear infinite",
             }}
           />

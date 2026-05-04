@@ -76,8 +76,8 @@ function BorderBeam({
   pathRadius,
   duration = 6,
   delay = 0,
-  colorFrom = "#ffaa40",
-  colorTo = "#9c40ff",
+  colorFrom = "#FF5C5C",
+  colorTo = "#FFB347",
   borderWidth = 1,
   reverse = false,
   initialOffset = 0,
@@ -250,7 +250,7 @@ function ConicBeam({
   duration = 4,
   wedgeAngle = 90,
   headFade = 10,
-  colorFrom = "#9c40ff",
+  colorFrom = "#FFB347",
   colorTo = "#22d3ee",
   reverse = false,
   delay = 0,
@@ -381,10 +381,10 @@ function Hero() {
       {/* 背景光斑 */}
       <div
         aria-hidden
-        className="absolute inset-0 -z-10 opacity-60"
+        className="absolute inset-0 -z-10 opacity-70"
         style={{
           background:
-            "radial-gradient(60% 60% at 50% 0%, rgba(156,64,255,0.15), transparent 70%), radial-gradient(40% 40% at 100% 100%, rgba(255,170,64,0.12), transparent 70%)",
+            "radial-gradient(60% 60% at 50% 0%, rgba(255,92,92,0.16), transparent 70%), radial-gradient(40% 40% at 100% 100%, rgba(255,179,71,0.12), transparent 70%), radial-gradient(40% 40% at 0% 100%, rgba(79,143,255,0.10), transparent 70%)",
         }}
       />
 
@@ -409,16 +409,17 @@ function Hero() {
       <BorderBeam
         size={140}
         duration={8}
-        colorFrom="#ffaa40"
-        colorTo="#9c40ff"
+        colorFrom="#FF5C5C"
+        colorTo="#FFB347"
         borderWidth={1.5}
       />
+      {/* 冷蓝对仗：Raycast 风格的暖红 + 电蓝双 beam */}
       <BorderBeam
         size={140}
         duration={8}
         delay={4}
-        colorFrom="#06b6d4"
-        colorTo="#a855f7"
+        colorFrom="#4F8FFF"
+        colorTo="#BFE9FF"
         borderWidth={1.5}
       />
     </div>
@@ -507,10 +508,10 @@ function PlaygroundDemo({ method }: { method: Method }) {
   const [duration, setDuration] = useState(5);
   const [borderWidth, setBorderWidth] = useState(1.5);
   const [colorFrom, setColorFrom] = useState(
-    method === "offset-path" ? "#ffaa40" : "#9c40ff",
+    method === "offset-path" ? "#FF5C5C" : "#FFB347",
   );
   const [colorTo, setColorTo] = useState(
-    method === "offset-path" ? "#9c40ff" : "#22d3ee",
+    method === "offset-path" ? "#FFB347" : "#22d3ee",
   );
   const [reverse, setReverse] = useState(false);
 
@@ -725,7 +726,7 @@ function AIThinkingDemo({ method }: { method: Method }) {
             }
             className={`mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg ${
               thinking
-                ? "bg-violet-500/15 text-violet-300"
+                ? "bg-red-500/15 text-red-300"
                 : "bg-emerald-500/15 text-emerald-300"
             }`}
           >
@@ -773,8 +774,8 @@ function AIThinkingDemo({ method }: { method: Method }) {
                 duration={4.5}
                 size={70}
                 wedgeAngle={90}
-                colorFrom="#a78bfa"
-                colorTo="#ec4899"
+                colorFrom="#FFB347"
+                colorTo="#FF5C5C"
               />
               <Beam
                 method={method}
@@ -783,7 +784,7 @@ function AIThinkingDemo({ method }: { method: Method }) {
                 wedgeAngle={90}
                 delay={2.25}
                 reverse
-                colorFrom="#a78bfa"
+                colorFrom="#FFB347"
                 colorTo="#22d3ee"
               />
             </motion.div>
@@ -864,15 +865,15 @@ function HoverCTADemo({ method }: { method: Method }) {
           method={method}
           icon={Rocket}
           label="Deploy"
-          colorFrom="#ff6e7f"
+          colorFrom="#FF5C5C"
           colorTo="#bfe9ff"
         />
         <HoverButton
           method={method}
           icon={Zap}
           label="Generate"
-          colorFrom="#ffaa40"
-          colorTo="#9c40ff"
+          colorFrom="#FF5C5C"
+          colorTo="#FFB347"
         />
         <HoverButton
           method={method}
@@ -910,8 +911,8 @@ const PRESETS: Array<{
     title: "Magic",
     body: "Default",
     radius: 16,
-    colorFrom: "#ffaa40",
-    colorTo: "#9c40ff",
+    colorFrom: "#FF5C5C",
+    colorTo: "#FFB347",
     size: 60,
     duration: 5,
     borderWidth: 1.5,
@@ -930,8 +931,8 @@ const PRESETS: Array<{
     title: "Lava",
     body: "Hot pink → orange",
     radius: 16,
-    colorFrom: "#ff0080",
-    colorTo: "#ff8c00",
+    colorFrom: "#FF5C5C",
+    colorTo: "#FF8A3D",
     size: 60,
     duration: 4,
     borderWidth: 1.5,
@@ -988,7 +989,7 @@ function VariantsDemo({ method }: { method: Method }) {
             size={18}
             wedgeAngle={70}
             duration={3}
-            colorFrom="#a78bfa"
+            colorFrom="#FFB347"
             colorTo="#22d3ee"
             borderWidth={1.5}
           />
@@ -1045,9 +1046,9 @@ function ConicVariants() {
             duration={1.4}
             borderWidth={1.5}
             gradient="conic-gradient(from var(--bb-angle),
-              transparent 0deg, #ff0080 25deg, transparent 40deg,
-              transparent 120deg, #ffaa00 145deg, transparent 160deg,
-              transparent 240deg, #00ffd0 265deg, transparent 280deg,
+              transparent 0deg, #FF5C5C 25deg, transparent 40deg,
+              transparent 120deg, #FFB347 145deg, transparent 160deg,
+              transparent 240deg, #34D399 265deg, transparent 280deg,
               transparent 360deg)"
           />
         </div>
@@ -1058,18 +1059,18 @@ function ConicVariants() {
         {/* ③ 极光彩虹边 */}
         <div className="relative flex h-36 flex-col items-start justify-end overflow-hidden rounded-2xl border border-white/10 bg-[#0c0c12] p-4">
           <div className="flex items-center gap-2 text-[12px] font-medium text-white/85">
-            <Sparkles size={13} className="text-violet-300" />
+            <Sparkles size={13} className="text-orange-300" />
             Aurora · Holographic edge
           </div>
           <div className="mt-1 text-[11px] leading-relaxed text-white/40">
             连续色相 conic，缓慢旋转。无亮点、整圈都在流光。
           </div>
-          {/* 注意：首尾要同色才能无缝循环（最后那个 #ff6e7f 接回开头） */}
+          {/* 注意：首尾要同色才能无缝循环（最后那个 #FF5C5C 接回开头） */}
           <ConicBorder
             duration={12}
             borderWidth={2}
             gradient="conic-gradient(from var(--bb-angle),
-              #ff6e7f, #ffaa40, #fbbf24, #34d399, #22d3ee, #a855f7, #ec4899, #ff6e7f)"
+              #FF5C5C, #FF8A3D, #FFB347, #fbbf24, #34d399, #06b6d4, #4F8FFF, #FF5C5C)"
           />
         </div>
 
@@ -1091,7 +1092,7 @@ function ConicVariants() {
             duration={5}
             reverse
             borderWidth={1.5}
-            gradient="conic-gradient(from var(--bb-angle), transparent 0deg, transparent 280deg, #ec4899 340deg, #ffffff 360deg)"
+            gradient="conic-gradient(from var(--bb-angle), transparent 0deg, transparent 280deg, #FF5C5C 340deg, #ffffff 360deg)"
           />
         </div>
       </div>
@@ -1109,14 +1110,14 @@ function ConicVariants() {
         </div>
 
         <div className="relative flex items-center gap-2 overflow-hidden rounded-full border border-white/10 bg-[#0c0c12] px-5 py-2 text-[13px] text-white/80">
-          <Activity size={14} className="text-rose-300" />
+          <Activity size={14} className="text-red-300" />
           <span>Live · streaming</span>
           {/* 慢速彩虹 pill */}
           <ConicBorder
             duration={6}
             borderWidth={1.5}
             gradient="conic-gradient(from var(--bb-angle),
-              #ff6e7f, #ffaa40, #fbbf24, #34d399, #22d3ee, #a855f7, #ec4899, #ff6e7f)"
+              #FF5C5C, #FF8A3D, #FFB347, #fbbf24, #34d399, #06b6d4, #4F8FFF, #FF5C5C)"
           />
         </div>
       </div>
