@@ -304,6 +304,72 @@ function ConicBeam({
 }
 
 /**
+ * ============================================================================
+ * Beam · 方案中立的薄包装
+ * ============================================================================
+ * 让所有 demo 接受 `method` prop 即可在两种实现间切换。两种方案的"独有参数"
+ * 各自传入对应字段（offset-path 用 size，conic 用 wedgeAngle / headFade），
+ * Beam 根据 method 选用并把通用 prop 转发给底层组件。
+ * ============================================================================
+ */
+type Method = "offset-path" | "conic-gradient";
+
+type BeamProps = {
+  method: Method;
+  /** 通用 */
+  duration?: number;
+  colorFrom?: string;
+  colorTo?: string;
+  reverse?: boolean;
+  delay?: number;
+  borderWidth?: number;
+  /** offset-path 独有 */
+  size?: number;
+  /** conic 独有 */
+  wedgeAngle?: number;
+  headFade?: number;
+};
+
+function Beam({
+  method,
+  duration,
+  colorFrom,
+  colorTo,
+  reverse,
+  delay,
+  borderWidth,
+  size = 60,
+  wedgeAngle = 90,
+  headFade = 10,
+}: BeamProps) {
+  if (method === "offset-path") {
+    return (
+      <BorderBeam
+        size={size}
+        duration={duration}
+        colorFrom={colorFrom}
+        colorTo={colorTo}
+        reverse={reverse}
+        delay={delay}
+        borderWidth={borderWidth}
+      />
+    );
+  }
+  return (
+    <ConicBeam
+      duration={duration}
+      wedgeAngle={wedgeAngle}
+      headFade={headFade}
+      colorFrom={colorFrom}
+      colorTo={colorTo}
+      reverse={reverse}
+      delay={delay}
+      borderWidth={borderWidth}
+    />
+  );
+}
+
+/**
  * ----------------------------------------------------------------------------
  * Hero · 双向交错 + 大圆角
  * ----------------------------------------------------------------------------
@@ -360,67 +426,160 @@ function Hero() {
 }
 
 /**
- * ----------------------------------------------------------------------------
- * Demo 1 · Playground（可拖动调参）
- * ----------------------------------------------------------------------------
+ * ============================================================================
+ * Mirror View · 左右镜像对比
+ * ============================================================================
+ * 中间一根竖线，左右各一份完全相同的 demo 集合，唯一区别是 method。
+ * 顶部有控制面板供调参（每边参数集不同，因为方案的旋钮不一样）。
+ *
+ * 结构：
+ *   MirrorView
+ *     ├─ MirrorColumn method="offset-path"
+ *     │   ├─ ColumnHeader
+ *     │   ├─ MethodControls + Playground card  ← 控件控制本列的 playground
+ *     │   ├─ AIThinkingDemo
+ *     │   ├─ HoverCTADemo
+ *     │   └─ VariantsDemo
+ *     └─ MirrorColumn method="conic-gradient"
+ *         (同上)
+ * ============================================================================
  */
-function Playground() {
-  const [size, setSize] = useState(80);
-  const [duration, setDuration] = useState(5);
-  const [borderWidth, setBorderWidth] = useState(1.5);
-  const [colorFrom, setColorFrom] = useState("#ffaa40");
-  const [colorTo, setColorTo] = useState("#9c40ff");
-  const [reverse, setReverse] = useState(false);
-  // off  - 单条 beam
-  // same - 双条同向追逐：第 2 条与第 1 条 reverse 一致，但延迟半个周期，相位差 180°，
-  //        视觉是「两束光首尾相隔半圈，一前一后绕行」
-  // cross- 双条反向交错：第 2 条 reverse 取反，两束光在长边 / 圆角处交汇
-  const [dualMode, setDualMode] = useState<"off" | "same" | "cross">("same");
-
+function MirrorView() {
   return (
-    <section className="rounded-2xl border border-white/10 bg-[#101013] p-6">
-      <div className="mb-4 text-[11px] font-medium uppercase tracking-wider text-white/40">
-        Playground
+    <section>
+      <div className="mb-4 text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">
+        方案对比 · 左右镜像
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_280px]">
-        {/* 预览 */}
-        <div className="flex min-h-[280px] items-center justify-center rounded-xl bg-black/40 p-8">
-          <div className="relative flex h-48 w-full max-w-sm items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.04] to-transparent text-sm text-white/70">
-            <div className="flex flex-col items-center gap-2">
-              <Sparkles size={20} className="text-white/60" />
-              <span className="font-medium tracking-tight text-white/90">
-                Hover-worthy card
-              </span>
-              <span className="text-xs text-white/40">drag the sliders →</span>
-            </div>
+      <div className="grid grid-cols-1 overflow-hidden rounded-2xl border border-white/10 bg-[#101013] lg:grid-cols-2 lg:divide-x lg:divide-white/10">
+        <MirrorColumn method="offset-path" />
+        <MirrorColumn method="conic-gradient" />
+      </div>
+    </section>
+  );
+}
 
-            <BorderBeam
-              size={size}
+function MirrorColumn({ method }: { method: Method }) {
+  return (
+    <div className="flex flex-col gap-7 p-6">
+      <ColumnHeader method={method} />
+      <PlaygroundDemo method={method} />
+      <DemoDivider />
+      <AIThinkingDemo method={method} />
+      <DemoDivider />
+      <HoverCTADemo method={method} />
+      <DemoDivider />
+      <VariantsDemo method={method} />
+    </div>
+  );
+}
+
+function ColumnHeader({ method }: { method: Method }) {
+  const isOffset = method === "offset-path";
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-baseline gap-2">
+        <span className="font-mono text-[13px] text-white/45">
+          {isOffset ? "①" : "②"}
+        </span>
+        <span className="font-mono text-[13px] font-medium text-white/90">
+          {isOffset ? "offset-path" : "conic-gradient"}
+        </span>
+      </div>
+      <p className="text-[11px] leading-relaxed text-white/40">
+        {isOffset
+          ? "光斑方块沿圆角矩形路径平移；size 同时控制方块大小和路径圆角。"
+          : "整圈渐变绕中心旋转；调节楔形跨度和头部 fade，控制彗星形状。"}
+      </p>
+    </div>
+  );
+}
+
+function DemoDivider() {
+  return <div className="h-px bg-white/5" />;
+}
+
+/**
+ * Playground · 每列顶部，带控件，控件只作用于这一列的 playground 卡片
+ */
+function PlaygroundDemo({ method }: { method: Method }) {
+  // 通用参数
+  const [duration, setDuration] = useState(5);
+  const [borderWidth, setBorderWidth] = useState(1.5);
+  const [colorFrom, setColorFrom] = useState(
+    method === "offset-path" ? "#ffaa40" : "#9c40ff",
+  );
+  const [colorTo, setColorTo] = useState(
+    method === "offset-path" ? "#9c40ff" : "#22d3ee",
+  );
+  const [reverse, setReverse] = useState(false);
+
+  // offset-path 独有
+  const [size, setSize] = useState(80);
+  const [dualMode, setDualMode] = useState<"off" | "same" | "cross">("same");
+
+  // conic 独有
+  const [wedgeAngle, setWedgeAngle] = useState(90);
+  const [headFade, setHeadFade] = useState(10);
+  const [secondBeam, setSecondBeam] = useState(false);
+
+  return (
+    <div className="flex flex-col gap-4">
+      <DemoLabel>Playground</DemoLabel>
+
+      <div className="flex min-h-[180px] items-center justify-center rounded-xl bg-black/40 p-6">
+        <div className="relative flex h-36 w-full items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.04] to-transparent text-sm text-white/70">
+          <div className="flex flex-col items-center gap-1">
+            <Sparkles size={16} className="text-white/55" />
+            <span className="text-[12px] font-medium tracking-tight text-white/85">
+              Drag the controls
+            </span>
+          </div>
+
+          <Beam
+            method={method}
+            duration={duration}
+            borderWidth={borderWidth}
+            colorFrom={colorFrom}
+            colorTo={colorTo}
+            reverse={reverse}
+            size={size}
+            wedgeAngle={wedgeAngle}
+            headFade={headFade}
+          />
+
+          {/* 第二束：offset-path 用 dualMode 控制方向语义；conic 只是 reverse 反向叠加 */}
+          {method === "offset-path" && dualMode !== "off" && (
+            <Beam
+              method={method}
               duration={duration}
               borderWidth={borderWidth}
-              colorFrom={colorFrom}
-              colorTo={colorTo}
-              reverse={reverse}
+              colorFrom={colorTo}
+              colorTo={colorFrom}
+              reverse={dualMode === "cross" ? !reverse : reverse}
+              delay={duration / 2}
+              size={size}
             />
-            {dualMode !== "off" && (
-              <BorderBeam
-                size={size}
-                duration={duration}
-                borderWidth={borderWidth}
-                // same: 同色调换、同方向、半周期错相 → 两束光首尾追逐
-                // cross: 取反方向 + 半周期错相 → 两束光相向而行交汇
-                colorFrom={colorTo}
-                colorTo={colorFrom}
-                reverse={dualMode === "cross" ? !reverse : reverse}
-                delay={duration / 2}
-              />
-            )}
-          </div>
+          )}
+          {method === "conic-gradient" && secondBeam && (
+            <Beam
+              method={method}
+              duration={duration}
+              borderWidth={borderWidth}
+              colorFrom={colorTo}
+              colorTo={colorFrom}
+              reverse={!reverse}
+              delay={duration / 2}
+              wedgeAngle={wedgeAngle}
+              headFade={headFade}
+            />
+          )}
         </div>
+      </div>
 
-        {/* 控件 */}
-        <div className="flex flex-col gap-3 text-[12px] text-white/70">
+      <div className="flex flex-col gap-2.5 text-[12px] text-white/70">
+        {/* offset-path 独有的 size */}
+        {method === "offset-path" && (
           <Slider
             label="Size"
             value={size}
@@ -430,55 +589,108 @@ function Playground() {
             onChange={setSize}
             format={(v) => `${v}px`}
           />
-          <Slider
-            label="Duration"
-            value={duration}
-            min={1}
-            max={15}
-            step={0.5}
-            onChange={setDuration}
-            format={(v) => `${v}s`}
-          />
-          <Slider
-            label="Border width"
-            value={borderWidth}
-            min={1}
-            max={6}
-            step={0.5}
-            onChange={setBorderWidth}
-            format={(v) => `${v}px`}
-          />
+        )}
+
+        {/* conic 独有的 wedgeAngle / headFade */}
+        {method === "conic-gradient" && (
+          <>
+            <Slider
+              label="Wedge angle"
+              value={wedgeAngle}
+              min={20}
+              max={300}
+              step={5}
+              onChange={setWedgeAngle}
+              format={(v) => `${v}°`}
+            />
+            <Slider
+              label="Head fade"
+              value={headFade}
+              min={2}
+              max={60}
+              step={1}
+              onChange={setHeadFade}
+              format={(v) => `${v}°`}
+            />
+          </>
+        )}
+
+        {/* 通用参数 */}
+        <Slider
+          label="Duration"
+          value={duration}
+          min={1}
+          max={15}
+          step={0.5}
+          onChange={setDuration}
+          format={(v) => `${v}s`}
+        />
+        <Slider
+          label="Border width"
+          value={borderWidth}
+          min={1}
+          max={6}
+          step={0.5}
+          onChange={setBorderWidth}
+          format={(v) => `${v}px`}
+        />
+        <div className="grid grid-cols-2 gap-2">
           <ColorRow
-            label="Color from"
+            label={method === "offset-path" ? "From" : "Peak"}
             value={colorFrom}
             onChange={setColorFrom}
           />
-          <ColorRow label="Color to" value={colorTo} onChange={setColorTo} />
-          <Toggle label="Reverse" value={reverse} onChange={setReverse} />
-          <Segmented
-            label="Dual beams"
-            value={dualMode}
-            options={[
-              { value: "off", label: "Off" },
-              { value: "same", label: "Same dir" },
-              { value: "cross", label: "Cross" },
-            ]}
-            onChange={setDualMode}
+          <ColorRow
+            label={method === "offset-path" ? "To" : "Body"}
+            value={colorTo}
+            onChange={setColorTo}
           />
         </div>
+
+        {/* offset-path 用 segmented dual mode；conic 只是 toggle */}
+        {method === "offset-path" ? (
+          <>
+            <Toggle label="Reverse" value={reverse} onChange={setReverse} />
+            <Segmented
+              label="Dual beams"
+              value={dualMode}
+              options={[
+                { value: "off", label: "Off" },
+                { value: "same", label: "Same dir" },
+                { value: "cross", label: "Cross" },
+              ]}
+              onChange={setDualMode}
+            />
+          </>
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            <Toggle label="Reverse" value={reverse} onChange={setReverse} />
+            <Toggle
+              label="Second beam"
+              value={secondBeam}
+              onChange={setSecondBeam}
+            />
+          </div>
+        )}
       </div>
-    </section>
+    </div>
+  );
+}
+
+function DemoLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="text-[11px] font-medium uppercase tracking-wider text-white/40">
+      {children}
+    </div>
   );
 }
 
 /**
  * ----------------------------------------------------------------------------
- * Demo 2 · AI Thinking Card
+ * AI Thinking · 镜像版（不带 section 外壳，被 MirrorColumn 包着）
  * ----------------------------------------------------------------------------
- * 「思考中」时 beam 持续绕行；切到「完成」时 beam 消失，描边变为静态绿色 ring。
- * 这是 border-beam 在 agent UI 里最贴切的用法之一。
  */
-function AIThinkingCard() {
+function AIThinkingDemo({ method }: { method: Method }) {
   const [phase, setPhase] = useState<"thinking" | "done">("thinking");
 
   useEffect(() => {
@@ -492,10 +704,8 @@ function AIThinkingCard() {
   const thinking = phase === "thinking";
 
   return (
-    <section className="rounded-2xl border border-white/10 bg-[#101013] p-6">
-      <div className="mb-4 text-[11px] font-medium uppercase tracking-wider text-white/40">
-        Agent · Thinking state
-      </div>
+    <div className="flex flex-col gap-3">
+      <DemoLabel>Agent · Thinking state</DemoLabel>
 
       <div
         className="relative overflow-hidden rounded-2xl border bg-[#0c0c12] p-6 transition-colors duration-500"
@@ -556,17 +766,22 @@ function AIThinkingCard() {
               //    会截断下面 ConicBeam 内部的 border-radius 继承链。
               style={{ borderRadius: "inherit" }}
             >
-              {/* ConicBeam：和对比卡 ② 同款的彗星楔形 + 0/360deg 双 transparent 收口。
-                  两束反向旋转，交错绕行，视觉是"agent 思考中"那种环形处理感。 */}
-              <ConicBeam
+              {/* 两束反向旋转，交错绕行，视觉是"agent 思考中"那种环形处理感。
+                  方法由 method prop 决定（offset-path / conic-gradient）。 */}
+              <Beam
+                method={method}
                 duration={4.5}
+                size={70}
                 wedgeAngle={90}
                 colorFrom="#a78bfa"
                 colorTo="#ec4899"
               />
-              <ConicBeam
+              <Beam
+                method={method}
                 duration={4.5}
+                size={70}
                 wedgeAngle={90}
+                delay={2.25}
                 reverse
                 colorFrom="#a78bfa"
                 colorTo="#22d3ee"
@@ -578,31 +793,32 @@ function AIThinkingCard() {
 
       <button
         onClick={() => setPhase((p) => (p === "thinking" ? "done" : "thinking"))}
-        className="mt-3 rounded-md border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-white/60 transition-colors hover:bg-white/10 hover:text-white"
+        className="self-start rounded-md border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-white/60 transition-colors hover:bg-white/10 hover:text-white"
       >
         Toggle phase
       </button>
-    </section>
+    </div>
   );
 }
 
 /**
  * ----------------------------------------------------------------------------
- * Demo 3 · Hover CTA Buttons
+ * Hover CTA · 镜像版
  * ----------------------------------------------------------------------------
- * 默认静态，悬停时 beam 出现。"召唤式"反馈，比纯阴影/缩放更醒目。
- * 关键技巧：beam 用条件渲染 + AnimatePresence 控制淡入淡出。
+ * 默认静态，悬停时 beam 出现。method 决定用 offset-path 还是 conic 实现。
  */
 function HoverButton({
   icon: Icon,
   label,
   colorFrom,
   colorTo,
+  method,
 }: {
   icon: React.ElementType;
   label: string;
   colorFrom: string;
   colorTo: string;
+  method: Method;
 }) {
   const [hover, setHover] = useState(false);
   return (
@@ -616,10 +832,8 @@ function HoverButton({
       <Icon size={15} className="text-white/70" />
       {label}
 
-      {/* ConicBeam：彗星楔形围着按钮跑，0/360deg 都是 transparent 所以无缝循环，
-          没有"被刀切"的硬边。常驻挂载、靠 opacity 切换 hover 显隐。
-          ⚠️ borderRadius: 'inherit' 必传 —— 不传的话这层 div 默认 0，
-          ConicBeam 内部 inherit 链就断了，conic 会被渲染在直角矩形上，
+      {/* ⚠️ borderRadius: 'inherit' 必传 —— 不传的话这层 div 默认 0，
+          ConicBeam 内部的 inherit 链就断了，conic 会被渲染在直角矩形上，
           再被按钮的 overflow-hidden 把四个角啃掉。 */}
       <motion.div
         animate={{ opacity: hover ? 1 : 0 }}
@@ -627,8 +841,11 @@ function HoverButton({
         className="absolute inset-0"
         style={{ borderRadius: "inherit" }}
       >
-        <ConicBeam
+        <Beam
+          method={method}
           duration={2.4}
+          // 矮长按钮：offset-path 用小 size 避免拐角啃边；conic 用大 wedge 让光带显眼
+          size={20}
           wedgeAngle={100}
           colorFrom={colorFrom}
           colorTo={colorTo}
@@ -638,36 +855,37 @@ function HoverButton({
   );
 }
 
-function HoverCTAs() {
+function HoverCTADemo({ method }: { method: Method }) {
   return (
-    <section className="rounded-2xl border border-white/10 bg-[#101013] p-6">
-      <div className="mb-4 text-[11px] font-medium uppercase tracking-wider text-white/40">
-        Hover to summon · CTA Buttons
-      </div>
+    <div className="flex flex-col gap-3">
+      <DemoLabel>Hover to summon · CTA Buttons</DemoLabel>
       <div className="flex flex-wrap gap-3">
         <HoverButton
+          method={method}
           icon={Rocket}
-          label="Deploy to production"
+          label="Deploy"
           colorFrom="#ff6e7f"
           colorTo="#bfe9ff"
         />
         <HoverButton
+          method={method}
           icon={Zap}
-          label="Generate component"
+          label="Generate"
           colorFrom="#ffaa40"
           colorTo="#9c40ff"
         />
         <HoverButton
+          method={method}
           icon={Shield}
-          label="Run security audit"
+          label="Audit"
           colorFrom="#34d399"
           colorTo="#06b6d4"
         />
       </div>
-      <p className="mt-3 text-[11px] text-white/35">
+      <p className="text-[11px] text-white/35">
         指针进入按钮才唤出 beam。比纯阴影/缩放更显"召唤"。
       </p>
-    </section>
+    </div>
   );
 }
 
@@ -730,26 +948,26 @@ const PRESETS: Array<{
   },
 ];
 
-function VariantsGallery() {
+function VariantsDemo({ method }: { method: Method }) {
   return (
-    <section className="rounded-2xl border border-white/10 bg-[#101013] p-6">
-      <div className="mb-4 text-[11px] font-medium uppercase tracking-wider text-white/40">
-        Color presets
-      </div>
+    <div className="flex flex-col gap-3">
+      <DemoLabel>Color presets</DemoLabel>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3">
         {PRESETS.map((p) => (
           <div
             key={p.title}
-            className="relative flex h-32 flex-col items-start justify-end overflow-hidden border border-white/10 bg-[#0c0c12] p-4"
+            className="relative flex h-28 flex-col items-start justify-end overflow-hidden border border-white/10 bg-[#0c0c12] p-3"
             style={{ borderRadius: p.radius }}
           >
-            <div className="text-[13px] font-semibold text-white/90">
+            <div className="text-[12px] font-semibold text-white/90">
               {p.title}
             </div>
-            <div className="text-[11px] text-white/40">{p.body}</div>
-            <BorderBeam
+            <div className="text-[10px] text-white/40">{p.body}</div>
+            <Beam
+              method={method}
               size={p.size}
+              wedgeAngle={90}
               duration={p.duration}
               colorFrom={p.colorFrom}
               colorTo={p.colorTo}
@@ -760,13 +978,15 @@ function VariantsGallery() {
       </div>
 
       {/* Pill 形状 */}
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <div className="relative flex items-center gap-2 overflow-hidden rounded-full border border-white/10 bg-[#0c0c12] px-5 py-2 text-[13px] text-white/80">
-          <Cpu size={14} className="text-white/60" />
-          <span>Building model · 87%</span>
-          {/* pill 高度 ≈ 36，size==pathRadius 取容器半高 18 让 beam 贴胶囊外缘 */}
-          <BorderBeam
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex items-center gap-2 overflow-hidden rounded-full border border-white/10 bg-[#0c0c12] px-4 py-1.5 text-[12px] text-white/80">
+          <Cpu size={13} className="text-white/60" />
+          <span>Building · 87%</span>
+          {/* pill: offset-path 用 size=18 紧贴胶囊外缘；conic 用更窄的 wedge 在小 pill 上不至于糊一片 */}
+          <Beam
+            method={method}
             size={18}
+            wedgeAngle={70}
             duration={3}
             colorFrom="#a78bfa"
             colorTo="#22d3ee"
@@ -774,11 +994,13 @@ function VariantsGallery() {
           />
         </div>
 
-        <div className="relative flex items-center gap-2 overflow-hidden rounded-full border border-white/10 bg-[#0c0c12] px-5 py-2 text-[13px] text-white/80">
-          <Loader2 size={14} className="animate-spin text-white/60" />
-          <span>Indexing repo</span>
-          <BorderBeam
+        <div className="relative flex items-center gap-2 overflow-hidden rounded-full border border-white/10 bg-[#0c0c12] px-4 py-1.5 text-[12px] text-white/80">
+          <Loader2 size={13} className="animate-spin text-white/60" />
+          <span>Indexing</span>
+          <Beam
+            method={method}
             size={18}
+            wedgeAngle={70}
             duration={3}
             delay={1.5}
             colorFrom="#34d399"
@@ -787,63 +1009,7 @@ function VariantsGallery() {
           />
         </div>
       </div>
-    </section>
-  );
-}
-
-/**
- * ----------------------------------------------------------------------------
- * Demo 5 · 实现对比 · Conic Gradient 旋转法
- * ----------------------------------------------------------------------------
- * 教学用：另一种常见的 border-beam 实现方式 —— 旋转 conic-gradient。
- * 优点：兼容性好（不依赖 CSS Houdini 的 @property 即可工作；纯 keyframes）。
- * 缺点：beam 是「整圈一次性渲染」+「整体旋转」，所以经过圆角时角速度不均匀，
- *      在窄长矩形里会肉眼看出「直线段快、拐角慢」。motion-path 没这问题。
- */
-function ConicBeamCard() {
-  return (
-    <section className="rounded-2xl border border-white/10 bg-[#101013] p-6">
-      <div className="mb-4 text-[11px] font-medium uppercase tracking-wider text-white/40">
-        Alternative · Conic gradient rotation
-      </div>
-
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <ImplCard
-          label="① offset-path（本组件方案）"
-          desc="光斑沿圆角轨迹平滑滑过，过弯无停顿。"
-        >
-          <BorderBeam
-            size={90}
-            duration={4}
-            colorFrom="#9c40ff"
-            colorTo="#22d3ee"
-            borderWidth={1.5}
-          />
-        </ImplCard>
-
-        <ImplCard
-          label="② conic-gradient 旋转"
-          desc="整圈渐变随 angle 旋转，矩形长边上感觉更快。"
-        >
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0"
-            style={{
-              borderRadius: "inherit",
-              padding: 1.5,
-              WebkitMask:
-                "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
-              mask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
-              WebkitMaskComposite: "xor",
-              maskComposite: "exclude",
-              background:
-                "conic-gradient(from var(--bb-angle), transparent 0deg, transparent 270deg, #22d3ee 320deg, #9c40ff 350deg, transparent 360deg)",
-              animation: "border-beam-spin 4s linear infinite",
-            }}
-          />
-        </ImplCard>
-      </div>
-    </section>
+    </div>
   );
 }
 
@@ -1003,25 +1169,6 @@ function ProgressRingCard() {
   );
 }
 
-function ImplCard({
-  label,
-  desc,
-  children,
-}: {
-  label: string;
-  desc: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="relative flex h-36 flex-col justify-end overflow-hidden rounded-2xl border border-white/10 bg-[#0c0c12] p-4">
-      <div className="text-[12px] font-medium text-white/85">{label}</div>
-      <div className="mt-1 text-[11px] leading-relaxed text-white/40">
-        {desc}
-      </div>
-      {children}
-    </div>
-  );
-}
 
 /**
  * ----------------------------------------------------------------------------
@@ -1181,7 +1328,7 @@ export default function BorderBeamPage() {
         }
       `}</style>
 
-      <div className="mx-auto flex max-w-3xl flex-col gap-8 px-6">
+      <div className="mx-auto flex max-w-5xl flex-col gap-8 px-6">
         <header className="flex flex-col gap-2">
           <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">
             Interaction · CSS
@@ -1193,11 +1340,7 @@ export default function BorderBeamPage() {
         </header>
 
         <Hero />
-        <Playground />
-        <AIThinkingCard />
-        <HoverCTAs />
-        <VariantsGallery />
-        <ConicBeamCard />
+        <MirrorView />
         <ConicVariants />
 
         <footer className="pb-6 text-xs leading-relaxed text-white/30">
