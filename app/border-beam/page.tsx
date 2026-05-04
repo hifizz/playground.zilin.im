@@ -452,7 +452,9 @@ function MirrorView() {
         方案对比 · 左右镜像
       </div>
 
-      <div className="grid grid-cols-1 overflow-hidden rounded-2xl border border-white/10 bg-[#101013] lg:grid-cols-2 lg:divide-x lg:divide-white/10">
+      {/* 父 grid 显式声明 5 行（每行一个 demo）。每个 MirrorColumn 用 grid-rows: subgrid
+          继承父行轨道 → 左右同位 cell 自动取较高的那个，行行对齐。 */}
+      <div className="grid grid-cols-1 overflow-hidden rounded-2xl border border-white/10 bg-[#101013] lg:grid-cols-2 lg:grid-rows-[repeat(5,auto)] lg:divide-x lg:divide-white/10">
         <MirrorColumn method="offset-path" />
         <MirrorColumn method="conic-gradient" />
       </div>
@@ -461,15 +463,15 @@ function MirrorView() {
 }
 
 function MirrorColumn({ method }: { method: Method }) {
+  // mobile (单列): 普通 flex 纵排
+  // lg+: grid-rows: subgrid + row-span: 5 → 每个 demo 占父 grid 的对应行，
+  //      左右两列同行的 cell 取最大高度对齐
   return (
-    <div className="flex flex-col gap-7 p-6">
+    <div className="flex flex-col gap-7 p-6 lg:row-span-5 lg:grid lg:grid-rows-[subgrid] lg:gap-7">
       <ColumnHeader method={method} />
       <PlaygroundDemo method={method} />
-      <DemoDivider />
       <AIThinkingDemo method={method} />
-      <DemoDivider />
       <HoverCTADemo method={method} />
-      <DemoDivider />
       <VariantsDemo method={method} />
     </div>
   );
@@ -494,10 +496,6 @@ function ColumnHeader({ method }: { method: Method }) {
       </p>
     </div>
   );
-}
-
-function DemoDivider() {
-  return <div className="h-px bg-white/5" />;
 }
 
 /**
