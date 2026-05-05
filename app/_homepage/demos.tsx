@@ -6,6 +6,7 @@ import { TimelineMinimapThumb } from "./thumbs/timeline-minimap";
 import { MinimapTocThumb } from "./thumbs/minimap-toc";
 import { SyncButtonThumb } from "./thumbs/sync-button";
 import { StockCalcThumb } from "./thumbs/stock-calc";
+import { StockDashboardThumb } from "./thumbs/stock-dashboard";
 import { MobileFullscreenThumb } from "./thumbs/mobile-fullscreen";
 import { FloatingDockThumb } from "./thumbs/floating-dock";
 import { ShimmerTextThumb } from "./thumbs/shimmer-text";
@@ -88,6 +89,14 @@ export const demos: DemoEntry[] = [
     category: "Interaction",
     tags: ["Utility"],
     preview: <StockCalcThumb />,
+  },
+  {
+    title: "Stock Dashboard",
+    description: "纯 SVG 实现的股价 dashboard：区域线图 / 蜡烛图切换，OHLC tooltip。",
+    route: "/stock-dashboard",
+    category: "Explored Demo",
+    tags: ["SVG", "Chart"],
+    preview: <StockDashboardThumb />,
   },
   {
     title: "Mobile Fullscreen",
