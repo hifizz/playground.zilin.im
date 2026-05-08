@@ -1,0 +1,283 @@
+/* ============================================================
+ *  Claude AI Response — Markdown 复现样式
+ *  抓取自 claude.ai 实际 DOM 计算样式（1:1 还原）
+ *  使用方式：<article class="claude-markdown">...</article>
+ * ============================================================ */
+
+/* ---------- 设计令牌（颜色 / 字体 / 圆角） ---------- */
+.claude-markdown {
+  /* 文字色阶 */
+  --md-text: rgb(18, 18, 18); /* 正文 / 标题 / 列表 */
+  --md-text-muted: rgb(55, 55, 52); /* 引用块文字 */
+  --md-text-code: rgb(141, 37, 37); /* 行内代码（Claude 用的暗红） */
+  --md-text-precode: rgb(20, 24, 31); /* 代码块内文字 */
+
+  /* 边框 / 分隔线 */
+  --md-border-soft: rgba(31, 31, 30, 0.15); /* 行内代码 / 代码块外框 / hr */
+  --md-border-strong: rgba(31, 31, 30, 0.6); /* 表头底边线 */
+  --md-border-medium: rgba(31, 31, 30, 0.3); /* 表格行底边线 */
+  --md-border-quote: rgba(31, 31, 30, 0.1); /* 引用块左边线 */
+
+  /* 背景 */
+  --md-bg-code-inline: rgba(55, 55, 52, 0.05); /* 行内代码 */
+  --md-bg-pre: rgba(255, 255, 255, 0.5); /* 代码块（亮色半透明白） */
+
+  /* 字体 */
+  --md-font-serif:
+    "Anthropic Serif", Georgia, "Arial Hebrew", "Noto Sans Hebrew",
+    "Times New Roman", Times, "Hiragino Sans", "Yu Gothic", Meiryo,
+    "Noto Sans CJK JP", "PingFang TC", "Microsoft JhengHei", "Noto Sans CJK TC",
+    "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", "Apple SD Gothic Neo",
+    "Malgun Gothic", "Noto Sans CJK KR", serif;
+  --md-font-mono:
+    "Anthropic Mono", ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas,
+    monospace;
+
+  /* 圆角 */
+  --md-radius-code: 0.4rem; /* 6.4px，行内代码 */
+  --md-radius-pre: 0.5rem; /* 8px，代码块 */
+}
+
+/* ============================================================
+ *  1. 容器：基础排版 + 块级元素之间的统一间距
+ * ============================================================ */
+.claude-markdown {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px; /* 所有顶层块之间的统一间距 */
+
+  font-family: var(--md-font-serif);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.65; /* 26.4px */
+  color: var(--md-text);
+  text-align: start;
+  word-break: break-word;
+}
+.claude-markdown > * {
+  min-width: 0; /* 防止网格内元素溢出（Claude 原样保留） */
+}
+
+/* ============================================================
+ *  2. 标题 h1 – h6
+ *    Claude 实测特点：
+ *    - 字重统一 600（半粗体），不是浏览器默认的 bold
+ *    - margin-bottom 为 -4px：故意收紧标题与紧随段落的距离
+ *    - h1 在当前对话未出现，按 h2 + 4px 推断
+ * ============================================================ */
+.claude-markdown h1,
+.claude-markdown h2,
+.claude-markdown h3,
+.claude-markdown h4,
+.claude-markdown h5,
+.claude-markdown h6 {
+  font-weight: 600;
+  color: var(--md-text);
+  margin-bottom: -4px; /* 故意收紧到下一个块 */
+}
+
+.claude-markdown h1 {
+  font-size: 26px; /* ⚠ 推断值：当前对话无 h1 */
+  line-height: 1.2; /* 31.2px */
+  margin-top: 16px;
+}
+.claude-markdown h2 {
+  font-size: 22px;
+  line-height: 1.2; /* 26.4px */
+  margin-top: 0;
+}
+.claude-markdown h3 {
+  font-size: 18px;
+  line-height: 1.467; /* 26.4px */
+  margin-top: 12px;
+}
+.claude-markdown h4,
+.claude-markdown h5 {
+  font-size: 16px;
+  line-height: 1.5; /* 24px */
+  margin-top: 8px;
+}
+.claude-markdown h6 {
+  font-size: 14px;
+  line-height: 1.429; /* 20px */
+  margin-top: 8px;
+}
+
+/* ============================================================
+ *  3. 段落 + 行内文本
+ * ============================================================ */
+.claude-markdown p {
+  font-size: 16px;
+  line-height: 1.5; /* 24px，实测值 */
+  margin: 0; /* 块间距由容器 gap 控制 */
+  white-space: normal;
+  word-break: break-word;
+}
+
+.claude-markdown strong {
+  font-weight: 600;
+  color: var(--md-text);
+}
+.claude-markdown em {
+  font-style: italic;
+}
+.claude-markdown del {
+  text-decoration: line-through;
+}
+
+.claude-markdown a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: rgba(18, 18, 18, 0.4);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  transition: text-decoration-color 0.15s ease;
+}
+.claude-markdown a:hover,
+.claude-markdown a:focus {
+  text-decoration-color: currentColor;
+}
+
+/* ============================================================
+ *  4. 行内代码 与 代码块
+ * ============================================================ */
+/* 行内代码 */
+.claude-markdown :not(pre) > code {
+  font-family: var(--md-font-mono);
+  font-size: 0.9em; /* 相对父级，避免在 h2/h3 里变小 */
+  color: var(--md-text-code);
+  background: var(--md-bg-code-inline);
+  border: 0.5px solid var(--md-border-soft);
+  border-radius: var(--md-radius-code);
+  padding: 1px 4px;
+  white-space: pre-wrap;
+}
+
+/* 代码块外壳：用 <pre> 直接承担背景 + 边框（Claude 实际套了一层 div，这里合并） */
+.claude-markdown pre {
+  margin: 0;
+  padding: 14px;
+  background: var(--md-bg-pre);
+  border: 0.5px solid var(--md-border-soft);
+  border-radius: var(--md-radius-pre);
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.625; /* 22.75px */
+  color: var(--md-text-precode);
+}
+.claude-markdown pre code {
+  font-family: var(--md-font-mono);
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  white-space: pre;
+}
+
+/* ============================================================
+ *  5. 列表（ul / ol，含嵌套）
+ *    Claude 实测特点：
+ *    - 用 flex column + gap:4px 控制列表项间距，而不是 li 的 margin
+ *    - 嵌套列表 mb=0、mt=4px（比顶层更紧）
+ *    - li 自身 padding-left:8px，让标记和文字之间有一个小空隙
+ * ============================================================ */
+.claude-markdown ul,
+.claude-markdown ol {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 12px 0;
+  padding-left: 32px;
+}
+.claude-markdown ul {
+  list-style-type: disc;
+}
+.claude-markdown ol {
+  list-style-type: decimal;
+}
+
+.claude-markdown li {
+  padding-left: 8px;
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* 嵌套列表收紧 */
+.claude-markdown li ul,
+.claude-markdown li ol {
+  margin-top: 4px;
+  margin-bottom: 0;
+  gap: 4px;
+}
+/* 非末位的嵌套列表底部留 4px 呼吸 */
+.claude-markdown ul:not(:last-child) ul,
+.claude-markdown ul:not(:last-child) ol,
+.claude-markdown ol:not(:last-child) ul,
+.claude-markdown ol:not(:last-child) ol {
+  padding-bottom: 4px;
+}
+
+/* ============================================================
+ *  6. 引用块
+ * ============================================================ */
+.claude-markdown blockquote {
+  margin: 0;
+  padding: 0 32px 0 8px;
+  border-left: 4px solid var(--md-border-quote);
+  color: var(--md-text-muted);
+}
+.claude-markdown blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+/* ============================================================
+ *  7. 分隔线
+ * ============================================================ */
+.claude-markdown hr {
+  margin: 12px 0;
+  border: 0;
+  border-top: 0.5px solid var(--md-border-soft);
+}
+
+/* ============================================================
+ *  8. 表格
+ *    Claude 实测特点：
+ *    - 字号比正文小一档（14px）
+ *    - 表头底边粗一点（0.6 透明度），表格行底边浅一点（0.3）
+ *    - 单元格 padding 不对称：左 1px、右 16px，让数据靠左对齐
+ * ============================================================ */
+.claude-markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  line-height: 1.7; /* 23.8px */
+  color: var(--md-text);
+  text-align: start;
+}
+.claude-markdown th,
+.claude-markdown td {
+  padding: 8px 16px 8px 1px;
+  vertical-align: top;
+  text-align: left;
+}
+.claude-markdown th {
+  font-weight: 600;
+  border-bottom: 0.5px solid var(--md-border-strong);
+}
+.claude-markdown td {
+  font-weight: 400;
+  border-bottom: 0.5px solid var(--md-border-medium);
+}
+
+/* ============================================================
+ *  9. 图片（当前对话未出现，按合理默认给）
+ * ============================================================ */
+.claude-markdown img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  border-radius: var(--md-radius-pre);
+}

@@ -18,6 +18,7 @@ import { LwcBaselineThumb } from "./thumbs/lwc-baseline";
 import { LwcLiveThumb } from "./thumbs/lwc-live";
 import { LwcTerminalThumb } from "./thumbs/lwc-terminal";
 import { LivelineThumb } from "./thumbs/liveline";
+import { ClaudeChatStyleThumb } from "./thumbs/claude-chat-style";
 
 export type DemoCategory = "Interaction" | "Text Demo" | "Explored Demo" | "Agent UX/UI";
 
@@ -193,5 +194,14 @@ export const demos: DemoEntry[] = [
     category: "Explored Demo",
     tags: ["liveline", "Chart", "Realtime"],
     preview: <LivelineThumb />,
+  },
+  {
+    title: "Claude Chat Style",
+    description:
+      "1:1 抓取 claude.ai 计算样式还原成 ~280 行 CSS，用一篇博客示范 h1–h4 / 列表 / 代码块 / 表格 / 引用。",
+    route: "/claude-chat-style",
+    category: "Agent UX/UI",
+    tags: ["Markdown", "Typography"],
+    preview: <ClaudeChatStyleThumb />,
   },
 ];
