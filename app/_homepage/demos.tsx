@@ -11,6 +11,7 @@ import { MobileFullscreenThumb } from "./thumbs/mobile-fullscreen";
 import { FloatingDockThumb } from "./thumbs/floating-dock";
 import { ShimmerTextThumb } from "./thumbs/shimmer-text";
 import { BorderBeamThumb } from "./thumbs/border-beam";
+import { ScanBorderThumb } from "./thumbs/scan-border";
 import { LwcCandleVolumeThumb } from "./thumbs/lwc-candle-volume";
 import { LwcAreaGlowThumb } from "./thumbs/lwc-area-glow";
 import { LwcBaselineThumb } from "./thumbs/lwc-baseline";
@@ -135,6 +136,14 @@ export const demos: DemoEntry[] = [
     category: "Interaction",
     tags: ["CSS Animation", "Framer Motion"],
     preview: <BorderBeamThumb />,
+  },
+  {
+    title: "Scan Border",
+    description: "iOS 18 Siri 同款边缘光晕：旋转 conic 彩虹 + glow / ring 双层 + 4 边等宽 mask。",
+    route: "/scan-border",
+    category: "Agent UX/UI",
+    tags: ["CSS Animation", "Agent"],
+    preview: <ScanBorderThumb />,
   },
   {
     title: "LWC · Candle + Volume",
