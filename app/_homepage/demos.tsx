@@ -11,6 +11,7 @@ import { MobileFullscreenThumb } from "./thumbs/mobile-fullscreen";
 import { FloatingDockThumb } from "./thumbs/floating-dock";
 import { ShimmerTextThumb } from "./thumbs/shimmer-text";
 import { BorderBeamThumb } from "./thumbs/border-beam";
+import { LivelineThumb } from "./thumbs/liveline";
 
 export type DemoCategory = "Interaction" | "Text Demo" | "Explored Demo" | "Agent UX/UI";
 
@@ -129,5 +130,14 @@ export const demos: DemoEntry[] = [
     category: "Interaction",
     tags: ["CSS Animation", "Framer Motion"],
     preview: <BorderBeamThumb />,
+  },
+  {
+    title: "Liveline",
+    description:
+      "复刻 benji.org/liveline 排版的单页：用 liveline 库内嵌 4 个实时折线 demo（心率 / CPU / 多 series / 压力测试）。",
+    route: "/liveline",
+    category: "Explored Demo",
+    tags: ["liveline", "Chart", "Realtime"],
+    preview: <LivelineThumb />,
   },
 ];
