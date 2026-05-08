@@ -11,6 +11,11 @@ import { MobileFullscreenThumb } from "./thumbs/mobile-fullscreen";
 import { FloatingDockThumb } from "./thumbs/floating-dock";
 import { ShimmerTextThumb } from "./thumbs/shimmer-text";
 import { BorderBeamThumb } from "./thumbs/border-beam";
+import { LwcCandleVolumeThumb } from "./thumbs/lwc-candle-volume";
+import { LwcAreaGlowThumb } from "./thumbs/lwc-area-glow";
+import { LwcBaselineThumb } from "./thumbs/lwc-baseline";
+import { LwcLiveThumb } from "./thumbs/lwc-live";
+import { LwcTerminalThumb } from "./thumbs/lwc-terminal";
 import { LivelineThumb } from "./thumbs/liveline";
 
 export type DemoCategory = "Interaction" | "Text Demo" | "Explored Demo" | "Agent UX/UI";
@@ -130,6 +135,46 @@ export const demos: DemoEntry[] = [
     category: "Interaction",
     tags: ["CSS Animation", "Framer Motion"],
     preview: <BorderBeamThumb />,
+  },
+  {
+    title: "LWC · Candle + Volume",
+    description: "lightweight-charts 双 pane：蜡烛图 + 共享时间轴的成交量直方图，crosshair 联动 OHLC legend。",
+    route: "/lwc-candle-volume",
+    category: "Explored Demo",
+    tags: ["lightweight-charts", "Chart"],
+    preview: <LwcCandleVolumeThumb />,
+  },
+  {
+    title: "LWC · Area Glow",
+    description: "TradingView 首页 hero 风格：渐变 Area + 4 套主题色 + visibleRange 切换的时段选择器。",
+    route: "/lwc-area-glow",
+    category: "Explored Demo",
+    tags: ["lightweight-charts", "Chart"],
+    preview: <LwcAreaGlowThumb />,
+  },
+  {
+    title: "LWC · Baseline P&L",
+    description: "BaselineSeries：基准线上方绿、下方红，拖动 slider 实时改变 cost basis 重新着色。",
+    route: "/lwc-baseline",
+    category: "Explored Demo",
+    tags: ["lightweight-charts", "Chart"],
+    preview: <LwcBaselineThumb />,
+  },
+  {
+    title: "LWC · Live Stream",
+    description: "实时 tick 流：series.update() 增量渲染，可暂停 / 调速，演示 lightweight-charts 的高性能流式更新。",
+    route: "/lwc-live",
+    category: "Explored Demo",
+    tags: ["lightweight-charts", "Chart"],
+    preview: <LwcLiveThumb />,
+  },
+  {
+    title: "LWC · Trading Terminal",
+    description: "完整交易终端布局：蜡烛 + 布林带 / Volume / MACD 三 pane，右侧实时 L2 订单簿 + 成交流水。",
+    route: "/lwc-terminal",
+    category: "Explored Demo",
+    tags: ["lightweight-charts", "Chart", "Realtime"],
+    preview: <LwcTerminalThumb />,
   },
   {
     title: "Liveline",
