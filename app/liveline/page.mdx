@@ -1,0 +1,99 @@
+---
+title: Liveline
+date: 8 May, 2026
+---
+
+import { ArticleLayout, Demo } from "@/app/_article";
+import {
+  CpuUsageDemo,
+  HeartRateDemo,
+  PredictionDemo,
+  StressDemo,
+} from "./demos";
+import "./liveline.css";
+
+export const tagline = (
+  <>
+    Real-time animated line charts for React. One <code>{`<canvas>`}</code>,
+    zero CSS imports, smooth interpolation between updates.
+  </>
+);
+
+export default function MDXLayout({ children }) {
+  return (
+    <ArticleLayout meta={{ ...meta, tagline }}>
+      {children}
+    </ArticleLayout>
+  );
+}
+
+This is a tribute / re-skin of [benji.org/liveline](https://benji.org/liveline). Same library, same demos, our own typography sandbox — built to study how a single column of muted text plus a few embedded charts feels so much more alive than yet another marketing landing page.
+
+The library is **liveline** by [@benjitaylor](https://github.com/benjitaylor/liveline). It does *one thing* — draws a line that moves smoothly when a number changes — and everything else (momentum, candles, orderbook, multi-series, degen particles) is opt-in.
+
+## Getting started
+
+Pass a growing array of `{ time, value }` points and the latest value. Liveline interpolates between updates so even sparse data renders smooth at 60fps.
+
+```jsx
+import { Liveline } from 'liveline'
+
+function Chart({ data, value }) {
+  return (
+    <div style={{ height: 200 }}>
+      <Liveline data={data} value={value} />
+    </div>
+  )
+}
+```
+
+## Heart rate
+
+<Demo
+  caption={<><b>Calm signal · custom formatter.</b> A gentle sinusoid plus jitter. <code>exaggerate</code> tightens the Y-axis so small moves fill the chart.</>}
+  tag={`<Liveline exaggerate />`}
+>
+  <HeartRateDemo />
+</Demo>
+
+## CPU usage
+
+A random walk with the occasional spike — the kind of trace you stare at on a flaky service. The reference line at `80%` is just a number; Liveline draws the dashed guide and label.
+
+<Demo
+  theme="light"
+  caption={<><b>Light theme.</b> Auto-detected momentum, fill gradient, badge tail tracking the chart tip.</>}
+  tag="referenceLine"
+>
+  <CpuUsageDemo />
+</Demo>
+
+## Multi-series
+
+Pass `series` instead of `data` to draw multiple overlapping lines that share one axis. Toggle chips appear when there are 2+ series — clicking hides that line with a smooth fade and the Y-axis re-fits.
+
+<Demo
+  theme="light"
+  caption={<><b>Prediction market.</b> Three outcomes summing to 100%. Click a chip to toggle a series.</>}
+  tag="series[]"
+>
+  <PredictionDemo />
+</Demo>
+
+## Stress test
+
+The classic breaking points: high-frequency ticks, sharp reversals, isolated spikes on a flat line, full chaos. Crank it up and watch the line keep its composure.
+
+<div className="art-demo">
+  <StressDemo />
+  <div className="art-demo-caption">
+    <span><b>~60ms ticks.</b> <code>showValue</code> renders a 60fps live value overlay (DOM mutation, no React re-renders). <code>degen</code> fires particles on big swings.</span>
+    <span className="art-demo-tag">stress</span>
+  </div>
+</div>
+
+---
+
+Liveline can do a lot — momentum arrows, particles, orderbooks, scrubbing, time windows, candles. But at the end of the day, if you just want *a line that moves when a number changes*, it does that just fine too.
+
+Source · [github.com/benjitaylor/liveline](https://github.com/benjitaylor/liveline) · Original page · [benji.org/liveline](https://benji.org/liveline)

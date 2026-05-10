@@ -251,7 +251,7 @@ export function StressDemo() {
 
   return (
     <>
-      <div className="lv-demo-frame">
+      <div className="art-demo-frame">
         <div className="lv-chart-host" data-h="lg">
           <Liveline
             data={data}

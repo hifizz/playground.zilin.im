@@ -1,0 +1,390 @@
+/* ============================================================
+ *  Article template — typography sandbox cribbed from
+ *  benji.org/liveline. Scoped under .art-root so it doesn't
+ *  leak into the rest of the app. Designed to be portable:
+ *  rename the prefix and you can drop it into any project.
+ * ============================================================ */
+
+.art-root {
+  --art-bg: #fdfdfc;
+  --art-text: #111;
+  --art-text-soft: rgba(0, 0, 0, 0.45);
+  --art-text-softer: rgba(0, 0, 0, 0.3);
+  --art-text-strong: #000;
+  --art-line: #f2f2f2;
+  --art-heading-soft: hsla(0, 0%, 7%, 0.4);
+  --art-link: #3e9fff;
+  --art-accent: #3e9fff;
+
+  position: relative;
+  min-height: 100vh;
+  background: var(--art-bg);
+  color: var(--art-text-soft);
+  font-family: var(--font-article-sans), "Inter", system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Top fade — keeps page edge clean while scrolling. */
+.art-root::before {
+  content: "";
+  pointer-events: none;
+  z-index: 9;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6rem;
+  background: linear-gradient(
+    180deg,
+    var(--art-bg) 0%,
+    rgba(253, 253, 252, 0.85) 30%,
+    rgba(253, 253, 252, 0.5) 55%,
+    rgba(253, 253, 252, 0.18) 75%,
+    rgba(253, 253, 252, 0) 100%
+  );
+}
+
+/* ─── Back link ──────────────────────────────────────────── */
+.art-back {
+  position: fixed;
+  top: 1.25rem;
+  left: 1.25rem;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0;
+  color: var(--art-text-soft);
+  font-size: 0.8125rem;
+  font-weight: 460;
+  letter-spacing: -0.005rem;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+.art-back:hover {
+  color: var(--art-text-strong);
+}
+@media (min-width: 880px) {
+  .art-back {
+    top: 2.5rem;
+    left: 2.5rem;
+  }
+}
+
+/* ─── Container ──────────────────────────────────────────── */
+.art-container {
+  position: relative;
+  max-width: 36.375rem;
+  margin: 0 auto;
+  padding: 5rem 1rem 5rem;
+}
+@media (max-width: 640px) {
+  .art-container {
+    padding: 3rem 1.25rem 4rem;
+  }
+}
+
+/* ─── Header (title / date / tagline) ────────────────────── */
+.art-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-bottom: 2rem;
+}
+.art-header h1 {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: -0.008rem;
+  color: var(--art-text-strong);
+}
+.art-header .art-meta {
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--art-heading-soft);
+  letter-spacing: 0.005em;
+}
+.art-header .art-tagline {
+  font-size: 0.875rem;
+  font-weight: 460;
+  line-height: 1.25rem;
+  letter-spacing: -0.005rem;
+  color: var(--art-text-soft);
+  max-width: 30rem;
+  margin: 0;
+}
+
+/* ─── Article body ───────────────────────────────────────── */
+.art-article {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.art-article p,
+.art-article li {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 460;
+  line-height: 1.25rem;
+  letter-spacing: -0.005rem;
+  color: var(--art-text);
+}
+
+.art-article p strong,
+.art-article li strong {
+  color: var(--art-text-strong);
+  font-weight: 600;
+}
+
+.art-article p em,
+.art-article p em strong,
+.art-article li em {
+  color: var(--art-text-strong);
+  font-family: var(--font-article-serif), Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-weight: 430;
+  font-size: 0.9375rem;
+  letter-spacing: 0.01rem;
+}
+
+.art-article ul,
+.art-article ol {
+  margin: 0;
+  padding: 0 0 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.art-article a {
+  position: relative;
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid #d9d9d9;
+  padding-bottom: 0.5px;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+.art-article a:hover {
+  color: var(--art-text-strong);
+  border-color: #666;
+}
+
+/* Code (inline + block — no syntax highlighter; styling only). */
+.art-article :not(pre) > code {
+  font-family: "SF Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo,
+    Courier, monospace;
+  font-size: 0.8125em;
+  padding: 0 0.25rem;
+  background: #efefec;
+  border-radius: 0.25rem;
+  color: var(--art-text-strong);
+}
+.art-article pre {
+  margin: 0.5rem 0;
+  padding: 1rem 1.125rem;
+  background: #f6f6f4;
+  border-radius: 0.625rem;
+  overflow-x: auto;
+  font-family: "SF Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo,
+    Courier, monospace;
+  font-size: 0.8125rem;
+  line-height: 1.4rem;
+  color: #2b2b2b;
+  letter-spacing: -0.005rem;
+}
+.art-article pre code {
+  background: none;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+}
+
+/* ─── Section divider (h2 inside .art-article) ───────────── */
+.art-article h2 {
+  position: relative;
+  margin: 3rem 0 1.75rem;
+  padding: 0;
+  height: 1px;
+  background: var(--art-line);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  letter-spacing: 0.005em;
+  line-height: 1;
+  color: var(--art-heading-soft);
+  scroll-margin-top: 5rem;
+}
+.art-article h2 > span {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-block;
+  padding: 0 0.5rem 0 0;
+  background: var(--art-bg);
+}
+
+/* h3 — lighter sub-heading inside an h2 section. No line. */
+.art-article h3 {
+  margin: 0.75rem 0 -0.25rem;
+  padding: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  line-height: 1.25rem;
+  color: var(--art-text-strong);
+  scroll-margin-top: 5rem;
+}
+
+/* blockquote — serif italic, muted, with a thin left rule. */
+.art-article blockquote {
+  margin: 0;
+  padding: 0 0 0 1rem;
+  border-left: 2px solid var(--art-line);
+}
+.art-article blockquote p {
+  font-family: var(--font-article-serif), Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-weight: 430;
+  font-size: 0.9375rem;
+  letter-spacing: 0.005rem;
+  line-height: 1.4rem;
+  color: var(--art-text-soft);
+}
+
+/* Images — full column width, soft corners. */
+.art-article img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0.5rem 0;
+  border-radius: 0.5rem;
+}
+
+/* ─── Dotted divider (override <hr />) ───────────────────── */
+.art-divider-dots {
+  position: relative;
+  margin: 4rem auto;
+  width: 3px;
+  height: 3px;
+  border-radius: 999px;
+  background: #d9d9d9;
+  border: 0;
+}
+.art-divider-dots::before,
+.art-divider-dots::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: inherit;
+}
+.art-divider-dots::before {
+  transform: translateX(-1.1875rem);
+}
+.art-divider-dots::after {
+  transform: translateX(1.1875rem);
+}
+
+/* ─── Demo frames ────────────────────────────────────────── */
+.art-demo {
+  position: relative;
+  margin: 0.25rem 0 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+.art-demo-frame {
+  position: relative;
+  width: 100%;
+  border-radius: 0.875rem;
+  background: #0a0a0a;
+  padding: 1rem 1rem 0.75rem;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04),
+    0 12px 24px -16px rgba(0, 0, 0, 0.18);
+}
+.art-demo-frame[data-theme="light"] {
+  background: #ffffff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06),
+    0 12px 24px -16px rgba(0, 0, 0, 0.12);
+}
+.art-demo-caption {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--art-text-softer);
+  letter-spacing: -0.002rem;
+}
+.art-demo-caption b {
+  color: var(--art-text-soft);
+  font-weight: 560;
+}
+.art-demo-caption .art-demo-tag {
+  font-family: "SF Mono", monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: rgba(0, 0, 0, 0.35);
+}
+
+/* ─── TOC sidebar ────────────────────────────────────────── */
+.art-toc {
+  position: fixed;
+  top: 5rem;
+  left: 2.5rem;
+  width: 11rem;
+  max-height: calc(100vh - 8rem);
+  overflow-y: auto;
+  z-index: 5;
+  font-size: 0.75rem;
+  letter-spacing: 0.005em;
+}
+.art-toc-label {
+  display: block;
+  margin-bottom: 0.625rem;
+  color: var(--art-text-softer);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.art-toc ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+.art-toc a {
+  display: block;
+  padding: 0.125rem 0;
+  color: var(--art-text-softer);
+  text-decoration: none;
+  font-weight: 460;
+  line-height: 1.2;
+  transition: color 0.15s ease;
+}
+.art-toc a:hover {
+  color: var(--art-text-strong);
+}
+.art-toc a[data-active="true"] {
+  color: var(--art-text-strong);
+}
+@media (max-width: 1100px) {
+  .art-toc {
+    display: none;
+  }
+}
+
+::selection {
+  background: #ededed;
+  color: #111;
+}

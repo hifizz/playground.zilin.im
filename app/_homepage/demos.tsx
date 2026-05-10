@@ -19,6 +19,8 @@ import { LwcLiveThumb } from "./thumbs/lwc-live";
 import { LwcTerminalThumb } from "./thumbs/lwc-terminal";
 import { LivelineThumb } from "./thumbs/liveline";
 import { ClaudeChatStyleThumb } from "./thumbs/claude-chat-style";
+import { RainbowBorderThumb } from "./thumbs/rainbow-border";
+import { EditorWithUploadThumb } from "./thumbs/editor-with-upload";
 
 export type DemoCategory = "Interaction" | "Text Demo" | "Explored Demo" | "Agent UX/UI";
 
@@ -203,5 +205,22 @@ export const demos: DemoEntry[] = [
     category: "Agent UX/UI",
     tags: ["Markdown", "Typography"],
     preview: <ClaudeChatStyleThumb />,
+  },
+  {
+    title: "Rainbow Border",
+    description: "旋转 conic-gradient + 白色模糊遮罩，纯 CSS 实现 iOS 18 风格彩虹描边效果。",
+    route: "/rainbow-border",
+    category: "Interaction",
+    tags: ["CSS Animation", "iOS"],
+    preview: <RainbowBorderThumb />,
+  },
+  {
+    title: "Editor with Upload",
+    description:
+      "Tiptap 编辑器 + 顶部图片附件区：拖拽 / 粘贴图片自动归位到顶部，无图时折叠。",
+    route: "/editor-with-upload",
+    category: "Interaction",
+    tags: ["Tiptap", "Upload"],
+    preview: <EditorWithUploadThumb />,
   },
 ];

@@ -1,0 +1,50 @@
+/* Liveline-demo-specific styles. The article template owns the
+   typography + frame primitives; this file owns chip controls
+   and chart-host heights. */
+
+.lv-chart-host {
+  height: 200px;
+}
+.lv-chart-host[data-h="lg"] {
+  height: 240px;
+}
+.lv-chart-host[data-h="xl"] {
+  height: 280px;
+}
+
+.lv-stress-controls {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.625rem;
+}
+
+.lv-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: 999px;
+  background: #f4f4f2;
+  width: fit-content;
+}
+.lv-chip {
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: -0.003rem;
+  color: rgba(0, 0, 0, 0.5);
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.lv-chip:hover {
+  color: #000;
+}
+.lv-chip[data-active="true"] {
+  background: #fff;
+  color: #000;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.04);
+}
