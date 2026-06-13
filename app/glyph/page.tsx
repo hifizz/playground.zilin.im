@@ -149,8 +149,12 @@ export default function GlyphPage() {
 
             {/* 压力测试开关 */}
             <button
-              onClick={() => setStress((s) => !s)}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium transition-colors ${
+              onClick={() => {
+                // 开启压测时清空用户输入，否则残留文字会让 hero 停在固定词、无法快速切换
+                if (!stress) setCustom("");
+                setStress((s) => !s);
+              }}
+              className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium transition-colors ${
                 stress
                   ? "bg-foreground text-background"
                   : "bg-foreground/10 text-foreground hover:bg-foreground/15"
@@ -269,12 +273,12 @@ function Stat({ value, label }: { value: string; label: string }) {
   );
 }
 
-/* 性能要点行 */
+/* 性能要点行：左侧加粗关键词固定宽度成一列，右侧描述对齐（多行也对齐） */
 function Perf({ k, children }: { k: string; children: React.ReactNode }) {
   return (
-    <li className="flex gap-2">
-      <span className="shrink-0 font-medium text-foreground">{k}</span>
-      <span>· {children}</span>
+    <li className="flex gap-3">
+      <span className="w-28 shrink-0 whitespace-nowrap font-medium text-foreground">{k}</span>
+      <span className="flex-1">{children}</span>
     </li>
   );
 }

@@ -21,6 +21,7 @@ import { LivelineThumb } from "./thumbs/liveline";
 import { ClaudeChatStyleThumb } from "./thumbs/claude-chat-style";
 import { RainbowBorderThumb } from "./thumbs/rainbow-border";
 import { EditorWithUploadThumb } from "./thumbs/editor-with-upload";
+import { GlyphThumb } from "./thumbs/glyph";
 
 export type DemoCategory = "Interaction" | "Text Demo" | "Explored Demo" | "Agent UX/UI";
 
@@ -222,5 +223,14 @@ export const demos: DemoEntry[] = [
     category: "Interaction",
     tags: ["Tiptap", "Upload"],
     preview: <EditorWithUploadThumb />,
+  },
+  {
+    title: "Glyph · 流体文本动画库",
+    description:
+      "自研文本动画小库：Text 字符级流体过渡 / Number 平滑计数 / Slots 老虎机数字轮，零依赖 Web Animations API、合成层满帧。灵感来自 calligraph。",
+    route: "/glyph",
+    category: "Interaction",
+    tags: ["Text", "WAAPI", "Performance"],
+    preview: <GlyphThumb />,
   },
 ];
