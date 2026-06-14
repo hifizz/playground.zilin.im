@@ -21,6 +21,10 @@ import { LivelineThumb } from "./thumbs/liveline";
 import { ClaudeChatStyleThumb } from "./thumbs/claude-chat-style";
 import { RainbowBorderThumb } from "./thumbs/rainbow-border";
 import { EditorWithUploadThumb } from "./thumbs/editor-with-upload";
+import { ReavizStockCompareThumb } from "./thumbs/reaviz-stock-compare";
+import { ReavizOptionsPayoffThumb } from "./thumbs/reaviz-options-payoff";
+import { ReavizSaasMetricsThumb } from "./thumbs/reaviz-saas-metrics";
+import { ReavizBlockMultiThumb } from "./thumbs/reaviz-block-multi";
 import { GlyphThumb } from "./thumbs/glyph";
 
 export type DemoCategory = "Interaction" | "Text Demo" | "Explored Demo" | "Agent UX/UI";
@@ -223,6 +227,42 @@ export const demos: DemoEntry[] = [
     category: "Interaction",
     tags: ["Tiptap", "Upload"],
     preview: <EditorWithUploadThumb />,
+  },
+  {
+    title: "Reaviz · 多股票涨跌对比",
+    description:
+      "reaviz LineChart 多 series：5 只科技股归一化到 0% 比相对涨跌，crosshair tooltip + 时段切换 + 滚轮缩放。",
+    route: "/reaviz-stock-compare",
+    category: "Explored Demo",
+    tags: ["reaviz", "Chart"],
+    preview: <ReavizStockCompareThumb />,
+  },
+  {
+    title: "Reaviz · 期权收益曲线",
+    description:
+      "AreaChart + ValueMarker 画到期 P&L 曲线：六种常用策略、可调 strike / premium，breakeven 自动求解。",
+    route: "/reaviz-options-payoff",
+    category: "Explored Demo",
+    tags: ["reaviz", "Chart", "Options"],
+    preview: <ReavizOptionsPayoffThumb />,
+  },
+  {
+    title: "Reaviz · Multi Series Block",
+    description:
+      "1:1 复刻 reaviz.dev blocks 里的 Multi Series · Medium：Incident Report 卡片，沿用官方调色板。",
+    route: "/reaviz-block-multi",
+    category: "Explored Demo",
+    tags: ["reaviz", "Chart", "Block"],
+    preview: <ReavizBlockMultiThumb />,
+  },
+  {
+    title: "Reaviz · SaaS Metrics",
+    description:
+      "SaaS 增长面板：4 个 KPI + Sparkline、按订阅层堆叠的 MRR、转化漏斗。一次串起 reaviz 三类图表。",
+    route: "/reaviz-saas-metrics",
+    category: "Explored Demo",
+    tags: ["reaviz", "Chart", "SaaS"],
+    preview: <ReavizSaasMetricsThumb />,
   },
   {
     title: "Glyph · 流体文本动画库",
