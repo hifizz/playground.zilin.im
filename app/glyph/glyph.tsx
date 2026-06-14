@@ -237,13 +237,20 @@ export function Glyph({
     nodes.forEach((node) => {
       const key = node.getAttribute(KEY_ATTR)!;
       const r = node.getBoundingClientRect();
-      newRects.set(key, { left: r.left, top: r.top, char: node.textContent ?? "" });
+      // 关键：存「相对容器」坐标，而不是「相对视口」坐标。
+      // getBoundingClientRect 给的是视口坐标，会随页面滚动而变。若两帧之间发生
+      // 了滚动，old(视口) - new(视口) 里就混进了滚动量，FLIP 位移凭空多出一段，
+      // 字母便从「滚动偏移」处飘入而非它在画布里的真实旧位置。容器和字符一起
+      // 滚动，相对容器的坐标恒定，dx/dy 只反映容器内的真实重排，与滚动解耦。
+      const left = r.left - contRect.left;
+      const top = r.top - contRect.top;
+      newRects.set(key, { left, top, char: node.textContent ?? "" });
       present.add(key);
       const old = rectsRef.current.get(key);
       if (!old) toEnter.push(node);
       else {
-        const dx = old.left - r.left;
-        const dy = old.top - r.top;
+        const dx = old.left - left;
+        const dy = old.top - top;
         if (dx || dy) toGlide.push({ node, dx, dy });
       }
     });
@@ -292,8 +299,9 @@ export function Glyph({
         clone.setAttribute("aria-hidden", "true");
         Object.assign(clone.style, {
           position: "absolute",
-          left: `${old.left - contRect.left}px`,
-          top: `${old.top - contRect.top}px`,
+          // old.left/top 已是相对容器坐标（见上方测量），直接用作绝对定位偏移
+          left: `${old.left}px`,
+          top: `${old.top}px`,
           margin: "0",
           display: "inline-block",
           whiteSpace: "pre",
