@@ -26,6 +26,7 @@ import { ReavizOptionsPayoffThumb } from "./thumbs/reaviz-options-payoff";
 import { ReavizSaasMetricsThumb } from "./thumbs/reaviz-saas-metrics";
 import { ReavizBlockMultiThumb } from "./thumbs/reaviz-block-multi";
 import { GlyphThumb } from "./thumbs/glyph";
+import { OnboardingThumb } from "./thumbs/onboarding";
 
 export type DemoCategory = "Interaction" | "Text Demo" | "Explored Demo" | "Agent UX/UI";
 
@@ -272,5 +273,14 @@ export const demos: DemoEntry[] = [
     category: "Interaction",
     tags: ["Text", "WAAPI", "Performance"],
     preview: <GlyphThumb />,
+  },
+  {
+    title: "Onboarding 引导卡片",
+    description:
+      "复刻 HeroUI Pro 角落引导卡：四角任意弹出、可替换内部元素、可挂事件回调的复合组件。",
+    route: "/onboarding",
+    category: "Agent UX/UI",
+    tags: ["Onboarding", "Framer Motion", "Compound"],
+    preview: <OnboardingThumb />,
   },
 ];
