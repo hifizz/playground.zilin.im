@@ -153,7 +153,8 @@ export default function OnboardingPage() {
           <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">
             可替换内部元素 · 变体画廊
           </div>
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+          {/* 一行最多 2 个：3 列时每个 stage 比 300px 卡片还窄，会被 overflow-hidden 横向截断 */}
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
             {/* ① 默认 Pro banner（用 OnboardingBanner，全 props 驱动） */}
             <Stage
               caption="① 默认实现 · OnboardingBanner"
