@@ -164,6 +164,7 @@ export default function OnboardingPage() {
                 position="bottom-left"
                 offset={16}
                 width={300}
+                mediaHeight={150}
                 defaultOpen
               />
             </Stage>
@@ -175,6 +176,7 @@ export default function OnboardingPage() {
                 position="top-right"
                 offset={16}
                 width={300}
+                mediaHeight={150}
                 defaultOpen
                 background={
                   <div
@@ -316,7 +318,7 @@ function Stage({
         <Wand2 size={13} className="text-white/40" />
         {caption}
       </div>
-      <div className="relative h-[360px] overflow-hidden rounded-2xl border border-white/10 bg-[#08080b]">
+      <div className="relative h-[400px] overflow-hidden rounded-2xl border border-white/10 bg-[#08080b]">
         {/* 浅浅的网格底，衬出卡片悬浮在「页面角落」 */}
         <div
           className="absolute inset-0 opacity-[0.06]"

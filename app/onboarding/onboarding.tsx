@@ -180,9 +180,14 @@ function OnboardingRoot({
           >
             <div
               className={
-                "relative overflow-hidden rounded-3xl border border-white/10 bg-[#0a0a0a] shadow-2xl shadow-black/60 " +
+                "relative overflow-hidden rounded-3xl border border-white/15 bg-[#0e0e10] " +
                 (className ?? "")
               }
+              style={{
+                // 顶部一道内高光 + 柔和外阴影：让卡片像浮在页面上，而不是被一圈死黑描边框住
+                boxShadow:
+                  "inset 0 1px 0 0 rgba(255,255,255,0.08), 0 20px 48px -12px rgba(0,0,0,0.55)",
+              }}
             >
               {children}
             </div>
@@ -363,7 +368,7 @@ function OnboardingAction({
         if (closeOnClick) close();
       }}
       className={
-        "flex-1 rounded-full px-4 py-2.5 text-[14px] font-medium transition-colors " +
+        "flex-1 rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors " +
         ACTION_VARIANT[variant] +
         " " +
         (className ?? "")
@@ -557,6 +562,8 @@ export type OnboardingBannerProps = {
   // —— 内容 slot（都可替换）——
   /** banner 区域内容（默认 <ProLogo /> + eyebrow）。传 media 可整块替换顶部 */
   media?: React.ReactNode;
+  /** banner 区域高度（px），默认 200 */
+  mediaHeight?: number;
   /** banner 背景层，默认渐变 SVG */
   background?: React.ReactNode;
   /** logo 下方的小字，默认 "Now available" */
@@ -585,6 +592,7 @@ export function OnboardingBanner({
   defaultOpen = true,
   onOpenChange,
   media,
+  mediaHeight = 200,
   background,
   eyebrow = "Now available",
   title = "Build faster with HeroUI Pro",
@@ -609,7 +617,7 @@ export function OnboardingBanner({
     >
       {showClose && <Onboarding.Close onClick={() => onClose?.()} />}
 
-      <Onboarding.Media background={background}>
+      <Onboarding.Media height={mediaHeight} background={background}>
         {media ?? (
           <div className="flex flex-col items-center gap-1.5">
             <ProLogo />
