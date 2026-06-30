@@ -27,8 +27,14 @@ import { ReavizSaasMetricsThumb } from "./thumbs/reaviz-saas-metrics";
 import { ReavizBlockMultiThumb } from "./thumbs/reaviz-block-multi";
 import { GlyphThumb } from "./thumbs/glyph";
 import { OnboardingThumb } from "./thumbs/onboarding";
+import { LoginOnboardingThumb } from "./thumbs/login-onboarding";
 
-export type DemoCategory = "Interaction" | "Text Demo" | "Explored Demo" | "Agent UX/UI";
+export type DemoCategory =
+  | "Interaction"
+  | "Text Demo"
+  | "Explored Demo"
+  | "Agent UX/UI"
+  | "Build an Agent";
 
 export type DemoEntry = {
   title: string;
@@ -39,7 +45,7 @@ export type DemoEntry = {
   preview: React.ReactNode;
 };
 
-export const ALL_CATEGORIES = ["All", "Interaction", "Explored Demo", "Agent UX/UI"] as const;
+export const ALL_CATEGORIES = ["All", "Build an Agent", "Interaction", "Explored Demo", "Agent UX/UI"] as const;
 
 export const demos: DemoEntry[] = [
   {
@@ -282,5 +288,14 @@ export const demos: DemoEntry[] = [
     category: "Agent UX/UI",
     tags: ["Onboarding", "Framer Motion", "Compound"],
     preview: <OnboardingThumb />,
+  },
+  {
+    title: "Login Onboarding",
+    description:
+      "复刻 Gemini Enterprise 登录页：左侧 login / signup 卡片可整块替换，右侧价值轮播用 Framer Motion 驱动。",
+    route: "/login-onboarding",
+    category: "Build an Agent",
+    tags: ["Auth", "Framer Motion", "Onboarding"],
+    preview: <LoginOnboardingThumb />,
   },
 ];
