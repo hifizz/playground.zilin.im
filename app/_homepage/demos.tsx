@@ -28,6 +28,7 @@ import { ReavizBlockMultiThumb } from "./thumbs/reaviz-block-multi";
 import { GlyphThumb } from "./thumbs/glyph";
 import { OnboardingThumb } from "./thumbs/onboarding";
 import { ShadersThumb } from "./thumbs/shaders";
+import { ShaderFlowingLightThumb } from "./thumbs/shader-flowing-light";
 
 export type DemoCategory = "Interaction" | "Text Demo" | "Explored Demo" | "Agent UX/UI";
 
@@ -292,5 +293,14 @@ export const demos: DemoEntry[] = [
     category: "Explored Demo",
     tags: ["WebGL", "Shader", "IntersectionObserver"],
     preview: <ShadersThumb />,
+  },
+  {
+    title: "Shader · 流动的光",
+    description:
+      "4 段手写 GLSL 片段着色器复刻「流动的光」：语音流光带 / 呼吸光环 / 边缘流光(Apple Intelligence) / 弥散渐变，纯 WebGL 实时渲染，可拖滑块、点按钮实时调参。",
+    route: "/shader-flowing-light",
+    category: "Explored Demo",
+    tags: ["WebGL", "GLSL", "Shader"],
+    preview: <ShaderFlowingLightThumb />,
   },
 ];
