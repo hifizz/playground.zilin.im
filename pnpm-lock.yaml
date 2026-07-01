@@ -20,6 +20,9 @@ importers:
       '@next/mdx':
         specifier: ^16.2.6
         version: 16.2.6(@mdx-js/loader@3.1.1)(@mdx-js/react@3.1.1(@types/react@19.2.4)(react@19.2.0))
+      '@paper-design/shaders-react':
+        specifier: 0.0.76
+        version: 0.0.76(@types/react@19.2.4)(react@19.2.0)
       '@tiptap/pm':
         specifier: ^3.23.1
         version: 3.23.1
@@ -798,6 +801,18 @@ packages:
 
   '@open-draft/until@2.1.0':
     resolution: {integrity: sha512-U69T3ItWHvLwGg5eJ0n3I62nWuE6ilHlmz7zM0npLBRvPRd7e6NYmg54vvRtP5mZG7kZqZCFVdsTWo7BPtBujg==}
+
+  '@paper-design/shaders-react@0.0.76':
+    resolution: {integrity: sha512-uPJWrYRf6cJdO2H+fuXlahaqz0QjYglNAyUTaRfIInpzCa/d6guxBIK003soAZQFuQ035yg9FhtfFzKNWm+a5A==}
+    peerDependencies:
+      '@types/react': ^18 || ^19
+      react: ^18 || ^19
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+
+  '@paper-design/shaders@0.0.76':
+    resolution: {integrity: sha512-AcNDY4J66YQHUfQYFInkCP7M9VOje0od7wLpOR7LtCmc532opJy6ll+h1W9zBovz8tt9U7OADUmJ/qKEXyOX/A==}
 
   '@radix-ui/number@1.1.1':
     resolution: {integrity: sha512-MkKCwxlXTgz6CFoJx3pCwn07GKp36+aZyu/u2Ln2VrA5DcdyCZkASEDBTd8x5whTQQL5CiYf4prXKLcgQdv29g==}
@@ -5664,6 +5679,15 @@ snapshots:
       outvariant: 1.4.3
 
   '@open-draft/until@2.1.0': {}
+
+  '@paper-design/shaders-react@0.0.76(@types/react@19.2.4)(react@19.2.0)':
+    dependencies:
+      '@paper-design/shaders': 0.0.76
+      react: 19.2.0
+    optionalDependencies:
+      '@types/react': 19.2.4
+
+  '@paper-design/shaders@0.0.76': {}
 
   '@radix-ui/number@1.1.1': {}
 
