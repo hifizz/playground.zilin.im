@@ -27,6 +27,7 @@ import { ReavizSaasMetricsThumb } from "./thumbs/reaviz-saas-metrics";
 import { ReavizBlockMultiThumb } from "./thumbs/reaviz-block-multi";
 import { GlyphThumb } from "./thumbs/glyph";
 import { OnboardingThumb } from "./thumbs/onboarding";
+import { ShadersThumb } from "./thumbs/shaders";
 
 export type DemoCategory = "Interaction" | "Text Demo" | "Explored Demo" | "Agent UX/UI";
 
@@ -282,5 +283,14 @@ export const demos: DemoEntry[] = [
     category: "Agent UX/UI",
     tags: ["Onboarding", "Framer Motion", "Compound"],
     preview: <OnboardingThumb />,
+  },
+  {
+    title: "Paper Shaders 效果画廊",
+    description:
+      "@paper-design/shaders-react 冷色系效果展示：7 个全屏可滚动 section（GrainGradient 作 hero），用 IntersectionObserver 只在进入视口时挂载对应 WebGL shader。",
+    route: "/shaders",
+    category: "Explored Demo",
+    tags: ["WebGL", "Shader", "IntersectionObserver"],
+    preview: <ShadersThumb />,
   },
 ];
