@@ -2,7 +2,9 @@
 
 import React from "react";
 import Link from "next/link";
+import { GrainGradientSection } from "./sections/grain-gradient-section";
 import { MeshGradientSection } from "./sections/mesh-gradient-section";
+import { StaticRadialGradientSection } from "./sections/static-radial-gradient-section";
 import { PulsingBorderSection } from "./sections/pulsing-border-section";
 import { MetaballsSection } from "./sections/metaballs-section";
 import { LiquidMetalSection } from "./sections/liquid-metal-section";
@@ -23,7 +25,9 @@ import { NeuroNoiseSection } from "./sections/neuro-noise-section";
  */
 
 const NAV = [
+  { id: "grain-gradient", label: "Grain Gradient" },
   { id: "mesh-gradient", label: "Mesh Gradient" },
+  { id: "static-radial-gradient", label: "Static Radial Gradient" },
   { id: "pulsing-border", label: "Pulsing Border" },
   { id: "metaballs", label: "Metaballs" },
   { id: "liquid-metal", label: "Liquid Metal" },
@@ -58,8 +62,10 @@ export default function ShadersPage() {
         ))}
       </nav>
 
-      {/* 5 个全屏效果 section —— 参数在此处按需覆盖 */}
+      {/* 7 个全屏效果 section —— 参数在此处按需覆盖。GrainGradient 作 hero。 */}
+      <GrainGradientSection />
       <MeshGradientSection />
+      <StaticRadialGradientSection />
       <PulsingBorderSection />
       <MetaballsSection />
       <LiquidMetalSection />

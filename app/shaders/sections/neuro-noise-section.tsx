@@ -29,16 +29,16 @@ export function NeuroNoiseSection({
   return (
     <ShaderSection
       id="neuro-noise"
-      index="05"
+      index="07"
       name="Neuro Noise"
       description="分形神经纹理，冷色慢速流动，作为暗色科技背景。"
       foreground={
         <div className="px-6 text-center">
           <p className="font-mono text-xs uppercase tracking-[0.4em] text-cyan-300/60">
-            fin · 全部 5 个效果
+            fin · 全部 7 个效果
           </p>
           <a
-            href="#mesh-gradient"
+            href="#grain-gradient"
             className="mt-6 inline-flex items-center gap-2 rounded-full border border-cyan-400/40 bg-cyan-400/10 px-6 py-2.5 text-sm font-medium text-cyan-100 backdrop-blur-sm transition hover:bg-cyan-400/20"
           >
             <span aria-hidden>↑</span>

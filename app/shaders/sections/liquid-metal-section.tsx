@@ -33,7 +33,7 @@ export function LiquidMetalSection({
   return (
     <ShaderSection
       id="liquid-metal"
-      index="04"
+      index="06"
       name="Liquid Metal"
       description="液态金属材质，套在内置融球形状上，可替换为自定义 logo。"
     >

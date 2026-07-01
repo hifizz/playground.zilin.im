@@ -26,7 +26,7 @@ export function MetaballsSection({
   return (
     <ShaderSection
       id="metaballs"
-      index="03"
+      index="05"
       name="Metaballs"
       description="融球：多个有机色团相互融合，营造 AI 的生命感。"
     >

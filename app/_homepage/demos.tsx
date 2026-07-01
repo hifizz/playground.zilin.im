@@ -287,7 +287,7 @@ export const demos: DemoEntry[] = [
   {
     title: "Paper Shaders 效果画廊",
     description:
-      "@paper-design/shaders-react 冷色系效果展示：5 个全屏可滚动 section，用 IntersectionObserver 只在进入视口时挂载对应 WebGL shader。",
+      "@paper-design/shaders-react 冷色系效果展示：7 个全屏可滚动 section（GrainGradient 作 hero），用 IntersectionObserver 只在进入视口时挂载对应 WebGL shader。",
     route: "/shaders",
     category: "Explored Demo",
     tags: ["WebGL", "Shader", "IntersectionObserver"],

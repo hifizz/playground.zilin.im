@@ -40,7 +40,7 @@ export function PulsingBorderSection({
   return (
     <ShaderSection
       id="pulsing-border"
-      index="02"
+      index="04"
       name="Pulsing Border"
       description="脉动边框光，模拟 AI 唤醒时屏幕边缘的 Siri 式流光。"
       foreground={

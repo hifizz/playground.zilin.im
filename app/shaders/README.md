@@ -1,21 +1,26 @@
 # Paper Shaders 效果画廊 (`/shaders`)
 
 用 [`@paper-design/shaders-react`](https://github.com/paper-design/shaders) 搭的冷色系
-着色器展示页。5 个效果各占一个全屏 section，上下滚动逐个浏览，左上角标注效果名 + 一句话说明。
+着色器展示页。7 个效果各占一个全屏 section，上下滚动逐个浏览，左上角标注效果名 + 一句话说明。
 
 ## 文件结构
 
 ```
 app/shaders/
-├── page.tsx                  # 页面外壳：按顺序排 5 个 section + 右侧锚点圆点导航
+├── page.tsx                  # 页面外壳：按顺序排 7 个 section + 右侧锚点圆点导航
 ├── shader-section.tsx        # 通用外壳：IntersectionObserver 懒挂载 + 左上角标注 + 前景插槽
 └── sections/
-    ├── mesh-gradient-section.tsx   # 01 MeshGradient（hero）
-    ├── pulsing-border-section.tsx  # 02 PulsingBorder（Siri 式边缘流光）
-    ├── metaballs-section.tsx       # 03 Metaballs（融球）
-    ├── liquid-metal-section.tsx    # 04 LiquidMetal（液态金属）
-    └── neuro-noise-section.tsx     # 05 NeuroNoise（分形神经纹理）
+    ├── grain-gradient-section.tsx          # 01 GrainGradient（hero，带标题+滚动按钮）
+    ├── mesh-gradient-section.tsx           # 02 MeshGradient
+    ├── static-radial-gradient-section.tsx  # 03 StaticRadialGradient（静态径向渐变）
+    ├── pulsing-border-section.tsx          # 04 PulsingBorder（Siri 式边缘流光）
+    ├── metaballs-section.tsx               # 05 Metaballs（融球）
+    ├── liquid-metal-section.tsx            # 06 LiquidMetal（液态金属）
+    └── neuro-noise-section.tsx             # 07 NeuroNoise（分形神经纹理）
 ```
+
+> **Hero 效果**：hero 区域用的是 `GrainGradientSection`（页面第一个 section，带
+> 大标题和「向下滚动」按钮）。想换 hero，直接在 `page.tsx` 里调整第一个 section 即可。
 
 ## 设计要点
 
@@ -53,7 +58,9 @@ app/shaders/
 
 | Section | 主要 props |
 | --- | --- |
+| `GrainGradientSection` | `colors` `colorBack` `softness` `intensity` `noise` `speed` `shape`（wave/dots/truchet/corners/ripple/blob/sphere） |
 | `MeshGradientSection` | `colors` `distortion` `swirl` `speed` |
+| `StaticRadialGradientSection` | `colors` `colorBack` `radius` `focalDistance` `focalAngle` `falloff` `mixing` `distortion` `grainMixer` `grainOverlay` `speed` |
 | `PulsingBorderSection` | `colors` `colorBack` `speed` `thickness` `softness` `intensity` `bloom` `spots` `spotSize` `pulse` `smoke` `roundness` |
 | `MetaballsSection` | `colors` `colorBack` `count` `size` `speed` |
 | `LiquidMetalSection` | `colorBack` `colorTint` `distortion` `speed` `scale` `shape` `image` |
