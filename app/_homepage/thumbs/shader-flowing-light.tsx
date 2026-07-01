@@ -1,69 +1,73 @@
 export function ShaderFlowingLightThumb() {
-  // 纯 CSS 静态缩略图：深色底 + 底部一条起伏流光带（暗示①语音流光）+ 中央呼吸
-  // 光环（暗示②）+ 一圈边缘辉光（暗示③边缘流光）。
+  // 纯 CSS 静态缩略图：深色底 + 一条高亮流动光带（橙→粉→蓝→青，带辉光）横贯，
+  // 上方一枚呼吸光点。只是「意思一下」，暗示 Demo 的核心——流动的光。
   const keyframes = `
-    @keyframes sfl-thumb-breath {
-      0%, 100% { transform: scale(1); opacity: 0.7; }
-      50%      { transform: scale(1.1); opacity: 1; }
+    @keyframes sfl-thumb-flow {
+      0%   { background-position: 0% 50%; }
+      100% { background-position: 200% 50%; }
     }
-    @keyframes sfl-thumb-edge {
-      0%, 100% { opacity: 0.5; }
-      50%      { opacity: 0.95; }
+    @keyframes sfl-thumb-breath {
+      0%, 100% { transform: scale(1);   opacity: 0.85; }
+      50%      { transform: scale(1.25); opacity: 1; }
     }
   `;
+
+  const flow =
+    "linear-gradient(90deg, #fb923c, #f472b6, #60a5fa, #2dd4bf, #fb923c)";
 
   return (
     <div
       className="w-full h-full relative overflow-hidden"
-      style={{ background: "#08080c" }}
+      style={{
+        background: "radial-gradient(120% 90% at 50% 40%, #12121c 0%, #08080c 70%)",
+      }}
     >
       <style>{keyframes}</style>
 
-      {/* ③ 边缘流光 */}
-      <div
-        style={{
-          position: "absolute",
-          inset: "7%",
-          borderRadius: 14,
-          border: "1.5px solid transparent",
-          boxShadow:
-            "0 0 14px rgba(45,212,191,0.55), inset 0 0 16px rgba(96,165,250,0.35)",
-          background:
-            "linear-gradient(#08080c,#08080c) padding-box, linear-gradient(120deg,#fb923c,#f472b6,#60a5fa,#2dd4bf) border-box",
-          animation: "sfl-thumb-edge 3s ease-in-out infinite",
-        }}
-      />
-
-      {/* ② 呼吸光环 */}
+      {/* 呼吸光点 */}
       <div
         style={{
           position: "absolute",
           left: "50%",
-          top: "44%",
-          width: "38%",
-          height: "38%",
+          top: "34%",
+          width: 30,
+          height: 30,
           transform: "translate(-50%,-50%)",
           borderRadius: "50%",
-          border: "3px solid rgba(45,212,191,0.9)",
-          boxShadow:
-            "0 0 18px rgba(45,212,191,0.7), inset 0 0 10px rgba(96,165,250,0.5)",
-          animation: "sfl-thumb-breath 2.6s ease-in-out infinite",
+          background: "radial-gradient(circle, #99f6e4 0%, #2dd4bf 45%, transparent 72%)",
+          boxShadow: "0 0 24px 6px rgba(45,212,191,0.7)",
+          animation: "sfl-thumb-breath 2.4s ease-in-out infinite",
         }}
       />
 
-      {/* ① 底部语音流光带 */}
+      {/* 流动光带（含柔和光晕层） */}
       <div
         style={{
           position: "absolute",
-          left: 0,
-          right: 0,
-          bottom: 0,
-          height: "34%",
-          background:
-            "linear-gradient(to top, rgba(251,146,60,0.9), rgba(244,114,182,0.5) 45%, rgba(96,165,250,0.15) 80%, transparent)",
-          clipPath:
-            "polygon(0 55%, 12% 35%, 26% 60%, 40% 30%, 55% 55%, 70% 28%, 85% 52%, 100% 38%, 100% 100%, 0 100%)",
-          filter: "blur(0.5px)",
+          left: "8%",
+          right: "8%",
+          top: "60%",
+          height: 16,
+          borderRadius: 999,
+          background: flow,
+          backgroundSize: "200% 100%",
+          filter: "blur(9px)",
+          opacity: 0.75,
+          animation: "sfl-thumb-flow 4s linear infinite",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          left: "8%",
+          right: "8%",
+          top: "60%",
+          height: 6,
+          borderRadius: 999,
+          background: flow,
+          backgroundSize: "200% 100%",
+          boxShadow: "0 0 12px rgba(244,114,182,0.6)",
+          animation: "sfl-thumb-flow 4s linear infinite",
         }}
       />
 
