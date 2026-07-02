@@ -30,6 +30,7 @@ import { OnboardingThumb } from "./thumbs/onboarding";
 import { ShadersThumb } from "./thumbs/shaders";
 import { ShaderFlowingLightThumb } from "./thumbs/shader-flowing-light";
 import { VoiceOrbCarouselThumb } from "./thumbs/voice-orb-carousel";
+import { VoiceChatWidgetThumb } from "./thumbs/voice-chat-widget";
 
 export type DemoCategory = "Interaction" | "Text Demo" | "Explored Demo" | "Agent UX/UI";
 
@@ -312,5 +313,14 @@ export const demos: DemoEntry[] = [
     category: "Explored Demo",
     tags: ["WebGL", "Shader", "Carousel"],
     preview: <VoiceOrbCarouselThumb />,
+  },
+  {
+    title: "Voice Chat Widget",
+    description:
+      "复刻 ElevenLabs 右下角对话式 AI 语音挂件：玻璃拟态胶囊展开为带动效对话框，GrainGradient sphere 语音球 + 通话键，通话时球体流动加速。",
+    route: "/voice-chat-widget",
+    category: "Agent UX/UI",
+    tags: ["Framer Motion", "Shader", "Agent"],
+    preview: <VoiceChatWidgetThumb />,
   },
 ];

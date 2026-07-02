@@ -15,14 +15,14 @@ import VoiceOrbCarousel, {
  * MeshGradient / GrainGradient 真实 WebGL 流动，左右邻居静止占位，最外侧两片用
  * CSS 渐变虚化（省 WebGL context）。整颗圆是 CSS radial-gradient mask 裁出来的。
  *
- * 交互：点左右箭头 / 点邻居球 / 键盘 ← → 切换；点激活球中央的播放键触发 onPlay，
- * 这里用一行「正在播放」状态回显。尊重 prefers-reduced-motion。
+ * 交互：点左右箭头 / 点邻居球 / 键盘 ← → 切换；点激活球中央的播放键切换「说话」，
+ * 此时球体内部流动加速 + 柔光脉冲，这里用一行状态回显。尊重 prefers-reduced-motion。
  *
  * 组件设计为浅色底（深色文字 + 白色播放键），所以本页用浅色背景承托。
  * ============================================================================
  */
 export default function VoiceOrbCarouselPage() {
-  const [nowPlaying, setNowPlaying] = useState<OrbConfig | null>(null);
+  const [speakingOrb, setSpeakingOrb] = useState<OrbConfig | null>(null);
 
   return (
     <div className="min-h-screen w-full bg-[#fafafa] text-neutral-900">
@@ -50,21 +50,25 @@ export default function VoiceOrbCarouselPage() {
         </header>
 
         {/* 轮播主体 */}
-        <VoiceOrbCarousel onPlay={setNowPlaying} />
+        <VoiceOrbCarousel
+          onSpeakingChange={(orb, speaking) =>
+            setSpeakingOrb(speaking ? orb : null)
+          }
+        />
 
-        {/* onPlay 状态回显 */}
+        {/* 说话状态回显 */}
         <div className="mt-2 h-6 text-sm text-neutral-500">
-          {nowPlaying ? (
+          {speakingOrb ? (
             <span>
-              ▶ 正在播放
+              🔊 正在说话
               <span className="mx-1 font-medium text-neutral-800">
-                {nowPlaying.label}
+                {speakingOrb.label}
               </span>
-              示例
+              · 再点一下暂停
             </span>
           ) : (
             <span className="text-neutral-400">
-              点中央播放键试听 · 左右箭头 / ← → 切换音色
+              点中央播放键让球开口说话 · 左右箭头 / ← → 切换音色
             </span>
           )}
         </div>

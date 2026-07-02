@@ -18,6 +18,7 @@
 import {
   useCallback,
   useEffect,
+  useRef,
   useState,
   type CSSProperties,
 } from 'react';
@@ -84,13 +85,19 @@ function usePrefersReducedMotion() {
   return reduced;
 }
 
-/** 单颗球的着色层：mesh / grain 两种 shader */
+/**
+ * 单颗球的着色层：mesh / grain 两种 shader
+ * speaking=true 时（激活球正在「说话」）：提高 speed + distortion/swirl/intensity/noise，
+ * 让球体内部流动加速、更躁动，模拟随音波起伏的效果。
+ */
 function OrbShader({
   orb,
   animated,
+  speaking = false,
 }: {
   orb: OrbConfig;
   animated: boolean;
+  speaking?: boolean;
 }) {
   const fill: CSSProperties = { width: '100%', height: '100%' };
 
@@ -99,11 +106,11 @@ function OrbShader({
       <GrainGradient
         colors={orb.colors}
         colorBack={orb.colorBack}
-        softness={0.7}
-        intensity={0.45}
-        noise={0.3}
+        softness={speaking ? 0.5 : 0.7}
+        intensity={speaking ? 0.85 : 0.45}
+        noise={speaking ? 0.45 : 0.3}
         shape="wave"
-        speed={animated ? 0.4 : 0}
+        speed={animated ? (speaking ? 1.6 : 0.4) : 0}
         style={fill}
       />
     );
@@ -113,10 +120,10 @@ function OrbShader({
     <MeshGradient
       colors={orb.colors}
       distortion={1}
-      swirl={0.6}
-      grainMixer={0.4}
+      swirl={speaking ? 0.95 : 0.6}
+      grainMixer={speaking ? 0.55 : 0.4}
       grainOverlay={0.15}
-      speed={animated ? 0.3 : 0}
+      speed={animated ? (speaking ? 1.4 : 0.3) : 0}
       style={fill}
     />
   );
@@ -130,12 +137,23 @@ function PlayIcon() {
   );
 }
 
+function PauseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="#171717" aria-hidden>
+      <rect x="6" y="5" width="4" height="14" rx="1" />
+      <rect x="14" y="5" width="4" height="14" rx="1" />
+    </svg>
+  );
+}
+
 export interface VoiceOrbCarouselProps {
   orbs?: OrbConfig[];
   /** 初始停在哪颗，默认「旁白」，跟截图一致 */
   initialIndex?: number;
-  /** 点激活球中间的播放键时触发 */
+  /** 点播放键、开始「说话」时触发 */
   onPlay?: (orb: OrbConfig) => void;
+  /** 「说话」状态变化时触发（开始 true / 停止 false） */
+  onSpeakingChange?: (orb: OrbConfig, speaking: boolean) => void;
   className?: string;
 }
 
@@ -143,16 +161,35 @@ export default function VoiceOrbCarousel({
   orbs = DEFAULT_ORBS,
   initialIndex = 1,
   onPlay,
+  onSpeakingChange,
   className,
 }: VoiceOrbCarouselProps) {
   const n = orbs.length;
   const [active, setActive] = useState(((initialIndex % n) + n) % n);
+  // 激活球是否正在「说话」——点击中央播放键切换，加速球体内部流动
+  const [speaking, setSpeaking] = useState(false);
   const reducedMotion = usePrefersReducedMotion();
+  const prevSpeaking = useRef(false);
 
-  const go = useCallback(
-    (dir: number) => setActive((i) => (i + dir + n) % n),
-    [n],
-  );
+  // 切换音色时（箭头 / 键盘）自动停止「说话」——在改 active 的同一处一并重置，
+  // 而非用 effect 反应 active 变化（更直接，也满足严格的 hooks lint 规则）。
+  const go = useCallback((dir: number) => {
+    setSpeaking(false);
+    setActive((i) => (i + dir + n) % n);
+  }, [n]);
+
+  // speaking 真正变化时才通知外部（放 effect 里，避免在渲染期对父组件 setState）
+  useEffect(() => {
+    if (prevSpeaking.current === speaking) return;
+    prevSpeaking.current = speaking;
+    const orb = orbs[active];
+    if (speaking) onPlay?.(orb);
+    onSpeakingChange?.(orb, speaking);
+  }, [speaking, active, orbs, onPlay, onSpeakingChange]);
+
+  const toggleSpeaking = useCallback(() => {
+    setSpeaking((s) => !s);
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -176,6 +213,14 @@ export default function VoiceOrbCarousel({
         userSelect: 'none',
       }}
     >
+      {/* 说话时激活球的柔光脉冲 keyframes（用 box 尺寸脉动，不与球体自身 transform 冲突） */}
+      <style>{`
+        @keyframes voc-orb-pulse {
+          0%, 100% { transform: translate(-50%, -50%) scale(1);    opacity: 0.5; }
+          50%      { transform: translate(-50%, -50%) scale(1.14); opacity: 0.85; }
+        }
+      `}</style>
+
       {/* —— 球层 —— */}
       {slots.map((d) => {
         const dist = Math.abs(d);
@@ -184,13 +229,21 @@ export default function VoiceOrbCarousel({
         const orb = orbs[idx];
         const isActive = d === 0;
         const isFar = dist === 2;
+        const isSpeaking = isActive && speaking && !reducedMotion;
 
         const maskImage = `radial-gradient(circle at center, #000 ${RING_MASK_INNER[dist]}%, transparent 100%)`;
 
         return (
           <div
             key={d}
-            onClick={isActive ? undefined : () => setActive(idx)}
+            onClick={
+              isActive
+                ? undefined
+                : () => {
+                    setSpeaking(false);
+                    setActive(idx);
+                  }
+            }
             style={{
               position: 'absolute',
               left: '50%',
@@ -204,6 +257,24 @@ export default function VoiceOrbCarousel({
               willChange: 'transform, opacity',
             }}
           >
+            {/* 说话中的柔光脉冲：置于球体后方，向外一圈随「音波」呼吸 */}
+            {isSpeaking && (
+              <div
+                aria-hidden
+                style={{
+                  position: 'absolute',
+                  left: '50%',
+                  top: '50%',
+                  width: ORB_BASE * RING_SCALE[0],
+                  height: ORB_BASE * RING_SCALE[0],
+                  borderRadius: '50%',
+                  background: `radial-gradient(circle, ${orb.colors[0]}, transparent 68%)`,
+                  animation: 'voc-orb-pulse 1.6s ease-in-out infinite',
+                  zIndex: -1,
+                  pointerEvents: 'none',
+                }}
+              />
+            )}
             <div
               style={{
                 width: ORB_BASE,
@@ -228,18 +299,27 @@ export default function VoiceOrbCarousel({
                   }}
                 />
               ) : (
-                <OrbShader orb={orb} animated={isActive && !reducedMotion} />
+                <OrbShader
+                  orb={orb}
+                  animated={isActive && !reducedMotion}
+                  speaking={isActive && speaking}
+                />
               )}
             </div>
           </div>
         );
       })}
 
-      {/* —— 播放键（只在激活球上）—— */}
+      {/* —— 播放/暂停键（只在激活球上，点击切换「说话」）—— */}
       <button
         type="button"
-        aria-label={`播放 ${orbs[active].label} 示例`}
-        onClick={() => onPlay?.(orbs[active])}
+        aria-label={
+          speaking
+            ? `暂停 ${orbs[active].label} 示例`
+            : `播放 ${orbs[active].label} 示例`
+        }
+        aria-pressed={speaking}
+        onClick={toggleSpeaking}
         style={{
           position: 'absolute',
           left: '50%',
@@ -251,15 +331,18 @@ export default function VoiceOrbCarousel({
           borderRadius: '50%',
           border: 'none',
           background: '#fff',
-          boxShadow: '0 6px 24px rgba(0,0,0,0.14)',
+          boxShadow: speaking
+            ? '0 8px 30px rgba(0,0,0,0.20)'
+            : '0 6px 24px rgba(0,0,0,0.14)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           cursor: 'pointer',
-          paddingLeft: 4, // 三角形视觉居中
+          paddingLeft: speaking ? 0 : 4, // 播放三角需右移视觉居中，暂停不用
+          transition: 'box-shadow 300ms ease',
         }}
       >
-        <PlayIcon />
+        {speaking ? <PauseIcon /> : <PlayIcon />}
       </button>
 
       {/* —— 左右切换 —— */}
