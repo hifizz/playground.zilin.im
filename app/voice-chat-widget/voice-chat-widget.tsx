@@ -126,10 +126,20 @@ export default function VoiceChatWidget({ offset = 24 }: VoiceChatWidgetProps) {
         {open && (
           <motion.div
             key="dialog"
-            initial={{ opacity: 0, scale: 0.92, y: 16 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.94, y: 16 }}
-            transition={spring}
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.5 }}
+            transition={
+              reduced
+                ? { duration: 0.15 }
+                : {
+                    type: 'spring',
+                    stiffness: 260,
+                    damping: 20,
+                    // opacity 单独快淡入，不跟随 spring 拖尾
+                    opacity: { duration: 0.18 },
+                  }
+            }
             style={{
               position: 'fixed',
               ...anchor,
