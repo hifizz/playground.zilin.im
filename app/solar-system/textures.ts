@@ -406,6 +406,80 @@ export function createRingCanvas(): HTMLCanvasElement {
   return canvas;
 }
 
+/** 地球云层：独立于地表的半透明白云（RGBA），单独一层球壳缓慢旋转 */
+export function createCloudCanvas(): HTMLCanvasElement {
+  const canvas = document.createElement("canvas");
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext("2d")!;
+  const img = ctx.createImageData(W, H);
+  for (let y = 0; y < H; y++) {
+    const v = y / H;
+    for (let x = 0; x < W; x++) {
+      const u = x / W;
+      const n = fbm(u * 5 + 13, v * 5, 5, 137, 4);
+      const wisp = fbm(u * 14 + 3, v * 14, 14, 61, 3);
+      const a = Math.max(0, n - 0.5) * 2.6 * (0.55 + wisp * 0.6);
+      const i = (y * W + x) * 4;
+      img.data[i] = 255;
+      img.data[i + 1] = 253;
+      img.data[i + 2] = 250;
+      img.data[i + 3] = Math.min(230, a * 255);
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return canvas;
+}
+
+/** 地球夜面城市灯光：在陆地上撒暖黄色光点（含都市光斑聚簇），作 emissiveMap */
+export function createCityLightsCanvas(earthCanvas: HTMLCanvasElement): HTMLCanvasElement {
+  const src = earthCanvas.getContext("2d")!.getImageData(0, 0, W, H).data;
+  const canvas = document.createElement("canvas");
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext("2d")!;
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0, 0, W, H);
+
+  const isLand = (x: number, y: number) => {
+    const i = (y * W + x) * 4;
+    const r = src[i];
+    const g = src[i + 1];
+    const b = src[i + 2];
+    // 排除海洋（蓝主导）、冰盖/云（接近白）
+    return g >= b - 8 && b < 190 && !(r > 225 && g > 225 && b > 225);
+  };
+
+  // 都市光斑：陆地上找 70 个种子，向周围撒高斯分布的光点簇
+  let placed = 0;
+  for (let tries = 0; tries < 4000 && placed < 70; tries++) {
+    const cx = Math.floor(hash2(tries, 5, 401) * W);
+    const cy = Math.floor((0.15 + hash2(tries, 6, 401) * 0.7) * H);
+    if (!isLand(cx, cy)) continue;
+    placed++;
+    const cluster = 24 + Math.floor(hash2(tries, 7, 401) * 50);
+    for (let j = 0; j < cluster; j++) {
+      const ang = hash2(tries, j * 2 + 8, 401) * Math.PI * 2;
+      const rad = hash2(tries, j * 2 + 9, 401) ** 1.6 * 9;
+      const x = Math.round(cx + Math.cos(ang) * rad * 1.6);
+      const y = Math.round(cy + Math.sin(ang) * rad);
+      if (x < 0 || x >= W || y < 0 || y >= H || !isLand(x, y)) continue;
+      const a = 0.35 + hash2(x, y, 77) * 0.65;
+      ctx.fillStyle = `rgba(255,196,120,${a})`;
+      ctx.fillRect(x, y, 1, 1);
+    }
+  }
+  // 零星村镇光点
+  for (let i = 0; i < 5000; i++) {
+    const x = Math.floor(hash2(i, 11, 733) * W);
+    const y = Math.floor((0.12 + hash2(i, 12, 733) * 0.76) * H);
+    if (!isLand(x, y) || hash2(i, 13, 733) > 0.24) continue;
+    ctx.fillStyle = `rgba(255,208,140,${0.25 + hash2(i, 14, 733) * 0.4})`;
+    ctx.fillRect(x, y, 1, 1);
+  }
+  return canvas;
+}
+
 /** 太阳辉光 sprite：径向渐变 */
 export function createGlowCanvas(): HTMLCanvasElement {
   const s = 256;

@@ -18,9 +18,15 @@ import {
   CSS2DObject,
   CSS2DRenderer,
 } from "three/addons/renderers/CSS2DRenderer.js";
+import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { BODIES, type Body } from "./planets";
 import {
   createBodyCanvas,
+  createCityLightsCanvas,
+  createCloudCanvas,
   createGlowCanvas,
   createRingCanvas,
   createStarCanvas,
@@ -53,6 +59,116 @@ const SPIN_VISUAL = 0.09; // 自转视觉压缩：地球 1x 下约 0.36 转/秒
 const DEFAULT_CAM = new THREE.Vector3(0, 24, 46);
 const IDLE_RESUME_MS = 18000;
 
+// 哈雷彗星椭圆轨道（压缩比例）：近日点 5.6 / 远日点 34.4，逆行，轨道面倾斜
+const COMET = {
+  a: 20, // 半长轴
+  e: 0.72, // 离心率
+  incline: 0.34, // 轨道面倾角（弧度）
+  periodDays: 250, // 压缩后的公转周期（模拟天）
+};
+
+// ---------- 太阳：GLSL 3D 噪声动态日面（输出 >1 的 HDR 颜色喂给 bloom） ----------
+
+const SUN_VERT = /* glsl */ `
+  varying vec3 vObjPos;
+  varying vec3 vVNormal;
+  varying vec3 vVPos;
+  void main() {
+    vObjPos = position;
+    vVNormal = normalMatrix * normal;
+    vec4 mv = modelViewMatrix * vec4(position, 1.0);
+    vVPos = mv.xyz;
+    gl_Position = projectionMatrix * mv;
+  }
+`;
+
+const SUN_FRAG = /* glsl */ `
+  uniform float uTime;
+  varying vec3 vObjPos;
+  varying vec3 vVNormal;
+  varying vec3 vVPos;
+
+  float hash(vec3 p) {
+    p = fract(p * 0.3183099 + 0.1);
+    p *= 17.0;
+    return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+  }
+  float noise(vec3 x) {
+    vec3 i = floor(x);
+    vec3 f = fract(x);
+    f = f * f * (3.0 - 2.0 * f);
+    return mix(
+      mix(mix(hash(i), hash(i + vec3(1,0,0)), f.x),
+          mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),
+      mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x),
+          mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y),
+      f.z);
+  }
+  float fbm(vec3 p) {
+    float s = 0.0, a = 0.5;
+    for (int i = 0; i < 5; i++) { s += a * noise(p); p *= 2.03; a *= 0.5; }
+    return s;
+  }
+
+  void main() {
+    // 用球面方向做 3D 噪声采样，天然无缝；双层流动 = 翻滚的日面
+    vec3 dir = normalize(vObjPos);
+    float n = fbm(dir * 3.5 + vec3(uTime * 0.05, uTime * 0.03, -uTime * 0.02));
+    float cell = fbm(dir * 11.0 - vec3(0.0, uTime * 0.06, uTime * 0.04));
+    float t = clamp(n * 1.1 + cell * 0.55 - 0.3, 0.0, 1.0);
+
+    vec3 col = mix(vec3(1.0, 0.96, 0.78), vec3(0.98, 0.52, 0.1), t);
+    col = mix(col, vec3(0.72, 0.16, 0.02), smoothstep(0.55, 1.0, t));
+
+    // 边缘菲涅尔增亮：轮廓烧起来，交给 bloom 晕开（盘面压亮度，保住米粒组织细节）
+    float rim = pow(1.0 - clamp(dot(normalize(-vVPos), normalize(vVNormal)), 0.0, 1.0), 2.2);
+    gl_FragColor = vec4(col * (0.8 + rim * 1.1), 1.0);
+  }
+`;
+
+// ---------- 地球大气：BackSide 菲涅尔辉光壳 ----------
+
+const ATMO_VERT = /* glsl */ `
+  varying vec3 vVNormal;
+  void main() {
+    vVNormal = normalize(normalMatrix * normal);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const ATMO_FRAG = /* glsl */ `
+  varying vec3 vVNormal;
+  void main() {
+    float intensity = pow(0.66 - dot(vVNormal, vec3(0.0, 0.0, 1.0)), 3.5);
+    gl_FragColor = vec4(vec3(0.28, 0.56, 1.0) * 1.4, 1.0) * max(intensity, 0.0);
+  }
+`;
+
+// ---------- 彗尾粒子（生命周期驱动大小与透明度，加色混合） ----------
+
+const TAIL_VERT = /* glsl */ `
+  attribute float aLife;
+  uniform float uSize;
+  uniform float uPixelRatio;
+  varying float vA;
+  void main() {
+    vA = smoothstep(0.0, 0.12, aLife) * pow(aLife, 1.4);
+    vec4 mv = modelViewMatrix * vec4(position, 1.0);
+    gl_PointSize = uSize * uPixelRatio * (0.45 + aLife) * (26.0 / -mv.z);
+    gl_Position = projectionMatrix * mv;
+  }
+`;
+
+const TAIL_FRAG = /* glsl */ `
+  uniform vec3 uColor;
+  varying float vA;
+  void main() {
+    float d = length(gl_PointCoord - 0.5);
+    float a = smoothstep(0.5, 0.0, d) * vA;
+    gl_FragColor = vec4(uColor * a, a);
+  }
+`;
+
 function seededRand(seed: number) {
   return () => {
     seed |= 0;
@@ -75,8 +191,10 @@ export function createSolarSystem(
 
   // ---------- renderer / scene / camera ----------
   const renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  const pixelRatio = Math.min(window.devicePixelRatio, 2);
+  renderer.setPixelRatio(pixelRatio);
   renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping; // 电影级色调映射
   renderer.domElement.style.display = "block";
   container.appendChild(renderer.domElement);
 
@@ -108,9 +226,21 @@ export function createSolarSystem(
   controls.autoRotate = false; // 开场动画结束后开启
   controls.autoRotateSpeed = 0.4;
 
+  // ---------- 后处理：Bloom 辉光 ----------
+  const composer = new EffectComposer(renderer);
+  composer.addPass(new RenderPass(scene, camera));
+  const bloomPass = new UnrealBloomPass(
+    new THREE.Vector2(container.clientWidth, container.clientHeight),
+    0.6, // strength
+    0.55, // radius
+    0.72, // threshold：太阳 HDR、彗尾、城市灯光会溢出发光
+  );
+  composer.addPass(bloomPass);
+  composer.addPass(new OutputPass());
+
   // ---------- 灯光 ----------
-  scene.add(new THREE.AmbientLight(0x445566, 0.5));
-  const sunLight = new THREE.PointLight(0xfff2d8, 3.2, 0, 0);
+  scene.add(new THREE.AmbientLight(0x445566, 0.65));
+  const sunLight = new THREE.PointLight(0xfff2d8, 4.2, 0, 0); // 补偿 ACES 压暗
   scene.add(sunLight);
 
   // ---------- 星空 ----------
@@ -174,30 +304,103 @@ export function createSolarSystem(
   let sunTilt!: THREE.Group;
   let sunMesh!: THREE.Mesh;
   let sunGlow!: THREE.Sprite;
+  let sunUniforms!: { uTime: { value: number } };
+  let earthClouds: THREE.Mesh | null = null;
+  const earthSunDirView = { value: new THREE.Vector3(1, 0, 0) };
 
   for (const body of BODIES) {
-    const tex = track(new THREE.CanvasTexture(createBodyCanvas(body.id)));
-    tex.colorSpace = THREE.SRGBColorSpace;
+    if (body.kind === "comet") continue; // 彗星走专属椭圆轨道流程
 
     const isSun = body.id === "sun";
     const geo = track(new THREE.SphereGeometry(body.radius, 64, 32));
-    const mat = track(
-      isSun
-        ? new THREE.MeshBasicMaterial({ map: tex })
-        : new THREE.MeshStandardMaterial({
-            map: tex,
-            roughness: 0.92,
-            metalness: 0,
-            emissive: new THREE.Color(body.accent),
-            emissiveIntensity: 0.06, // 暗面留一点可读性，方便科普观察
-          }),
-    );
+
+    let mat: THREE.Material;
+    if (isSun) {
+      // 动态日面：3D 噪声实时翻滚，无需贴图
+      sunUniforms = { uTime: { value: 0 } };
+      mat = track(
+        new THREE.ShaderMaterial({
+          uniforms: sunUniforms,
+          vertexShader: SUN_VERT,
+          fragmentShader: SUN_FRAG,
+        }),
+      );
+    } else {
+      const srcCanvas = createBodyCanvas(body.id);
+      const tex = track(new THREE.CanvasTexture(srcCanvas));
+      tex.colorSpace = THREE.SRGBColorSpace;
+      const std = new THREE.MeshStandardMaterial({
+        map: tex,
+        roughness: 0.92,
+        metalness: 0,
+        emissive: new THREE.Color(body.accent),
+        emissiveIntensity: 0.06, // 暗面留一点可读性，方便科普观察
+      });
+      if (body.id === "earth") {
+        // 夜面城市灯光：暖黄 emissiveMap，只在背阳面亮起（注入视线空间太阳方向做遮罩）
+        const cityTex = track(new THREE.CanvasTexture(createCityLightsCanvas(srcCanvas)));
+        cityTex.colorSpace = THREE.SRGBColorSpace;
+        std.emissiveMap = cityTex;
+        std.emissive = new THREE.Color(0xffd9a0);
+        std.emissiveIntensity = 1.3;
+        std.onBeforeCompile = (sh) => {
+          sh.uniforms.uSunDirView = earthSunDirView;
+          sh.fragmentShader = sh.fragmentShader
+            .replace(
+              "uniform vec3 emissive;",
+              "uniform vec3 emissive;\nuniform vec3 uSunDirView;",
+            )
+            .replace(
+              "#include <emissivemap_fragment>",
+              "#include <emissivemap_fragment>\n\ttotalEmissiveRadiance *= smoothstep(0.18, -0.22, dot(normal, uSunDirView));",
+            );
+        };
+      }
+      mat = track(std);
+    }
     const mesh = new THREE.Mesh(geo, mat);
     mesh.userData.bodyId = body.id;
 
     const tiltGroup = new THREE.Group();
     tiltGroup.rotation.z = THREE.MathUtils.degToRad(body.tiltDeg);
     tiltGroup.add(mesh);
+
+    if (body.id === "earth") {
+      // 云层：略大的独立球壳，与地表异速旋转
+      const cloudTex = track(new THREE.CanvasTexture(createCloudCanvas()));
+      cloudTex.colorSpace = THREE.SRGBColorSpace;
+      const cloudMat = track(
+        new THREE.MeshStandardMaterial({
+          map: cloudTex,
+          transparent: true,
+          opacity: 0.85,
+          depthWrite: false,
+          roughness: 1,
+        }),
+      );
+      earthClouds = new THREE.Mesh(
+        track(new THREE.SphereGeometry(body.radius * 1.03, 48, 24)),
+        cloudMat,
+      );
+      tiltGroup.add(earthClouds);
+
+      // 大气辉光壳：BackSide 菲涅尔
+      const atmoMat = track(
+        new THREE.ShaderMaterial({
+          vertexShader: ATMO_VERT,
+          fragmentShader: ATMO_FRAG,
+          blending: THREE.AdditiveBlending,
+          side: THREE.BackSide,
+          transparent: true,
+          depthWrite: false,
+        }),
+      );
+      const atmo = new THREE.Mesh(
+        track(new THREE.SphereGeometry(body.radius * 1.18, 48, 24)),
+        atmoMat,
+      );
+      tiltGroup.add(atmo);
+    }
 
     const anchor = new THREE.Group();
     anchor.add(tiltGroup);
@@ -252,10 +455,11 @@ export function createSolarSystem(
           blending: THREE.AdditiveBlending,
           depthWrite: false,
           transparent: true,
+          opacity: 0.55, // bloom 已负责主辉光，sprite 只做底色
         }),
       );
       sunGlow = new THREE.Sprite(glowMat);
-      sunGlow.scale.setScalar(body.radius * 6);
+      sunGlow.scale.setScalar(body.radius * 4.4);
       anchor.add(sunGlow);
       label.position.y = body.radius * 1.3 + 0.6;
       continue;
@@ -343,6 +547,248 @@ export function createSolarSystem(
     scene.add(belt);
   }
 
+  // ---------- 哈雷彗星：椭圆轨道（开普勒第二定律）+ 双彗尾 ----------
+  const cometBody = BODIES.find((b) => b.id === "halley")!;
+  const cometPlane = new THREE.Matrix4().makeRotationX(COMET.incline);
+  const cometPosAt = (theta: number, out: THREE.Vector3) => {
+    const r = (COMET.a * (1 - COMET.e ** 2)) / (1 + COMET.e * Math.cos(theta));
+    out.set(Math.cos(theta) * r, 0, -Math.sin(theta) * r).applyMatrix4(cometPlane);
+    return out;
+  };
+  // 等面积扫掠常数：角速度 = C / r²（近日点快、远日点慢）
+  const cometC =
+    (2 * Math.PI * COMET.a * COMET.a * Math.sqrt(1 - COMET.e ** 2)) / COMET.periodDays;
+  let cometTheta = 1.0;
+
+  let cometNode!: PlanetNode;
+  let cometGlow!: THREE.Sprite;
+  {
+    const anchor = new THREE.Group();
+    const tiltGroup = new THREE.Group();
+    anchor.add(tiltGroup);
+
+    // 冰质彗核：微微自发光，被 bloom 晕成蓝白光点
+    const geo = track(new THREE.SphereGeometry(cometBody.radius, 24, 16));
+    const mat = track(
+      new THREE.MeshStandardMaterial({
+        color: 0xdff4ff,
+        roughness: 0.6,
+        emissive: new THREE.Color(0x9fe8ff),
+        emissiveIntensity: 0.9,
+      }),
+    );
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.userData.bodyId = cometBody.id;
+    tiltGroup.add(mesh);
+
+    const glowTex = track(new THREE.CanvasTexture(createGlowCanvas()));
+    const glowMat = track(
+      new THREE.SpriteMaterial({
+        map: glowTex,
+        color: 0x9fe8ff,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        transparent: true,
+      }),
+    );
+    cometGlow = new THREE.Sprite(glowMat);
+    cometGlow.scale.setScalar(1.8);
+    anchor.add(cometGlow);
+
+    const hitGeo = track(new THREE.SphereGeometry(1.1, 12, 8));
+    const hitMat = track(new THREE.MeshBasicMaterial({ visible: false }));
+    const hit = new THREE.Mesh(hitGeo, hitMat);
+    hit.userData.bodyId = cometBody.id;
+    anchor.add(hit);
+    hitMeshes.push(hit);
+
+    const label = makeLabel(cometBody);
+    anchor.add(label);
+    cometPosAt(cometTheta, anchor.position);
+    scene.add(anchor);
+
+    cometNode = {
+      body: cometBody,
+      anchor,
+      tiltGroup,
+      mesh,
+      hit,
+      label,
+      angle: 0,
+      orbitSpeed: 0,
+      spinSpeed: ((Math.PI * 2 * 24) / cometBody.dayHours) * SPIN_VISUAL,
+    };
+    planets.push(cometNode);
+
+    // 彗星椭圆轨道虚线
+    const pts: THREE.Vector3[] = [];
+    for (let i = 0; i <= 240; i++) {
+      pts.push(cometPosAt((i / 240) * Math.PI * 2, new THREE.Vector3()));
+    }
+    const geoL = track(new THREE.BufferGeometry().setFromPoints(pts));
+    const matL = track(
+      new THREE.LineBasicMaterial({ color: 0x7ee8fa, transparent: true, opacity: 0.16 }),
+    );
+    const line = new THREE.Line(geoL, matL);
+    orbitLines.push(line);
+    scene.add(line);
+  }
+
+  // 彗尾粒子系统：世界坐标 Points，CPU 积分 + 生命周期 shader
+  type Tail = {
+    points: THREE.Points;
+    geo: THREE.BufferGeometry;
+    pos: Float32Array;
+    vel: Float32Array;
+    life: Float32Array;
+    n: number;
+    cursor: number;
+    acc: number;
+    maxLife: number;
+    rate: number; // 粒子/秒（近日点附近按 1/r² 增强）
+    speed: [number, number]; // 背阳初速 [基础, 随机]
+    spread: number; // 横向散布
+    inherit: number; // 继承彗核轨道速度比例（尘埃尾弯曲的来源）
+  };
+  const makeTail = (opts: {
+    n: number;
+    color: number;
+    size: number;
+    maxLife: number;
+    rate: number;
+    speed: [number, number];
+    spread: number;
+    inherit: number;
+  }): Tail => {
+    const pos = new Float32Array(opts.n * 3);
+    const life = new Float32Array(opts.n); // 初始全 0 = 不可见
+    const geo = track(new THREE.BufferGeometry());
+    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute("aLife", new THREE.BufferAttribute(life, 1));
+    const mat = track(
+      new THREE.ShaderMaterial({
+        uniforms: {
+          uColor: { value: new THREE.Color(opts.color) },
+          uSize: { value: opts.size },
+          uPixelRatio: { value: pixelRatio },
+        },
+        vertexShader: TAIL_VERT,
+        fragmentShader: TAIL_FRAG,
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      }),
+    );
+    const points = new THREE.Points(geo, mat);
+    points.frustumCulled = false;
+    scene.add(points);
+    return {
+      points,
+      geo,
+      pos,
+      vel: new Float32Array(opts.n * 3),
+      life,
+      n: opts.n,
+      cursor: 0,
+      acc: 0,
+      maxLife: opts.maxLife,
+      rate: opts.rate,
+      speed: opts.speed,
+      spread: opts.spread,
+      inherit: opts.inherit,
+    };
+  };
+  // 离子尾：笔直背阳、蓝色、快
+  const ionTail = makeTail({
+    n: 1100, color: 0x86e8ff, size: 1.7, maxLife: 1.6,
+    rate: 320, speed: [7, 3], spread: 0.22, inherit: 0.05,
+  });
+  // 尘埃尾：暖白、慢、继承轨道速度而弯曲
+  const dustTail = makeTail({
+    n: 1500, color: 0xffe3b8, size: 2.0, maxLife: 3.0,
+    rate: 400, speed: [1.6, 1.2], spread: 0.4, inherit: 0.55,
+  });
+  const tailRand = seededRand(4242);
+  const updateTail = (
+    tail: Tail,
+    head: THREE.Vector3,
+    headVel: THREE.Vector3,
+    antiSun: THREE.Vector3,
+    strength: number,
+    simSec: number,
+  ) => {
+    // 衰老 + 积分
+    for (let i = 0; i < tail.n; i++) {
+      if (tail.life[i] <= 0) continue;
+      tail.life[i] -= simSec / tail.maxLife;
+      tail.pos[i * 3] += tail.vel[i * 3] * simSec;
+      tail.pos[i * 3 + 1] += tail.vel[i * 3 + 1] * simSec;
+      tail.pos[i * 3 + 2] += tail.vel[i * 3 + 2] * simSec;
+    }
+    // 发射：出生点沿本帧彗核轨迹插值，高速/低帧率下彗尾依然连续不结块
+    tail.acc += tail.rate * strength * simSec;
+    const emitTotal = Math.floor(tail.acc);
+    tail.acc -= emitTotal;
+    for (let e = 0; e < emitTotal; e++) {
+      const i = tail.cursor;
+      tail.cursor = (tail.cursor + 1) % tail.n;
+      const back = (e / Math.max(1, emitTotal)) * simSec;
+      tail.pos[i * 3] = head.x - headVel.x * back + (tailRand() - 0.5) * 0.2;
+      tail.pos[i * 3 + 1] = head.y - headVel.y * back + (tailRand() - 0.5) * 0.2;
+      tail.pos[i * 3 + 2] = head.z - headVel.z * back + (tailRand() - 0.5) * 0.2;
+      const sp = tail.speed[0] + tailRand() * tail.speed[1];
+      tail.vel[i * 3] =
+        antiSun.x * sp + headVel.x * tail.inherit + (tailRand() - 0.5) * tail.spread;
+      tail.vel[i * 3 + 1] =
+        antiSun.y * sp + headVel.y * tail.inherit + (tailRand() - 0.5) * tail.spread;
+      tail.vel[i * 3 + 2] =
+        antiSun.z * sp + headVel.z * tail.inherit + (tailRand() - 0.5) * tail.spread;
+      tail.life[i] = 1;
+    }
+    tail.geo.attributes.position.needsUpdate = true;
+    tail.geo.attributes.aLife.needsUpdate = true;
+  };
+
+  // ---------- 行星轨迹拖尾（加色渐隐折线，随速度拉长） ----------
+  const TRAIL_LEN = 120;
+  type Trail = { line: THREE.Line; positions: Float32Array; last: THREE.Vector3 };
+  const trails: Trail[] = [];
+  for (const p of planets) {
+    if (p.body.kind === "comet") continue;
+    const start = new THREE.Vector3(
+      Math.cos(p.angle) * p.body.orbitRadius,
+      0,
+      -Math.sin(p.angle) * p.body.orbitRadius,
+    );
+    const positions = new Float32Array(TRAIL_LEN * 3);
+    const colors = new Float32Array(TRAIL_LEN * 3);
+    const c = new THREE.Color(p.body.accent);
+    for (let i = 0; i < TRAIL_LEN; i++) {
+      positions[i * 3] = start.x;
+      positions[i * 3 + 1] = start.y;
+      positions[i * 3 + 2] = start.z;
+      const k = (i / (TRAIL_LEN - 1)) ** 2 * 0.5; // 旧端透明 → 新端渐亮
+      colors[i * 3] = c.r * k;
+      colors[i * 3 + 1] = c.g * k;
+      colors[i * 3 + 2] = c.b * k;
+    }
+    const geo = track(new THREE.BufferGeometry());
+    geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+    const mat = track(
+      new THREE.LineBasicMaterial({
+        vertexColors: true,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      }),
+    );
+    const line = new THREE.Line(geo, mat);
+    line.frustumCulled = false;
+    scene.add(line);
+    trails.push({ line, positions, last: start.clone() });
+  }
+
   // ---------- 交互状态 ----------
   let timeScale = 1;
   let paused = false;
@@ -406,6 +852,7 @@ export function createSolarSystem(
 
   const focusDistance = (node: PlanetNode | "sun") => {
     if (node === "sun") return BODIES[0].radius * 4.2;
+    if (node.body.kind === "comet") return 7; // 留出看彗尾的距离
     const r = node.body.ring ? node.body.radius * node.body.ring.outer : node.body.radius;
     return Math.max(r * 5, 3.6);
   };
@@ -504,6 +951,7 @@ export function createSolarSystem(
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     renderer.setSize(w, h);
+    composer.setSize(w, h);
     labelRenderer.setSize(w, h);
   };
   const ro = new ResizeObserver(resize);
@@ -524,12 +972,14 @@ export function createSolarSystem(
 
     // 公转 + 自转
     for (const p of planets) {
-      p.angle += p.orbitSpeed * simDays;
-      p.anchor.position.set(
-        Math.cos(p.angle) * p.body.orbitRadius,
-        0,
-        -Math.sin(p.angle) * p.body.orbitRadius,
-      );
+      if (!p.body.kind) {
+        p.angle += p.orbitSpeed * simDays;
+        p.anchor.position.set(
+          Math.cos(p.angle) * p.body.orbitRadius,
+          0,
+          -Math.sin(p.angle) * p.body.orbitRadius,
+        );
+      }
       p.mesh.rotation.y += p.spinSpeed * simDays;
 
       // 悬停 / 选中的缩放（弹性趋近）
@@ -538,11 +988,56 @@ export function createSolarSystem(
       p.tiltGroup.scale.setScalar(s);
     }
     sunMesh.rotation.y += sunSpin * simDays;
+    sunUniforms.uTime.value = elapsed;
+    if (earthClouds) earthClouds.rotation.y += earthNode.spinSpeed * 1.35 * simDays;
     moonPivot.rotation.y += ((Math.PI * 2) / 27.3) * simDays;
     belt.rotation.y += ((Math.PI * 2) / 1800) * simDays;
 
+    // 彗星：开普勒扫掠（逆行），近日点明显加速；彗尾按 1/r² 增强
+    {
+      const head = cometNode.anchor.position;
+      const simSec = paused ? 0 : dt * timeScale;
+      if (simSec > 0) {
+        const r0 = head.length();
+        cometTheta -= (cometC / (r0 * r0)) * simDays;
+        tmp.copy(head);
+        cometPosAt(cometTheta, head);
+        const headVel = tmp.subVectors(head, tmp).divideScalar(simSec).clone();
+        const r = head.length();
+        const antiSun = head.clone().normalize();
+        const strength = THREE.MathUtils.clamp((14 / r) ** 2, 0.06, 5);
+        cometGlow.scale.setScalar(1.2 + strength * 0.7);
+        updateTail(ionTail, head, headVel, antiSun, strength, simSec);
+        updateTail(dustTail, head, headVel, antiSun, strength, simSec);
+      }
+    }
+
+    // 行星拖尾：移动超过步长才追加，轨迹弧长与速度无关
+    for (let i = 0, j = 0; i < planets.length; i++) {
+      const p = planets[i];
+      if (p.body.kind === "comet") continue;
+      const trail = trails[j++];
+      if (p.anchor.position.distanceTo(trail.last) > 0.12) {
+        trail.positions.copyWithin(0, 3);
+        trail.positions[(TRAIL_LEN - 1) * 3] = p.anchor.position.x;
+        trail.positions[(TRAIL_LEN - 1) * 3 + 1] = p.anchor.position.y;
+        trail.positions[(TRAIL_LEN - 1) * 3 + 2] = p.anchor.position.z;
+        trail.last.copy(p.anchor.position);
+        (trail.line.geometry.attributes.position as THREE.BufferAttribute).needsUpdate = true;
+      }
+    }
+
     // 太阳辉光呼吸
-    sunGlow.scale.setScalar(BODIES[0].radius * (6 + Math.sin(elapsed * 1.4) * 0.35));
+    sunGlow.scale.setScalar(BODIES[0].radius * (4.4 + Math.sin(elapsed * 1.4) * 0.3));
+
+    // 地球夜面灯光遮罩：视线空间的太阳方向
+    tmp.set(0, 0, 0).applyMatrix4(camera.matrixWorldInverse);
+    earthSunDirView.value
+      .copy(earthNode.anchor.position)
+      .applyMatrix4(camera.matrixWorldInverse)
+      .multiplyScalar(-1)
+      .add(tmp)
+      .normalize();
     const sunScale = selected === "sun" ? 1.12 : 1;
     sunTilt.scale.setScalar(
       sunTilt.scale.x + (sunScale - sunTilt.scale.x) * Math.min(1, dt * 8),
@@ -571,7 +1066,7 @@ export function createSolarSystem(
     }
 
     controls.update();
-    renderer.render(scene, camera);
+    composer.render();
     labelRenderer.render(scene, camera);
   };
   frame();
@@ -587,6 +1082,7 @@ export function createSolarSystem(
     },
     setShowOrbits(v) {
       for (const l of orbitLines) l.visible = v;
+      for (const t of trails) t.line.visible = v;
     },
     setShowLabels(v) {
       for (const p of planets) p.label.visible = v;
@@ -609,6 +1105,7 @@ export function createSolarSystem(
       renderer.domElement.removeEventListener("pointermove", onPointerMove);
       controls.dispose();
       for (const d of disposables) d.dispose();
+      composer.dispose();
       renderer.dispose();
       container.removeChild(renderer.domElement);
       container.removeChild(labelRenderer.domElement);

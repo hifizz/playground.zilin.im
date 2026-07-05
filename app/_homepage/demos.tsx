@@ -328,7 +328,7 @@ export const demos: DemoEntry[] = [
   {
     title: "太阳系 · 3D 交互科普",
     description:
-      "Three.js 全屏太阳系：程序化生成行星贴图，公转/自转/轴倾角按真实数据等比压缩，点击星球 3D 放大 + 相机跟随 + 科普卡片。",
+      "Three.js + Bloom 电影级太阳系：GLSL 动态日面、地球大气/夜面灯光、哈雷彗星双彗尾（开普勒加速）、行星拖尾，点击星球相机跟随 + 科普卡片。",
     route: "/solar-system",
     category: "Explored Demo",
     tags: ["Three.js", "WebGL", "3D"],

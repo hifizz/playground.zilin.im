@@ -20,6 +20,10 @@ import {
   CSS2DObject,
   CSS2DRenderer,
 } from "three/addons/renderers/CSS2DRenderer.js";
+import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { BODIES, type Body } from "../solar-system/planets";
 import {
   createBodyCanvas,
@@ -294,6 +298,7 @@ export function createSolarPoints(
   const pixelRatio = Math.min(window.devicePixelRatio, 2);
   renderer.setPixelRatio(pixelRatio);
   renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.domElement.style.display = "block";
   container.appendChild(renderer.domElement);
 
@@ -324,6 +329,19 @@ export function createSolarPoints(
   controls.maxDistance = 160;
   controls.autoRotate = false;
   controls.autoRotateSpeed = 0.4;
+
+  // ---------- 后处理：Bloom（加色叠亮的太阳粒子与汇聚星尘会晕开成霓虹） ----------
+  const composer = new EffectComposer(renderer);
+  composer.addPass(new RenderPass(scene, camera));
+  composer.addPass(
+    new UnrealBloomPass(
+      new THREE.Vector2(container.clientWidth, container.clientHeight),
+      0.55, // strength：只让太阳粒子与星尘晕开，别冲淡行星本色
+      0.5, // radius
+      0.62, // threshold
+    ),
+  );
+  composer.addPass(new OutputPass());
 
   // ---------- 星空 ----------
   const starTex = track(new THREE.CanvasTexture(createStarCanvas()));
@@ -390,6 +408,7 @@ export function createSolarPoints(
   let sunTilt!: THREE.Group;
 
   for (const body of BODIES) {
+    if (body.kind === "comet") continue; // 彗星仅在实体版实现
     const isSun = body.id === "sun";
     // 粒子数 ∝ 表面积，太阳密一些做发光体
     const count = isSun
@@ -727,6 +746,7 @@ export function createSolarPoints(
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     renderer.setSize(w, h);
+    composer.setSize(w, h);
     labelRenderer.setSize(w, h);
   };
   const ro = new ResizeObserver(resize);
@@ -816,7 +836,7 @@ export function createSolarPoints(
     }
 
     controls.update();
-    renderer.render(scene, camera);
+    composer.render();
     labelRenderer.render(scene, camera);
   };
   frame();
@@ -856,6 +876,7 @@ export function createSolarPoints(
       renderer.domElement.removeEventListener("pointermove", onPointerMove);
       controls.dispose();
       for (const d of disposables) d.dispose();
+      composer.dispose();
       renderer.dispose();
       container.removeChild(renderer.domElement);
       container.removeChild(labelRenderer.domElement);

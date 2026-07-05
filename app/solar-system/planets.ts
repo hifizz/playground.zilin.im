@@ -9,7 +9,8 @@ export type Body = {
   id: string;
   name: string; // 中文名
   enName: string;
-  type: string; // 恒星 / 类地行星 / 气态巨行星 / 冰巨行星
+  type: string; // 恒星 / 类地行星 / 气态巨行星 / 冰巨行星 / 彗星
+  kind?: "comet"; // 特殊天体：不走圆轨道行星流程
   accent: string; // 面板与标签的主题色
 
   // —— 科普数据（真实） ——
@@ -214,9 +215,30 @@ export const BODIES: Body[] = [
     dayHours: 16.1,
     tiltDeg: 28.3,
   },
+  {
+    id: "halley",
+    name: "哈雷彗星",
+    enName: "1P/Halley",
+    type: "彗星 · 短周期彗星",
+    kind: "comet",
+    accent: "#7ee8fa",
+    diameter: "彗核约 15 × 8 km",
+    distance: "近日点 0.59 AU / 远日点 35.1 AU",
+    orbitPeriodText: "约 76 年",
+    rotationPeriodText: "约 2.2 天",
+    moons: "—",
+    temperature: "彗核约 -70 °C",
+    tiltText: "轨道倾角 162°（逆行）",
+    fact: "彗尾永远背向太阳——是太阳风吹出来的，所以远离太阳时彗星是「尾巴朝前」飞行；注意观察它在近日点附近明显加速（开普勒第二定律），上次回归是 1986 年，下次是 2061 年。",
+    radius: 0.3,
+    orbitRadius: 0, // 椭圆轨道由场景单独计算
+    orbitDays: 27740,
+    dayHours: 52.8,
+    tiltDeg: 0,
+  },
 ];
 
-export const PLANETS = BODIES.filter((b) => b.orbitRadius > 0);
+export const PLANETS = BODIES.filter((b) => b.orbitRadius > 0 && !b.kind);
 
 export function bodyById(id: string | null): Body | undefined {
   return BODIES.find((b) => b.id === id);
