@@ -31,6 +31,7 @@ import { ShadersThumb } from "./thumbs/shaders";
 import { ShaderFlowingLightThumb } from "./thumbs/shader-flowing-light";
 import { VoiceOrbCarouselThumb } from "./thumbs/voice-orb-carousel";
 import { VoiceChatWidgetThumb } from "./thumbs/voice-chat-widget";
+import { SolarSystemThumb } from "./thumbs/solar-system";
 
 export type DemoCategory = "Interaction" | "Text Demo" | "Explored Demo" | "Agent UX/UI";
 
@@ -322,5 +323,14 @@ export const demos: DemoEntry[] = [
     category: "Agent UX/UI",
     tags: ["Framer Motion", "Shader", "Agent"],
     preview: <VoiceChatWidgetThumb />,
+  },
+  {
+    title: "太阳系 · 3D 交互科普",
+    description:
+      "Three.js 全屏太阳系：程序化生成行星贴图，公转/自转/轴倾角按真实数据等比压缩，点击星球 3D 放大 + 相机跟随 + 科普卡片。",
+    route: "/solar-system",
+    category: "Explored Demo",
+    tags: ["Three.js", "WebGL", "3D"],
+    preview: <SolarSystemThumb />,
   },
 ];
