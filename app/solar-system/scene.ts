@@ -38,6 +38,8 @@ export type SolarSystemHandles = {
   setPaused(v: boolean): void;
   setShowOrbits(v: boolean): void;
   setShowLabels(v: boolean): void;
+  /** 音画联动：传入取能量函数（0..1），太阳亮度/辉光/bloom 随之呼吸；null 解绑 */
+  bindAudioLevel(fn: (() => number) | null): void;
   resetView(): void;
   dispose(): void;
 };
@@ -84,6 +86,7 @@ const SUN_VERT = /* glsl */ `
 
 const SUN_FRAG = /* glsl */ `
   uniform float uTime;
+  uniform float uAudio; // 音频能量 0..1，驱动整体亮度
   varying vec3 vObjPos;
   varying vec3 vVNormal;
   varying vec3 vVPos;
@@ -122,7 +125,7 @@ const SUN_FRAG = /* glsl */ `
 
     // 边缘菲涅尔增亮：轮廓烧起来，交给 bloom 晕开（盘面压亮度，保住米粒组织细节）
     float rim = pow(1.0 - clamp(dot(normalize(-vVPos), normalize(vVNormal)), 0.0, 1.0), 2.2);
-    gl_FragColor = vec4(col * (0.8 + rim * 1.1), 1.0);
+    gl_FragColor = vec4(col * (0.8 + rim * 1.1) * (1.0 + uAudio * 0.45), 1.0);
   }
 `;
 
@@ -304,7 +307,7 @@ export function createSolarSystem(
   let sunTilt!: THREE.Group;
   let sunMesh!: THREE.Mesh;
   let sunGlow!: THREE.Sprite;
-  let sunUniforms!: { uTime: { value: number } };
+  let sunUniforms!: { uTime: { value: number }; uAudio: { value: number } };
   let earthClouds: THREE.Mesh | null = null;
   const earthSunDirView = { value: new THREE.Vector3(1, 0, 0) };
 
@@ -317,7 +320,7 @@ export function createSolarSystem(
     let mat: THREE.Material;
     if (isSun) {
       // 动态日面：3D 噪声实时翻滚，无需贴图
-      sunUniforms = { uTime: { value: 0 } };
+      sunUniforms = { uTime: { value: 0 }, uAudio: { value: 0 } };
       mat = track(
         new THREE.ShaderMaterial({
           uniforms: sunUniforms,
@@ -792,6 +795,7 @@ export function createSolarSystem(
   // ---------- 交互状态 ----------
   let timeScale = 1;
   let paused = false;
+  let audioLevelFn: (() => number) | null = null;
   let selected: PlanetNode | "sun" | null = null;
   let hovered: PlanetNode | null = null;
   let disposed = false;
@@ -1027,8 +1031,13 @@ export function createSolarSystem(
       }
     }
 
-    // 太阳辉光呼吸
-    sunGlow.scale.setScalar(BODIES[0].radius * (4.4 + Math.sin(elapsed * 1.4) * 0.3));
+    // 太阳辉光呼吸 + 音画联动（声音能量推大辉光、提亮日面、加深 bloom）
+    const audio = audioLevelFn ? audioLevelFn() : 0;
+    sunUniforms.uAudio.value = audio;
+    bloomPass.strength = 0.6 + audio * 0.5;
+    sunGlow.scale.setScalar(
+      BODIES[0].radius * (4.4 + Math.sin(elapsed * 1.4) * 0.3 + audio * 2.4),
+    );
 
     // 地球夜面灯光遮罩：视线空间的太阳方向
     tmp.set(0, 0, 0).applyMatrix4(camera.matrixWorldInverse);
@@ -1086,6 +1095,9 @@ export function createSolarSystem(
     },
     setShowLabels(v) {
       for (const p of planets) p.label.visible = v;
+    },
+    bindAudioLevel(fn) {
+      audioLevelFn = fn;
     },
     resetView() {
       selected = null;

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { bodyById } from "./planets";
 import { InfoPanel } from "./info-panel";
+import { createSpaceAudio, type SpaceAudio } from "./audio";
 import { createSolarSystem, type SolarSystemHandles } from "./scene";
 
 /**
@@ -18,13 +19,29 @@ const SPEEDS = [0.25, 1, 3, 10];
 export default function SolarSystemPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const handlesRef = useRef<SolarSystemHandles | null>(null);
+  const audioRef = useRef<SpaceAudio | null>(null);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [speed, setSpeed] = useState(1);
   const [paused, setPaused] = useState(false);
   const [showOrbits, setShowOrbits] = useState(true);
   const [showLabels, setShowLabels] = useState(true);
+  const [soundOn, setSoundOn] = useState(false);
   const [webglFailed, setWebglFailed] = useState(false);
+
+  // 程序化太空氛围音：AudioContext 只能由用户手势启动
+  const toggleSound = async () => {
+    const next = !soundOn;
+    setSoundOn(next);
+    if (!audioRef.current) audioRef.current = createSpaceAudio();
+    if (next) {
+      await audioRef.current.start();
+      handlesRef.current?.bindAudioLevel(audioRef.current.getLevel);
+    } else {
+      handlesRef.current?.bindAudioLevel(null);
+      await audioRef.current.stop();
+    }
+  };
 
   useEffect(() => {
     const el = containerRef.current;
@@ -41,6 +58,8 @@ export default function SolarSystemPage() {
     return () => {
       handlesRef.current = null;
       handles?.dispose();
+      audioRef.current?.dispose();
+      audioRef.current = null;
     };
   }, []);
 
@@ -151,6 +170,19 @@ export default function SolarSystemPage() {
             }`}
           >
             标签
+          </button>
+
+          {/* 音画联动：太空氛围音驱动太阳脉动 */}
+          <button
+            onClick={toggleSound}
+            className={`px-2.5 h-8 rounded-xl text-[11px] transition-colors ${
+              soundOn
+                ? "bg-amber-400/25 text-amber-200"
+                : "text-white/50 hover:text-white/85"
+            }`}
+            title="程序化太空氛围音，太阳随声音呼吸"
+          >
+            声音
           </button>
 
           <div className="w-px h-6 bg-white/10 mx-0.5" />
