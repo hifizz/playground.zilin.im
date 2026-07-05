@@ -20,6 +20,7 @@ import {
 } from "three/addons/renderers/CSS2DRenderer.js";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { BODIES, type Body } from "./planets";
@@ -147,6 +148,48 @@ const ATMO_FRAG = /* glsl */ `
   }
 `;
 
+// ---------- God Rays：屏幕空间径向散射（crepuscular rays） ----------
+// 原理：提取亮部（基本只有太阳 HDR 盘面），沿「像素 → 太阳屏幕位置」的
+// 射线做衰减累加。行星挡住太阳时，亮部里的剪影缺口会自然拉出光束阴影。
+
+const GODRAYS_SHADER = {
+  uniforms: {
+    tDiffuse: { value: null as THREE.Texture | null },
+    uLightPos: { value: new THREE.Vector2(0.5, 0.5) }, // 太阳的屏幕坐标 0..1
+    uIntensity: { value: 0 }, // 太阳出画面 / 在身后时淡出
+  },
+  vertexShader: /* glsl */ `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: /* glsl */ `
+    #define SAMPLES 48
+    uniform sampler2D tDiffuse;
+    uniform vec2 uLightPos;
+    uniform float uIntensity;
+    varying vec2 vUv;
+
+    void main() {
+      vec3 base = texture2D(tDiffuse, vUv).rgb;
+      vec2 delta = (uLightPos - vUv) * 0.62 / float(SAMPLES);
+      vec2 p = vUv;
+      float decay = 1.0;
+      vec3 rays = vec3(0.0);
+      for (int i = 0; i < SAMPLES; i++) {
+        p += delta;
+        vec3 s = texture2D(tDiffuse, p).rgb;
+        float luma = dot(s, vec3(0.299, 0.587, 0.114));
+        rays += s * smoothstep(0.5, 0.95, luma) * decay;
+        decay *= 0.955;
+      }
+      gl_FragColor = vec4(base + rays * 0.028 * uIntensity, 1.0);
+    }
+  `,
+};
+
 // ---------- 彗尾粒子（生命周期驱动大小与透明度，加色混合） ----------
 
 const TAIL_VERT = /* glsl */ `
@@ -229,9 +272,11 @@ export function createSolarSystem(
   controls.autoRotate = false; // 开场动画结束后开启
   controls.autoRotateSpeed = 0.4;
 
-  // ---------- 后处理：Bloom 辉光 ----------
+  // ---------- 后处理：God Rays → Bloom ----------
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
+  const godRaysPass = new ShaderPass(GODRAYS_SHADER);
+  composer.addPass(godRaysPass);
   const bloomPass = new UnrealBloomPass(
     new THREE.Vector2(container.clientWidth, container.clientHeight),
     0.6, // strength
@@ -964,6 +1009,7 @@ export function createSolarSystem(
   // ---------- 主循环 ----------
   const clock = new THREE.Clock();
   const tmp = new THREE.Vector3();
+  const camDir = new THREE.Vector3();
   let elapsed = 0;
   let rafId = 0;
 
@@ -1038,6 +1084,15 @@ export function createSolarSystem(
     sunGlow.scale.setScalar(
       BODIES[0].radius * (4.4 + Math.sin(elapsed * 1.4) * 0.3 + audio * 2.4),
     );
+
+    // God Rays：把太阳投影到屏幕坐标；太阳在身后或出画时淡出
+    camera.getWorldDirection(camDir);
+    const sunInFront = camDir.dot(tmp.copy(camera.position).negate()) > 0;
+    tmp.set(0, 0, 0).project(camera);
+    const offAxis = Math.max(Math.abs(tmp.x), Math.abs(tmp.y));
+    const rayFade = sunInFront ? 1 - THREE.MathUtils.smoothstep(offAxis, 1.0, 1.6) : 0;
+    godRaysPass.uniforms.uLightPos.value.set((tmp.x + 1) / 2, (tmp.y + 1) / 2);
+    godRaysPass.uniforms.uIntensity.value = rayFade * (1 + audio * 0.5);
 
     // 地球夜面灯光遮罩：视线空间的太阳方向
     tmp.set(0, 0, 0).applyMatrix4(camera.matrixWorldInverse);
@@ -1117,6 +1172,8 @@ export function createSolarSystem(
       renderer.domElement.removeEventListener("pointermove", onPointerMove);
       controls.dispose();
       for (const d of disposables) d.dispose();
+      godRaysPass.dispose();
+      bloomPass.dispose();
       composer.dispose();
       renderer.dispose();
       container.removeChild(renderer.domElement);
