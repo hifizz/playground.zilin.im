@@ -328,7 +328,7 @@ export const demos: DemoEntry[] = [
   {
     title: "太阳系 · 3D 交互科普",
     description:
-      "Three.js + Bloom 电影级太阳系：GLSL 动态日面、地球大气/夜面灯光、哈雷彗星双彗尾（开普勒加速）、行星拖尾，点击星球相机跟随 + 科普卡片。",
+      "Three.js 电影级太阳系：God Rays + Bloom、GLSL 动态日面、地球大气/夜面灯光、哈雷彗星双彗尾（开普勒加速）、Web Audio 音画联动，点击星球相机跟随 + 科普卡片。",
     route: "/solar-system",
     category: "Explored Demo",
     tags: ["Three.js", "WebGL", "3D"],
@@ -337,7 +337,7 @@ export const demos: DemoEntry[] = [
   {
     title: "太阳系 · 点云粒子版",
     description:
-      "全点云太阳系：约 7 万粒子逐点从程序化贴图采样取色，shader 算昼夜明暗，开场星尘汇聚成形（可重放），交互与实体版一致。",
+      "全点云太阳系：约 7 万粒子逐点从程序化贴图采样取色，shader 算昼夜明暗，星尘汇聚成形（可重放），一键 morph 成螺旋星系，交互与实体版一致。",
     route: "/solar-system-points",
     category: "Explored Demo",
     tags: ["Three.js", "GLSL", "Particles"],
