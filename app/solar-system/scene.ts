@@ -42,6 +42,11 @@ export type SolarSystemHandles = {
   /** 音画联动：传入取能量函数（0..1），太阳亮度/辉光/bloom 随之呼吸；null 解绑 */
   bindAudioLevel(fn: (() => number) | null): void;
   resetView(): void;
+  // —— 手势控制 API ——
+  pickAt(clientX: number, clientY: number): string | null;
+  orbitBy(dx: number, dy: number): void; // 绕目标点旋转相机（弧度）
+  dollyBy(factor: number): void; // 距离乘因子（<1 拉近）
+  hoverBody(id: string | null): void; // 外部驱动悬停高亮
   dispose(): void;
 };
 
@@ -957,16 +962,17 @@ export function createSolarSystem(
   let downX = 0;
   let downY = 0;
 
-  const pick = (ev: PointerEvent): string | null => {
+  const pickAt = (clientX: number, clientY: number): string | null => {
     const rect = renderer.domElement.getBoundingClientRect();
     pointer.set(
-      ((ev.clientX - rect.left) / rect.width) * 2 - 1,
-      -(((ev.clientY - rect.top) / rect.height) * 2 - 1),
+      ((clientX - rect.left) / rect.width) * 2 - 1,
+      -(((clientY - rect.top) / rect.height) * 2 - 1),
     );
     raycaster.setFromCamera(pointer, camera);
     const hitList = raycaster.intersectObjects(hitMeshes, false);
     return hitList.length ? (hitList[0].object.userData.bodyId as string) : null;
   };
+  const pick = (ev: PointerEvent) => pickAt(ev.clientX, ev.clientY);
 
   const onPointerDown = (ev: PointerEvent) => {
     downX = ev.clientX;
@@ -1153,6 +1159,33 @@ export function createSolarSystem(
     },
     bindAudioLevel(fn) {
       audioLevelFn = fn;
+    },
+    pickAt,
+    orbitBy(dx, dy) {
+      if (camAnim) return; // 相机动画期间不抢镜头
+      kickIdleTimer();
+      const offset = camera.position.clone().sub(controls.target);
+      const sph = new THREE.Spherical().setFromVector3(offset);
+      sph.theta -= dx;
+      sph.phi = THREE.MathUtils.clamp(sph.phi - dy, 0.05, Math.PI - 0.05);
+      offset.setFromSpherical(sph);
+      camera.position.copy(controls.target).add(offset);
+    },
+    dollyBy(factor) {
+      if (camAnim) return;
+      kickIdleTimer();
+      const offset = camera.position.clone().sub(controls.target);
+      offset.setLength(
+        THREE.MathUtils.clamp(
+          offset.length() * factor,
+          controls.minDistance,
+          controls.maxDistance,
+        ),
+      );
+      camera.position.copy(controls.target).add(offset);
+    },
+    hoverBody(id) {
+      hovered = id && id !== "sun" ? nodeById(id) ?? null : null;
     },
     resetView() {
       selected = null;

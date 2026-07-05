@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { bodyById } from "../solar-system/planets";
 import { InfoPanel } from "../solar-system/info-panel";
+import { GestureLayer } from "../solar-system/gesture-hud";
 import { createSolarPoints, type SolarPointsHandles } from "./scene";
 
 /**
@@ -25,7 +26,27 @@ export default function SolarSystemPointsPage() {
   const [showOrbits, setShowOrbits] = useState(true);
   const [showLabels, setShowLabels] = useState(true);
   const [galaxyOn, setGalaxyOn] = useState(false);
+  const [gestureOn, setGestureOn] = useState(false);
   const [webglFailed, setWebglFailed] = useState(false);
+
+  // —— 手势动作映射 ——
+  const stepSpeed = (dir: 1 | -1) => {
+    const i = SPEEDS.indexOf(speed);
+    const next = SPEEDS[Math.min(SPEEDS.length - 1, Math.max(0, i + dir))];
+    setSpeed(next);
+    handlesRef.current?.setTimeScale(next);
+  };
+  const togglePause = () => {
+    const next = !paused;
+    setPaused(next);
+    handlesRef.current?.setPaused(next);
+  };
+  const toggleGalaxy = () => {
+    const next = !galaxyOn;
+    setGalaxyOn(next);
+    setSelectedId(null);
+    handlesRef.current?.setGalaxy(next);
+  };
 
   useEffect(() => {
     const el = containerRef.current;
@@ -86,11 +107,7 @@ export default function SolarSystemPointsPage() {
         <div className="flex items-center gap-1.5 md:gap-2 rounded-2xl border border-white/10 bg-black/45 backdrop-blur-xl px-2.5 py-2 shadow-2xl">
           {/* 播放 / 暂停 */}
           <button
-            onClick={() => {
-              const next = !paused;
-              setPaused(next);
-              handlesRef.current?.setPaused(next);
-            }}
+            onClick={togglePause}
             className="w-9 h-9 grid place-items-center rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
             title={paused ? "播放" : "暂停"}
           >
@@ -167,12 +184,7 @@ export default function SolarSystemPointsPage() {
 
           {/* 太阳系 ⇋ 螺旋星系形态切换 */}
           <button
-            onClick={() => {
-              const next = !galaxyOn;
-              setGalaxyOn(next);
-              setSelectedId(null);
-              handlesRef.current?.setGalaxy(next);
-            }}
+            onClick={toggleGalaxy}
             className={`px-2.5 h-8 rounded-xl text-[11px] transition-colors ${
               galaxyOn
                 ? "bg-violet-400/25 text-violet-200"
@@ -181,6 +193,19 @@ export default function SolarSystemPointsPage() {
             title="整个太阳系 morph 成一座螺旋星系"
           >
             星系
+          </button>
+
+          {/* 摄像头手势控制 */}
+          <button
+            onClick={() => setGestureOn(!gestureOn)}
+            className={`px-2.5 h-8 rounded-xl text-[11px] transition-colors ${
+              gestureOn
+                ? "bg-cyan-400/25 text-cyan-200"
+                : "text-white/50 hover:text-white/85"
+            }`}
+            title="摄像头手势控制：捏合转视角、指向选星球"
+          >
+            手势
           </button>
 
           {/* 回到全景 */}
@@ -195,6 +220,18 @@ export default function SolarSystemPointsPage() {
 
       {/* 星球科普面板（与实体版共用） */}
       <InfoPanel body={body} onClose={closePanel} />
+
+      {/* 摄像头手势控制层 */}
+      <GestureLayer
+        active={gestureOn}
+        apiRef={handlesRef}
+        onSelect={setSelectedId}
+        onSpeedStep={stepSpeed}
+        onPauseToggle={togglePause}
+        onReset={closePanel}
+        onLove={toggleGalaxy}
+        loveHint="切换星系形态"
+      />
     </div>
   );
 }

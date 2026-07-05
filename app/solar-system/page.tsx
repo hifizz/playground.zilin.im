@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { bodyById } from "./planets";
 import { InfoPanel } from "./info-panel";
+import { GestureLayer } from "./gesture-hud";
 import { createSpaceAudio, type SpaceAudio } from "./audio";
 import { createSolarSystem, type SolarSystemHandles } from "./scene";
 
@@ -27,7 +28,28 @@ export default function SolarSystemPage() {
   const [showOrbits, setShowOrbits] = useState(true);
   const [showLabels, setShowLabels] = useState(true);
   const [soundOn, setSoundOn] = useState(false);
+  const [gestureOn, setGestureOn] = useState(false);
   const [webglFailed, setWebglFailed] = useState(false);
+
+  // —— 手势动作映射 ——
+  const stepSpeed = (dir: 1 | -1) => {
+    const i = SPEEDS.indexOf(speed);
+    const next = SPEEDS[Math.min(SPEEDS.length - 1, Math.max(0, i + dir))];
+    setSpeed(next);
+    handlesRef.current?.setTimeScale(next);
+  };
+  const togglePause = () => {
+    const next = !paused;
+    setPaused(next);
+    handlesRef.current?.setPaused(next);
+  };
+  const toggleOverlays = () => {
+    const next = !showOrbits;
+    setShowOrbits(next);
+    setShowLabels(next);
+    handlesRef.current?.setShowOrbits(next);
+    handlesRef.current?.setShowLabels(next);
+  };
 
   // 程序化太空氛围音：AudioContext 只能由用户手势启动
   const toggleSound = async () => {
@@ -104,11 +126,7 @@ export default function SolarSystemPage() {
         <div className="flex items-center gap-1.5 md:gap-2 rounded-2xl border border-white/10 bg-black/45 backdrop-blur-xl px-2.5 py-2 shadow-2xl">
           {/* 播放 / 暂停 */}
           <button
-            onClick={() => {
-              const next = !paused;
-              setPaused(next);
-              handlesRef.current?.setPaused(next);
-            }}
+            onClick={togglePause}
             className="w-9 h-9 grid place-items-center rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
             title={paused ? "播放" : "暂停"}
           >
@@ -185,6 +203,19 @@ export default function SolarSystemPage() {
             声音
           </button>
 
+          {/* 摄像头手势控制 */}
+          <button
+            onClick={() => setGestureOn(!gestureOn)}
+            className={`px-2.5 h-8 rounded-xl text-[11px] transition-colors ${
+              gestureOn
+                ? "bg-cyan-400/25 text-cyan-200"
+                : "text-white/50 hover:text-white/85"
+            }`}
+            title="摄像头手势控制：捏合转视角、指向选星球"
+          >
+            手势
+          </button>
+
           <div className="w-px h-6 bg-white/10 mx-0.5" />
 
           {/* 回到全景 */}
@@ -199,6 +230,18 @@ export default function SolarSystemPage() {
 
       {/* 星球科普面板 */}
       <InfoPanel body={body} onClose={closePanel} />
+
+      {/* 摄像头手势控制层 */}
+      <GestureLayer
+        active={gestureOn}
+        apiRef={handlesRef}
+        onSelect={setSelectedId}
+        onSpeedStep={stepSpeed}
+        onPauseToggle={togglePause}
+        onReset={closePanel}
+        onLove={toggleOverlays}
+        loveHint="开关轨道标签"
+      />
     </div>
   );
 }

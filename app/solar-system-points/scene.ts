@@ -40,6 +40,11 @@ export type SolarPointsHandles = {
   setGalaxy(v: boolean): void;
   resetView(): void;
   replayAssembly(): void;
+  // —— 手势控制 API ——
+  pickAt(clientX: number, clientY: number): string | null;
+  orbitBy(dx: number, dy: number): void;
+  dollyBy(factor: number): void;
+  hoverBody(id: string | null): void;
   dispose(): void;
 };
 
@@ -773,16 +778,18 @@ export function createSolarPoints(
   let downX = 0;
   let downY = 0;
 
-  const pick = (ev: PointerEvent): string | null => {
+  const pickAt = (clientX: number, clientY: number): string | null => {
+    if (galaxyOn) return null; // 星系形态下天体已散开
     const rect = renderer.domElement.getBoundingClientRect();
     pointer.set(
-      ((ev.clientX - rect.left) / rect.width) * 2 - 1,
-      -(((ev.clientY - rect.top) / rect.height) * 2 - 1),
+      ((clientX - rect.left) / rect.width) * 2 - 1,
+      -(((clientY - rect.top) / rect.height) * 2 - 1),
     );
     raycaster.setFromCamera(pointer, camera);
     const hitList = raycaster.intersectObjects(hitMeshes, false);
     return hitList.length ? (hitList[0].object.userData.bodyId as string) : null;
   };
+  const pick = (ev: PointerEvent) => pickAt(ev.clientX, ev.clientY);
 
   const onPointerDown = (ev: PointerEvent) => {
     downX = ev.clientX;
@@ -980,6 +987,33 @@ export function createSolarPoints(
     },
     replayAssembly() {
       assembleT = 0;
+    },
+    pickAt,
+    orbitBy(dx, dy) {
+      if (camAnim) return;
+      kickIdleTimer();
+      const offset = camera.position.clone().sub(controls.target);
+      const sph = new THREE.Spherical().setFromVector3(offset);
+      sph.theta -= dx;
+      sph.phi = THREE.MathUtils.clamp(sph.phi - dy, 0.05, Math.PI - 0.05);
+      offset.setFromSpherical(sph);
+      camera.position.copy(controls.target).add(offset);
+    },
+    dollyBy(factor) {
+      if (camAnim) return;
+      kickIdleTimer();
+      const offset = camera.position.clone().sub(controls.target);
+      offset.setLength(
+        THREE.MathUtils.clamp(
+          offset.length() * factor,
+          controls.minDistance,
+          controls.maxDistance,
+        ),
+      );
+      camera.position.copy(controls.target).add(offset);
+    },
+    hoverBody(id) {
+      hovered = !galaxyOn && id && id !== "sun" ? nodeById(id) ?? null : null;
     },
     dispose() {
       disposed = true;

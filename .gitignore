@@ -40,3 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .gstack/
+
+# MediaPipe wasm 由 scripts/copy-mediapipe.mjs 构建时生成
+/public/mediapipe/wasm/
