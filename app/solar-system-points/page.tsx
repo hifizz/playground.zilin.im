@@ -24,6 +24,7 @@ export default function SolarSystemPointsPage() {
   const [paused, setPaused] = useState(false);
   const [showOrbits, setShowOrbits] = useState(true);
   const [showLabels, setShowLabels] = useState(true);
+  const [galaxyOn, setGalaxyOn] = useState(false);
   const [webglFailed, setWebglFailed] = useState(false);
 
   useEffect(() => {
@@ -162,6 +163,24 @@ export default function SolarSystemPointsPage() {
             title="粒子重新汇聚成形"
           >
             汇聚
+          </button>
+
+          {/* 太阳系 ⇋ 螺旋星系形态切换 */}
+          <button
+            onClick={() => {
+              const next = !galaxyOn;
+              setGalaxyOn(next);
+              setSelectedId(null);
+              handlesRef.current?.setGalaxy(next);
+            }}
+            className={`px-2.5 h-8 rounded-xl text-[11px] transition-colors ${
+              galaxyOn
+                ? "bg-violet-400/25 text-violet-200"
+                : "text-white/50 hover:text-white/85"
+            }`}
+            title="整个太阳系 morph 成一座螺旋星系"
+          >
+            星系
           </button>
 
           {/* 回到全景 */}

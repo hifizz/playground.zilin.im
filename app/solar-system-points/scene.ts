@@ -37,6 +37,7 @@ export type SolarPointsHandles = {
   setPaused(v: boolean): void;
   setShowOrbits(v: boolean): void;
   setShowLabels(v: boolean): void;
+  setGalaxy(v: boolean): void;
   resetView(): void;
   replayAssembly(): void;
   dispose(): void;
@@ -44,6 +45,8 @@ export type SolarPointsHandles = {
 
 type CloudUniforms = {
   uAssemble: { value: number };
+  uMorph: { value: number };
+  uWorldToLocal: { value: THREE.Matrix4 };
   uTime: { value: number };
   uSize: { value: number };
   uPixelRatio: { value: number };
@@ -86,10 +89,13 @@ function seededRand(seed: number) {
 
 const VERT = /* glsl */ `
   attribute vec3 aScatter;   // 汇聚动画的出发位置
+  attribute vec3 aGalaxy;    // 星系形态的目标位置（世界坐标）
   attribute vec3 aColor;     // 从程序化贴图采样的颜色
   attribute float aRand;     // 每粒子随机相位
 
   uniform float uAssemble;   // 0 = 四散, 1 = 成形
+  uniform float uMorph;      // 0 = 太阳系, 1 = 螺旋星系
+  uniform mat4 uWorldToLocal; // 世界 → 本体局部（星系目标固定在世界系，天体还在公转）
   uniform float uTime;
   uniform float uSize;
   uniform float uPixelRatio;
@@ -105,14 +111,21 @@ const VERT = /* glsl */ `
     t = t * t * (3.0 - 2.0 * t);
     vec3 pos = mix(aScatter, position, t);
 
+    // 星系 morph：目标点是世界坐标，先变换回本体局部系再混合，
+    // 这样即使天体仍在公转/自转，星系形态在世界中也是静止的
+    float m = clamp(uMorph * 1.6 - aRand * 0.6, 0.0, 1.0);
+    m = m * m * (3.0 - 2.0 * m);
+    vec3 galaxyLocal = (uWorldToLocal * vec4(aGalaxy, 1.0)).xyz;
+    pos = mix(pos, galaxyLocal, m);
+
     vec3 n = normalize(position);
     float diff = max(dot(n, normalize(uSunDir)), 0.0);
-    vLight = mix(1.0, 0.3 + 0.9 * diff, uLit);
+    vLight = mix(mix(1.0, 0.3 + 0.9 * diff, uLit), 1.0, m * 0.85);
     vColor = aColor;
 
     vec4 mv = modelViewMatrix * vec4(pos, 1.0);
     float twinkle = 0.82 + 0.36 * sin(uTime * 2.2 + aRand * 31.0);
-    gl_PointSize = uSize * uPixelRatio * twinkle * (26.0 / -mv.z);
+    gl_PointSize = uSize * uPixelRatio * twinkle * (26.0 / -mv.z) * mix(1.0, 0.82, m);
     gl_Position = projectionMatrix * mv;
   }
 `;
@@ -146,6 +159,8 @@ function makeCloudMaterial(opts: {
 }): { material: THREE.ShaderMaterial; uniforms: CloudUniforms } {
   const uniforms: CloudUniforms = {
     uAssemble: { value: 0 },
+    uMorph: { value: 0 },
+    uWorldToLocal: { value: new THREE.Matrix4() },
     uTime: { value: 0 },
     uSize: { value: opts.size },
     uPixelRatio: { value: opts.pixelRatio },
@@ -163,12 +178,40 @@ function makeCloudMaterial(opts: {
   return { material, uniforms };
 }
 
+// ---------- 螺旋星系形态：3 旋臂 + 中央核球（世界坐标） ----------
+
+type GalaxyKind = "core" | "arm";
+
+/** 生成一个星系目标点。core = 核球（太阳粒子），arm = 旋臂（行星/环/月球粒子） */
+function galaxyPoint(rand: () => number, kind: GalaxyKind, out: Float32Array, i: number) {
+  const gauss = () => rand() + rand() + rand() - 1.5; // 近似高斯
+  if (kind === "core") {
+    // 核球：密集小球体，略压扁
+    const r = 1.2 + 4.5 * rand() ** 1.7;
+    const z = rand() * 2 - 1;
+    const t = rand() * Math.PI * 2;
+    const s = Math.sqrt(1 - z * z);
+    out[i] = s * Math.cos(t) * r;
+    out[i + 1] = z * r * 0.55;
+    out[i + 2] = s * Math.sin(t) * r;
+    return;
+  }
+  // 旋臂：对数螺线 + 高斯散布，越靠外越薄
+  const arm = Math.floor(rand() * 3);
+  const r = 5 + 27 * Math.sqrt(rand());
+  const theta =
+    r * 0.3 + (arm * Math.PI * 2) / 3 + gauss() * (0.5 - (r / 32) * 0.32);
+  out[i] = Math.cos(theta) * r + gauss() * 1.1;
+  out[i + 1] = gauss() * 1.7 * Math.exp(-r / 16);
+  out[i + 2] = Math.sin(theta) * r + gauss() * 1.1;
+}
+
 /** 球面均匀采样 + 从贴图取色，生成点云 geometry */
 function makeSphereCloud(
   body: Body,
   count: number,
   rand: () => number,
-  opts: { radiusJitter?: number; brighten?: number } = {},
+  opts: { radiusJitter?: number; brighten?: number; galaxy?: GalaxyKind } = {},
 ): THREE.BufferGeometry {
   const canvas = createBodyCanvas(body.id === "moon-visual" ? "moon" : body.id);
   const ctx = canvas.getContext("2d")!;
@@ -178,11 +221,13 @@ function makeSphereCloud(
 
   const pos = new Float32Array(count * 3);
   const scatter = new Float32Array(count * 3);
+  const galaxy = new Float32Array(count * 3);
   const col = new Float32Array(count * 3);
   const rnd = new Float32Array(count);
   const brighten = opts.brighten ?? 1;
 
   for (let i = 0; i < count; i++) {
+    galaxyPoint(rand, opts.galaxy ?? "arm", galaxy, i * 3);
     // 球面均匀分布
     const z = rand() * 2 - 1;
     const theta = rand() * Math.PI * 2;
@@ -221,6 +266,7 @@ function makeSphereCloud(
   const geo = new THREE.BufferGeometry();
   geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
   geo.setAttribute("aScatter", new THREE.BufferAttribute(scatter, 3));
+  geo.setAttribute("aGalaxy", new THREE.BufferAttribute(galaxy, 3));
   geo.setAttribute("aColor", new THREE.BufferAttribute(col, 3));
   geo.setAttribute("aRand", new THREE.BufferAttribute(rnd, 1));
   return geo;
@@ -243,11 +289,13 @@ function makeRingCloud(
 
   const pos = new Float32Array(count * 3);
   const scatter = new Float32Array(count * 3);
+  const galaxy = new Float32Array(count * 3);
   const col = new Float32Array(count * 3);
   const rnd = new Float32Array(count);
   const base = new THREE.Color("#d8c8a8");
 
   for (let i = 0; i < count; i++) {
+    galaxyPoint(rand, "arm", galaxy, i * 3);
     // 面积均匀 + alpha 拒绝采样
     let t = 0.5;
     for (let tries = 0; tries < 12; tries++) {
@@ -279,6 +327,7 @@ function makeRingCloud(
   const geo = new THREE.BufferGeometry();
   geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
   geo.setAttribute("aScatter", new THREE.BufferAttribute(scatter, 3));
+  geo.setAttribute("aGalaxy", new THREE.BufferAttribute(galaxy, 3));
   geo.setAttribute("aColor", new THREE.BufferAttribute(col, 3));
   geo.setAttribute("aRand", new THREE.BufferAttribute(rnd, 1));
   return geo;
@@ -384,6 +433,8 @@ export function createSolarPoints(
   const hitMeshes: THREE.Mesh[] = [];
   const orbitClouds: THREE.Points[] = [];
   const allCloudUniforms: CloudUniforms[] = [];
+  // 所有点云对象（含环/月球），星系 morph 时逐个回传 world→local 矩阵
+  const clouds: { obj: THREE.Points; uniforms: CloudUniforms }[] = [];
   const rand = seededRand(7);
 
   const makeLabel = (body: Body) => {
@@ -406,6 +457,7 @@ export function createSolarPoints(
   let sunUniforms!: CloudUniforms;
   let sunGlow!: THREE.Sprite;
   let sunTilt!: THREE.Group;
+  let sunLabel!: CSS2DObject;
 
   for (const body of BODIES) {
     if (body.kind === "comet") continue; // 彗星仅在实体版实现
@@ -419,6 +471,7 @@ export function createSolarPoints(
       makeSphereCloud(body, count, rand, {
         radiusJitter: isSun ? 0.1 : 0.03,
         brighten: isSun ? 1.15 : 1.05,
+        galaxy: isSun ? "core" : "arm", // 星系形态：太阳粒子归入银心核球
       }),
     );
     const { material, uniforms } = makeCloudMaterial({
@@ -432,6 +485,7 @@ export function createSolarPoints(
 
     const points = new THREE.Points(geo, material);
     points.frustumCulled = false; // 汇聚动画期间粒子在包围球外
+    clouds.push({ obj: points, uniforms });
 
     const tiltGroup = new THREE.Group();
     tiltGroup.rotation.z = THREE.MathUtils.degToRad(body.tiltDeg);
@@ -463,6 +517,7 @@ export function createSolarPoints(
       allCloudUniforms.push(made.uniforms);
       const ringPoints = new THREE.Points(ringGeo, made.material);
       ringPoints.frustumCulled = false;
+      clouds.push({ obj: ringPoints, uniforms: made.uniforms });
       tiltGroup.add(ringPoints);
     }
 
@@ -484,6 +539,7 @@ export function createSolarPoints(
       sunGlow.scale.setScalar(body.radius * 6);
       anchor.add(sunGlow);
       label.position.y = body.radius * 1.3 + 0.6;
+      sunLabel = label;
       continue;
     }
 
@@ -551,6 +607,7 @@ export function createSolarPoints(
     moonPoints = new THREE.Points(geo, made.material);
     moonPoints.frustumCulled = false;
     moonPoints.position.x = 1.35;
+    clouds.push({ obj: moonPoints, uniforms: made.uniforms });
     moonPivot.add(moonPoints);
     earthNode.anchor.add(moonPivot);
   }
@@ -594,6 +651,19 @@ export function createSolarPoints(
   let idleTimer: ReturnType<typeof setTimeout> | null = null;
   let introDone = false;
   let assembleT = 0; // 0..1 汇聚进度
+  let galaxyOn = false;
+  let morphT = 0; // 0..1 星系形态进度
+  let userOrbits = true;
+  let userLabels = true;
+
+  // 星系模式下隐藏太阳系专属元素（轨道/标签/小行星带/太阳辉光）
+  const applyVisibility = () => {
+    for (const c of orbitClouds) c.visible = userOrbits && !galaxyOn;
+    for (const p of planets) p.label.visible = userLabels && !galaxyOn;
+    sunLabel.visible = userLabels && !galaxyOn;
+    belt.visible = !galaxyOn;
+    sunGlow.visible = !galaxyOn;
+  };
 
   const prevSelectedPos = new THREE.Vector3();
 
@@ -719,6 +789,7 @@ export function createSolarPoints(
     downY = ev.clientY;
   };
   const onPointerUp = (ev: PointerEvent) => {
+    if (galaxyOn) return; // 星系形态下天体已散作星尘，不可选中
     if (Math.hypot(ev.clientX - downX, ev.clientY - downY) > 6) return;
     const id = pick(ev);
     if (id) {
@@ -730,6 +801,11 @@ export function createSolarPoints(
     }
   };
   const onPointerMove = (ev: PointerEvent) => {
+    if (galaxyOn) {
+      hovered = null;
+      renderer.domElement.style.cursor = "grab";
+      return;
+    }
     const id = pick(ev);
     hovered = id && id !== "sun" ? nodeById(id) ?? null : null;
     renderer.domElement.style.cursor = id ? "pointer" : "grab";
@@ -769,9 +845,18 @@ export function createSolarPoints(
 
     // 汇聚进度与闪烁不受暂停影响
     assembleT = Math.min(1, assembleT + dt / ASSEMBLE_DURATION);
+    // 星系形态进度：匀速趋近目标（约 2.2s 完成）
+    morphT += THREE.MathUtils.clamp((galaxyOn ? 1 : 0) - morphT, -dt / 2.2, dt / 2.2);
     for (const u of allCloudUniforms) {
       u.uAssemble.value = assembleT;
+      u.uMorph.value = morphT;
       u.uTime.value = elapsed;
+    }
+    // 星系目标点固定在世界系：每帧回传各点云的 world→local 矩阵
+    if (morphT > 0.0001) {
+      for (const c of clouds) {
+        c.uniforms.uWorldToLocal.value.copy(c.obj.matrixWorld).invert();
+      }
     }
 
     // 公转 + 自转 + 昼夜方向
@@ -850,10 +935,40 @@ export function createSolarPoints(
       paused = v;
     },
     setShowOrbits(v) {
-      for (const c of orbitClouds) c.visible = v;
+      userOrbits = v;
+      applyVisibility();
     },
     setShowLabels(v) {
-      for (const p of planets) p.label.visible = v;
+      userLabels = v;
+      applyVisibility();
+    },
+    setGalaxy(v) {
+      if (galaxyOn === v) return;
+      galaxyOn = v;
+      selected = null;
+      applyVisibility();
+      if (idleTimer) clearTimeout(idleTimer);
+      if (v) {
+        // 拉远俯瞰 + 自动环绕，欣赏旋臂
+        controls.autoRotate = true;
+        startCamAnim(
+          () => new THREE.Vector3(0, 42, 66),
+          () => new THREE.Vector3(0, 0, 0),
+          2.2,
+        );
+      } else {
+        controls.autoRotate = false;
+        startCamAnim(
+          () => DEFAULT_CAM.clone(),
+          () => new THREE.Vector3(0, 0, 0),
+          1.6,
+          () => {
+            idleTimer = setTimeout(() => {
+              if (!selected && !galaxyOn) controls.autoRotate = true;
+            }, IDLE_RESUME_MS);
+          },
+        );
+      }
     },
     resetView() {
       selected = null;
