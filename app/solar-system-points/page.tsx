@@ -2,22 +2,22 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { bodyById } from "./planets";
-import { InfoPanel } from "./info-panel";
-import { createSolarSystem, type SolarSystemHandles } from "./scene";
+import { bodyById } from "../solar-system/planets";
+import { InfoPanel } from "../solar-system/info-panel";
+import { createSolarPoints, type SolarPointsHandles } from "./scene";
 
 /**
- * 太阳系 3D 交互科普
- * - Three.js 全屏场景：真实比例的公转/自转快慢、轴倾角、逆行自转
- * - 点击星球：3D 弹性放大 + 相机飞近跟随 + 右侧科普面板
- * - 控制条：暂停 / 变速 / 轨道线 / 标签 / 回到全景
+ * 太阳系 · 点云粒子版
+ * - 所有天体由粒子云构成，逐点从程序化贴图采样取色，shader 里算昼夜明暗
+ * - 开场「星尘汇聚」动画，可随时重放
+ * - 交互与实体版一致：点击星球 3D 放大 + 相机跟随 + 科普面板
  */
 
 const SPEEDS = [0.25, 1, 3, 10];
 
-export default function SolarSystemPage() {
+export default function SolarSystemPointsPage() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const handlesRef = useRef<SolarSystemHandles | null>(null);
+  const handlesRef = useRef<SolarPointsHandles | null>(null);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [speed, setSpeed] = useState(1);
@@ -29,9 +29,9 @@ export default function SolarSystemPage() {
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    let handles: SolarSystemHandles | null = null;
+    let handles: SolarPointsHandles | null = null;
     try {
-      handles = createSolarSystem(el, (id) => setSelectedId(id));
+      handles = createSolarPoints(el, (id) => setSelectedId(id));
     } catch (err) {
       console.error("WebGL init failed:", err);
       queueMicrotask(() => setWebglFailed(true));
@@ -72,7 +72,7 @@ export default function SolarSystemPage() {
             ← PLAYGROUND
           </Link>
           <h1 className="text-lg md:text-2xl font-semibold tracking-wide">
-            太阳系 · Solar System
+            太阳系 · 点云 Particles
           </h1>
           <p className="text-[11px] md:text-xs text-white/45">
             拖动旋转 · 滚轮缩放 · 点击星球查看科普卡片
@@ -155,6 +155,15 @@ export default function SolarSystemPage() {
 
           <div className="w-px h-6 bg-white/10 mx-0.5" />
 
+          {/* 重放汇聚动画 */}
+          <button
+            onClick={() => handlesRef.current?.replayAssembly()}
+            className="px-2.5 h-8 rounded-xl text-[11px] text-white/50 hover:text-white/85 transition-colors"
+            title="粒子重新汇聚成形"
+          >
+            汇聚
+          </button>
+
           {/* 回到全景 */}
           <button
             onClick={closePanel}
@@ -165,7 +174,7 @@ export default function SolarSystemPage() {
         </div>
       </div>
 
-      {/* 星球科普面板 */}
+      {/* 星球科普面板（与实体版共用） */}
       <InfoPanel body={body} onClose={closePanel} />
     </div>
   );

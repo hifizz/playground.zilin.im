@@ -32,6 +32,7 @@ import { ShaderFlowingLightThumb } from "./thumbs/shader-flowing-light";
 import { VoiceOrbCarouselThumb } from "./thumbs/voice-orb-carousel";
 import { VoiceChatWidgetThumb } from "./thumbs/voice-chat-widget";
 import { SolarSystemThumb } from "./thumbs/solar-system";
+import { SolarSystemPointsThumb } from "./thumbs/solar-system-points";
 
 export type DemoCategory = "Interaction" | "Text Demo" | "Explored Demo" | "Agent UX/UI";
 
@@ -332,5 +333,14 @@ export const demos: DemoEntry[] = [
     category: "Explored Demo",
     tags: ["Three.js", "WebGL", "3D"],
     preview: <SolarSystemThumb />,
+  },
+  {
+    title: "太阳系 · 点云粒子版",
+    description:
+      "全点云太阳系：约 7 万粒子逐点从程序化贴图采样取色，shader 算昼夜明暗，开场星尘汇聚成形（可重放），交互与实体版一致。",
+    route: "/solar-system-points",
+    category: "Explored Demo",
+    tags: ["Three.js", "GLSL", "Particles"],
+    preview: <SolarSystemPointsThumb />,
   },
 ];
