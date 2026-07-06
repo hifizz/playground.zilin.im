@@ -349,11 +349,18 @@ export function createSolarPoints(
   };
 
   // DPR 按窗口面积设上限：bloom 的 HalfFloat 渲染目标在高分大屏上会打爆
-  // 显存（分配失败时画布只剩部分内容/黑块）
+  // 显存（分配失败时画布只剩部分内容/黑块）。dprScale 由性能自适应控制
+  let dprScale = 1;
   const capDpr = (w: number, h: number) =>
-    Math.max(1, Math.min(window.devicePixelRatio, 2, Math.sqrt(4.2e6 / Math.max(1, w * h))));
+    Math.max(
+      0.55,
+      Math.min(window.devicePixelRatio, 2, Math.sqrt(4.2e6 / Math.max(1, w * h))) * dprScale,
+    );
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  const renderer = new THREE.WebGLRenderer({
+    antialias: true,
+    powerPreference: "high-performance",
+  });
   const pixelRatio = capDpr(container.clientWidth, container.clientHeight);
   renderer.setPixelRatio(pixelRatio);
   renderer.setSize(container.clientWidth, container.clientHeight);
@@ -400,15 +407,26 @@ export function createSolarPoints(
   // ---------- 后处理：Bloom（加色叠亮的太阳粒子与汇聚星尘会晕开成霓虹） ----------
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
-  composer.addPass(
-    new UnrealBloomPass(
-      new THREE.Vector2(container.clientWidth, container.clientHeight),
-      0.55, // strength：只让太阳粒子与星尘晕开，别冲淡行星本色
-      0.5, // radius
-      0.62, // threshold
-    ),
+  const bloomPass = new UnrealBloomPass(
+    new THREE.Vector2(container.clientWidth, container.clientHeight),
+    0.55, // strength：只让太阳粒子与星尘晕开，别冲淡行星本色
+    0.5, // radius
+    0.62, // threshold
   );
+  composer.addPass(bloomPass);
   composer.addPass(new OutputPass());
+
+  // ---------- 性能自适应：持续低帧率时逐级降画质 ----------
+  let perfLevel = 0;
+  const PERF_DPR = [1, 0.85, 0.7, 0.55];
+  const applyPerfLevel = () => {
+    dprScale = PERF_DPR[perfLevel];
+    bloomPass.strength = perfLevel >= 2 ? 0.35 : 0.55;
+    applySize();
+    console.info(
+      `[solar-points] 帧率偏低，画质自适应 → L${perfLevel}（渲染分辨率 ×${dprScale}）`,
+    );
+  };
 
   // ---------- 星空 ----------
   const starTex = track(new THREE.CanvasTexture(createStarCanvas()));
@@ -858,6 +876,11 @@ export function createSolarPoints(
   ro.observe(container);
   // ResizeObserver 覆盖不到 DPR 变化（换显示器 / 浏览器缩放），补 window resize
   window.addEventListener("resize", resize);
+  // 标签页切回时强制重建一次，清掉合成器可能残留的陈旧帧
+  const onVisible = () => {
+    if (document.visibilityState === "visible") resize();
+  };
+  document.addEventListener("visibilitychange", onVisible);
 
   // ---------- 主循环 ----------
   const clock = new THREE.Clock();
@@ -867,6 +890,8 @@ export function createSolarPoints(
   let elapsed = 0;
   let rafId = 0;
   let nextSizeCheck = 0;
+  let fpsWindow = performance.now();
+  let fpsCount = 0;
 
   const frame = () => {
     if (disposed) return;
@@ -874,16 +899,40 @@ export function createSolarPoints(
     const dt = Math.min(clock.getDelta(), 0.1);
     elapsed += dt;
 
-    // 自愈：canvas 与容器尺寸失步（上下文恢复 / 漏掉的 resize 事件）时重设。
+    // 自愈：CSS 尺寸或绘制缓冲与预期失步时重设（重建缓冲会清掉陈旧帧）。
     // 按墙钟时间而非帧数检查，低帧率下也能及时恢复
     if (performance.now() >= nextSizeCheck) {
       nextSizeCheck = performance.now() + 1500;
       const el = renderer.domElement;
+      const pr = renderer.getPixelRatio();
       if (
         Math.abs(el.clientWidth - container.clientWidth) > 2 ||
-        Math.abs(el.clientHeight - container.clientHeight) > 2
+        Math.abs(el.clientHeight - container.clientHeight) > 2 ||
+        Math.abs(el.width - Math.floor(container.clientWidth * pr)) > 4 ||
+        Math.abs(el.height - Math.floor(container.clientHeight * pr)) > 4
       ) {
         applySize();
+      }
+    }
+
+    // 性能采样：3s 窗口平均帧率持续 < 24 时降级（跳过后台停摆窗口）
+    fpsCount++;
+    {
+      const nowMs = performance.now();
+      const span = nowMs - fpsWindow;
+      if (span >= 3000) {
+        const fps = (fpsCount * 1000) / span;
+        fpsWindow = nowMs;
+        fpsCount = 0;
+        if (
+          span < 6000 &&
+          document.visibilityState === "visible" &&
+          fps < 24 &&
+          perfLevel < PERF_DPR.length - 1
+        ) {
+          perfLevel++;
+          applyPerfLevel();
+        }
       }
     }
     const simDays = paused ? 0 : dt * ORBIT_DAYS_PER_SEC * timeScale;
@@ -1059,6 +1108,7 @@ export function createSolarPoints(
       if (idleTimer) clearTimeout(idleTimer);
       ro.disconnect();
       window.removeEventListener("resize", resize);
+      document.removeEventListener("visibilitychange", onVisible);
       renderer.domElement.removeEventListener("webglcontextlost", onCtxLost);
       renderer.domElement.removeEventListener("webglcontextrestored", onCtxRestored);
       renderer.domElement.removeEventListener("pointerdown", onPointerDown);

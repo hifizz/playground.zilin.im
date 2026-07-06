@@ -266,11 +266,19 @@ export function createSolarSystem(
 
   // ---------- renderer / scene / camera ----------
   // DPR 按窗口面积设上限：bloom/godrays 有多张全尺寸 HalfFloat 渲染目标，
-  // 高分大屏上不设限会把显存打爆（分配失败时画布只剩部分内容/黑块）
+  // 高分大屏上不设限会把显存打爆（分配失败时画布只剩部分内容/黑块）。
+  // dprScale 由性能自适应控制（帧率过低时逐级下调）
+  let dprScale = 1;
   const capDpr = (w: number, h: number) =>
-    Math.max(1, Math.min(window.devicePixelRatio, 2, Math.sqrt(4.2e6 / Math.max(1, w * h))));
+    Math.max(
+      0.55,
+      Math.min(window.devicePixelRatio, 2, Math.sqrt(4.2e6 / Math.max(1, w * h))) * dprScale,
+    );
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  const renderer = new THREE.WebGLRenderer({
+    antialias: true,
+    powerPreference: "high-performance", // 双显卡设备优先独显
+  });
   const pixelRatio = capDpr(container.clientWidth, container.clientHeight);
   renderer.setPixelRatio(pixelRatio);
   renderer.setSize(container.clientWidth, container.clientHeight);
@@ -328,6 +336,19 @@ export function createSolarSystem(
   );
   composer.addPass(bloomPass);
   composer.addPass(new OutputPass());
+
+  // ---------- 性能自适应：持续低帧率时逐级降画质（弱 GPU / 集显保底） ----------
+  let perfLevel = 0;
+  const PERF_DPR = [1, 0.85, 0.7, 0.55];
+  const applyPerfLevel = () => {
+    dprScale = PERF_DPR[perfLevel];
+    godRaysPass.enabled = perfLevel < 2; // L2 起关掉最贵的 God Rays
+    applySize();
+    console.info(
+      `[solar-system] 帧率偏低，画质自适应 → L${perfLevel}` +
+        `（渲染分辨率 ×${dprScale}${perfLevel >= 2 ? "，关闭 God Rays" : ""}）`,
+    );
+  };
 
   // ---------- 真实贴图加载器 ----------
   const maxAniso = renderer.capabilities.getMaxAnisotropy();
@@ -1194,6 +1215,11 @@ export function createSolarSystem(
   ro.observe(container);
   // ResizeObserver 覆盖不到 DPR 变化（换显示器 / 浏览器缩放），补 window resize
   window.addEventListener("resize", resize);
+  // 标签页切回时强制重建一次，清掉合成器可能残留的陈旧帧
+  const onVisible = () => {
+    if (document.visibilityState === "visible") resize();
+  };
+  document.addEventListener("visibilitychange", onVisible);
 
   // ---------- 主循环 ----------
   const clock = new THREE.Clock();
@@ -1202,6 +1228,8 @@ export function createSolarSystem(
   let elapsed = 0;
   let rafId = 0;
   let nextSizeCheck = 0;
+  let fpsWindow = performance.now();
+  let fpsCount = 0;
 
   const frame = () => {
     if (disposed) return;
@@ -1209,16 +1237,41 @@ export function createSolarSystem(
     const dt = Math.min(clock.getDelta(), 0.1);
     elapsed += dt;
 
-    // 自愈：canvas 与容器尺寸失步（上下文恢复 / 漏掉的 resize 事件）时重设。
+    // 自愈：CSS 尺寸或绘制缓冲与预期失步（上下文恢复 / 分配失败 / 漏掉的
+    // resize 事件）时重设——重建缓冲同时会清掉合成器里的陈旧纹理。
     // 按墙钟时间而非帧数检查，低帧率下也能及时恢复
     if (performance.now() >= nextSizeCheck) {
       nextSizeCheck = performance.now() + 1500;
       const el = renderer.domElement;
+      const pr = renderer.getPixelRatio();
       if (
         Math.abs(el.clientWidth - container.clientWidth) > 2 ||
-        Math.abs(el.clientHeight - container.clientHeight) > 2
+        Math.abs(el.clientHeight - container.clientHeight) > 2 ||
+        Math.abs(el.width - Math.floor(container.clientWidth * pr)) > 4 ||
+        Math.abs(el.height - Math.floor(container.clientHeight * pr)) > 4
       ) {
         applySize();
+      }
+    }
+
+    // 性能采样：3s 窗口平均帧率持续 < 24 时降级（跳过后台窗口期）
+    fpsCount++;
+    {
+      const nowMs = performance.now();
+      const span = nowMs - fpsWindow;
+      if (span >= 3000) {
+        const fps = (fpsCount * 1000) / span;
+        fpsWindow = nowMs;
+        fpsCount = 0;
+        if (
+          span < 6000 && // 跨越了后台停摆的窗口不作数
+          document.visibilityState === "visible" &&
+          fps < 24 &&
+          perfLevel < PERF_DPR.length - 1
+        ) {
+          perfLevel++;
+          applyPerfLevel();
+        }
       }
     }
     const simDays = paused ? 0 : dt * ORBIT_DAYS_PER_SEC * timeScale;
@@ -1309,7 +1362,7 @@ export function createSolarSystem(
     // 太阳辉光呼吸 + 音画联动（声音能量推大辉光、提亮日面、加深 bloom）
     const audio = audioLevelFn ? audioLevelFn() : 0;
     sunUniforms.uAudio.value = audio;
-    bloomPass.strength = 0.6 + audio * 0.5;
+    bloomPass.strength = (0.6 + audio * 0.5) * (perfLevel >= 2 ? 0.65 : 1);
     sunGlow.scale.setScalar(
       BODIES[0].radius * (4.4 + Math.sin(elapsed * 1.4) * 0.3 + audio * 2.4),
     );
@@ -1452,6 +1505,7 @@ export function createSolarSystem(
       if (idleTimer) clearTimeout(idleTimer);
       ro.disconnect();
       window.removeEventListener("resize", resize);
+      document.removeEventListener("visibilitychange", onVisible);
       renderer.domElement.removeEventListener("webglcontextlost", onCtxLost);
       renderer.domElement.removeEventListener("webglcontextrestored", onCtxRestored);
       renderer.domElement.removeEventListener("pointerdown", onPointerDown);
