@@ -249,13 +249,27 @@ export function createSolarSystem(
   };
 
   // ---------- renderer / scene / camera ----------
+  // DPR 按窗口面积设上限：bloom/godrays 有多张全尺寸 HalfFloat 渲染目标，
+  // 高分大屏上不设限会把显存打爆（分配失败时画布只剩部分内容/黑块）
+  const capDpr = (w: number, h: number) =>
+    Math.max(1, Math.min(window.devicePixelRatio, 2, Math.sqrt(4.2e6 / Math.max(1, w * h))));
+
   const renderer = new THREE.WebGLRenderer({ antialias: true });
-  const pixelRatio = Math.min(window.devicePixelRatio, 2);
+  const pixelRatio = capDpr(container.clientWidth, container.clientHeight);
   renderer.setPixelRatio(pixelRatio);
   renderer.setSize(container.clientWidth, container.clientHeight);
   renderer.toneMapping = THREE.ACESFilmicToneMapping; // 电影级色调映射
   renderer.domElement.style.display = "block";
   container.appendChild(renderer.domElement);
+
+  // 上下文丢失时阻止默认（允许浏览器恢复），恢复后强制重设尺寸
+  const onCtxLost = (e: Event) => {
+    e.preventDefault();
+    console.warn("WebGL context lost — 等待恢复");
+  };
+  const onCtxRestored = () => resize();
+  renderer.domElement.addEventListener("webglcontextlost", onCtxLost);
+  renderer.domElement.addEventListener("webglcontextrestored", onCtxRestored);
 
   const labelRenderer = new CSS2DRenderer();
   labelRenderer.setSize(container.clientWidth, container.clientHeight);
@@ -1043,18 +1057,30 @@ export function createSolarSystem(
   renderer.domElement.addEventListener("pointermove", onPointerMove);
 
   // ---------- resize ----------
-  const resize = () => {
+  const applySize = () => {
     const w = container.clientWidth;
     const h = container.clientHeight;
     if (!w || !h) return;
+    const pr = capDpr(w, h);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
+    renderer.setPixelRatio(pr);
     renderer.setSize(w, h);
+    composer.setPixelRatio(pr);
     composer.setSize(w, h);
     labelRenderer.setSize(w, h);
+    (ionTail.points.material as THREE.ShaderMaterial).uniforms.uPixelRatio.value = pr;
+    (dustTail.points.material as THREE.ShaderMaterial).uniforms.uPixelRatio.value = pr;
+  };
+  const resize = () => {
+    applySize();
+    // 布局过渡（全屏切换等）期间尺寸可能还没稳定，下一帧再校一次
+    requestAnimationFrame(applySize);
   };
   const ro = new ResizeObserver(resize);
   ro.observe(container);
+  // ResizeObserver 覆盖不到 DPR 变化（换显示器 / 浏览器缩放），补 window resize
+  window.addEventListener("resize", resize);
 
   // ---------- 主循环 ----------
   const clock = new THREE.Clock();
@@ -1062,12 +1088,26 @@ export function createSolarSystem(
   const camDir = new THREE.Vector3();
   let elapsed = 0;
   let rafId = 0;
+  let nextSizeCheck = 0;
 
   const frame = () => {
     if (disposed) return;
     rafId = requestAnimationFrame(frame);
     const dt = Math.min(clock.getDelta(), 0.1);
     elapsed += dt;
+
+    // 自愈：canvas 与容器尺寸失步（上下文恢复 / 漏掉的 resize 事件）时重设。
+    // 按墙钟时间而非帧数检查，低帧率下也能及时恢复
+    if (performance.now() >= nextSizeCheck) {
+      nextSizeCheck = performance.now() + 1500;
+      const el = renderer.domElement;
+      if (
+        Math.abs(el.clientWidth - container.clientWidth) > 2 ||
+        Math.abs(el.clientHeight - container.clientHeight) > 2
+      ) {
+        applySize();
+      }
+    }
     const simDays = paused ? 0 : dt * ORBIT_DAYS_PER_SEC * timeScale;
 
     // 比例真相 morph 进度（约 4s 完成）
@@ -1298,6 +1338,9 @@ export function createSolarSystem(
       cancelAnimationFrame(rafId);
       if (idleTimer) clearTimeout(idleTimer);
       ro.disconnect();
+      window.removeEventListener("resize", resize);
+      renderer.domElement.removeEventListener("webglcontextlost", onCtxLost);
+      renderer.domElement.removeEventListener("webglcontextrestored", onCtxRestored);
       renderer.domElement.removeEventListener("pointerdown", onPointerDown);
       renderer.domElement.removeEventListener("pointerup", onPointerUp);
       renderer.domElement.removeEventListener("pointermove", onPointerMove);
