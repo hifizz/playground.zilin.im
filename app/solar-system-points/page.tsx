@@ -2,9 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { bodyById } from "../solar-system/planets";
+import { BODIES, bodyById } from "../solar-system/planets";
 import { InfoPanel } from "../solar-system/info-panel";
 import { GestureLayer } from "../solar-system/gesture-hud";
+import { VoiceLayer } from "../solar-system/voice-hud";
+import type { VoiceCommand } from "../solar-system/voice";
 import { createSolarPoints, type SolarPointsHandles } from "./scene";
 
 /**
@@ -27,6 +29,7 @@ export default function SolarSystemPointsPage() {
   const [showLabels, setShowLabels] = useState(true);
   const [galaxyOn, setGalaxyOn] = useState(false);
   const [gestureOn, setGestureOn] = useState(false);
+  const [voiceOn, setVoiceOn] = useState(false);
   const [webglFailed, setWebglFailed] = useState(false);
 
   // —— 手势动作映射 ——
@@ -73,6 +76,40 @@ export default function SolarSystemPointsPage() {
     handlesRef.current?.focus(null);
   };
 
+  // —— 语音命令表 ——
+  const voiceCommands: VoiceCommand[] = [
+    ...BODIES.filter((b) => !b.kind).map((b) => ({
+      keywords: [b.name],
+      reply: `好的，前往${b.name}`,
+      run: () => {
+        if (galaxyOn) toggleGalaxy(); // 先从星系形态回到太阳系
+        handlesRef.current?.focus(b.id);
+        setSelectedId(b.id);
+      },
+    })),
+    { keywords: ["全景", "回去", "返回"], reply: "回到全景", run: closePanel },
+    { keywords: ["暂停", "停一下"], reply: "已暂停", run: () => !paused && togglePause() },
+    { keywords: ["播放", "继续"], reply: "继续播放", run: () => paused && togglePause() },
+    { keywords: ["加速", "快一点", "快点"], reply: "加速", run: () => stepSpeed(1) },
+    { keywords: ["减速", "慢一点", "慢点"], reply: "减速", run: () => stepSpeed(-1) },
+    // 「太阳系」(3 字) 比「星系」(2 字) 长，按最长关键词优先原则不会误触
+    {
+      keywords: ["星系", "银河"],
+      reply: "散作星辰，化为银河",
+      run: () => !galaxyOn && toggleGalaxy(),
+    },
+    {
+      keywords: ["太阳系", "回到太阳系"],
+      reply: "回到太阳系",
+      run: () => galaxyOn && toggleGalaxy(),
+    },
+    {
+      keywords: ["汇聚", "重新汇聚"],
+      reply: "星尘汇聚",
+      run: () => handlesRef.current?.replayAssembly(),
+    },
+  ];
+
   return (
     <div className="fixed inset-0 bg-[#020208] text-white overflow-hidden select-none">
       {/* 3D 画布 */}
@@ -103,8 +140,8 @@ export default function SolarSystemPointsPage() {
       </div>
 
       {/* 底部控制条 */}
-      <div className="absolute bottom-4 md:bottom-6 left-1/2 -translate-x-1/2 z-10">
-        <div className="flex items-center gap-1.5 md:gap-2 rounded-2xl border border-white/10 bg-black/45 backdrop-blur-xl px-2.5 py-2 shadow-2xl">
+      <div className="absolute bottom-4 md:bottom-6 left-1/2 -translate-x-1/2 z-10 max-w-[calc(100vw-16px)]">
+        <div className="flex items-center whitespace-nowrap overflow-x-auto gap-1.5 md:gap-2 rounded-2xl border border-white/10 bg-black/45 backdrop-blur-xl px-2.5 py-2 shadow-2xl">
           {/* 播放 / 暂停 */}
           <button
             onClick={togglePause}
@@ -208,6 +245,19 @@ export default function SolarSystemPointsPage() {
             手势
           </button>
 
+          {/* 语音控制 */}
+          <button
+            onClick={() => setVoiceOn(!voiceOn)}
+            className={`px-2.5 h-8 rounded-xl text-[11px] transition-colors ${
+              voiceOn
+                ? "bg-emerald-400/25 text-emerald-200"
+                : "text-white/50 hover:text-white/85"
+            }`}
+            title='语音控制："带我去木星""星系""汇聚"'
+          >
+            语音
+          </button>
+
           {/* 回到全景 */}
           <button
             onClick={closePanel}
@@ -231,6 +281,13 @@ export default function SolarSystemPointsPage() {
         onReset={closePanel}
         onLove={toggleGalaxy}
         loveHint="切换星系形态"
+      />
+
+      {/* 语音控制 HUD */}
+      <VoiceLayer
+        active={voiceOn}
+        commands={voiceCommands}
+        examples="“带我去土星”“变成星系”“汇聚”“加速”"
       />
     </div>
   );

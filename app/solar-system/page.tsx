@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { bodyById } from "./planets";
+import { BODIES, bodyById } from "./planets";
 import { InfoPanel } from "./info-panel";
 import { GestureLayer } from "./gesture-hud";
 import { TourLayer } from "./tour";
+import { VoiceLayer } from "./voice-hud";
+import type { VoiceCommand } from "./voice";
 import { createSpaceAudio, type SpaceAudio } from "./audio";
 import { createSolarSystem, type SolarSystemHandles } from "./scene";
 
@@ -30,6 +32,7 @@ export default function SolarSystemPage() {
   const [showLabels, setShowLabels] = useState(true);
   const [soundOn, setSoundOn] = useState(false);
   const [gestureOn, setGestureOn] = useState(false);
+  const [voiceOn, setVoiceOn] = useState(false);
   const [tourOn, setTourOn] = useState(false);
   const [trueScale, setTrueScale] = useState(false);
   const [webglFailed, setWebglFailed] = useState(false);
@@ -53,6 +56,7 @@ export default function SolarSystemPage() {
     setSelectedId(null);
     handlesRef.current?.setTrueScale(next);
   };
+
 
   // —— 手势动作映射 ——
   const stepSpeed = (dir: 1 | -1) => {
@@ -115,6 +119,48 @@ export default function SolarSystemPage() {
     handlesRef.current?.focus(null);
   };
 
+  // —— 语音命令表（每次渲染重建，闭包始终持有最新状态） ——
+  const voiceCommands: VoiceCommand[] = [
+    ...BODIES.map((b) => ({
+      keywords: b.id === "halley" ? ["哈雷", "彗星"] : [b.name],
+      reply: `好的，前往${b.name}`,
+      run: () => {
+        if (tourOn) exitTour();
+        if (trueScale) toggleTrueScale();
+        handlesRef.current?.focus(b.id);
+        setSelectedId(b.id);
+      },
+    })),
+    { keywords: ["全景", "回去", "返回"], reply: "回到全景", run: closePanel },
+    { keywords: ["暂停", "停一下"], reply: "已暂停", run: () => !paused && togglePause() },
+    { keywords: ["播放", "继续"], reply: "继续播放", run: () => paused && togglePause() },
+    { keywords: ["加速", "快一点", "快点"], reply: "加速", run: () => stepSpeed(1) },
+    { keywords: ["减速", "慢一点", "慢点"], reply: "减速", run: () => stepSpeed(-1) },
+    { keywords: ["退出导览", "结束导览"], reply: "导览结束", run: exitTour },
+    { keywords: ["导览", "开始导览"], reply: "开始导览", run: startTour },
+    {
+      keywords: ["真实比例", "比例"],
+      reply: trueScale ? "回到压缩比例" : "见证真实比例",
+      run: toggleTrueScale,
+    },
+    {
+      keywords: ["轨道"],
+      run: () => {
+        const next = !showOrbits;
+        setShowOrbits(next);
+        handlesRef.current?.setShowOrbits(next);
+      },
+    },
+    {
+      keywords: ["标签"],
+      run: () => {
+        const next = !showLabels;
+        setShowLabels(next);
+        handlesRef.current?.setShowLabels(next);
+      },
+    },
+  ];
+
   return (
     <div className="fixed inset-0 bg-[#020208] text-white overflow-hidden select-none">
       {/* 3D 画布 */}
@@ -146,8 +192,8 @@ export default function SolarSystemPage() {
 
       {/* 底部控制条（导览时让位给字幕） */}
       {!tourOn && (
-      <div className="absolute bottom-4 md:bottom-6 left-1/2 -translate-x-1/2 z-10">
-        <div className="flex items-center gap-1.5 md:gap-2 rounded-2xl border border-white/10 bg-black/45 backdrop-blur-xl px-2.5 py-2 shadow-2xl">
+      <div className="absolute bottom-4 md:bottom-6 left-1/2 -translate-x-1/2 z-10 max-w-[calc(100vw-16px)]">
+        <div className="flex items-center whitespace-nowrap overflow-x-auto gap-1.5 md:gap-2 rounded-2xl border border-white/10 bg-black/45 backdrop-blur-xl px-2.5 py-2 shadow-2xl">
           {/* 播放 / 暂停 */}
           <button
             onClick={togglePause}
@@ -240,6 +286,19 @@ export default function SolarSystemPage() {
             手势
           </button>
 
+          {/* 语音控制 */}
+          <button
+            onClick={() => setVoiceOn(!voiceOn)}
+            className={`px-2.5 h-8 rounded-xl text-[11px] transition-colors ${
+              voiceOn
+                ? "bg-emerald-400/25 text-emerald-200"
+                : "text-white/50 hover:text-white/85"
+            }`}
+            title='语音控制："带我去木星""加速""导览""真实比例"'
+          >
+            语音
+          </button>
+
           <div className="w-px h-6 bg-white/10 mx-0.5" />
 
           {/* 导览模式 */}
@@ -296,6 +355,13 @@ export default function SolarSystemPage() {
 
       {/* 导览字幕层 */}
       <TourLayer active={tourOn} apiRef={handlesRef} onExit={exitTour} />
+
+      {/* 语音控制 HUD */}
+      <VoiceLayer
+        active={voiceOn}
+        commands={voiceCommands}
+        examples="“带我去木星”“加速”“导览”“真实比例”"
+      />
 
       {/* 摄像头手势控制层 */}
       <GestureLayer
