@@ -5,6 +5,7 @@ import Link from "next/link";
 import { bodyById } from "./planets";
 import { InfoPanel } from "./info-panel";
 import { GestureLayer } from "./gesture-hud";
+import { TourLayer } from "./tour";
 import { createSpaceAudio, type SpaceAudio } from "./audio";
 import { createSolarSystem, type SolarSystemHandles } from "./scene";
 
@@ -29,7 +30,17 @@ export default function SolarSystemPage() {
   const [showLabels, setShowLabels] = useState(true);
   const [soundOn, setSoundOn] = useState(false);
   const [gestureOn, setGestureOn] = useState(false);
+  const [tourOn, setTourOn] = useState(false);
   const [webglFailed, setWebglFailed] = useState(false);
+
+  const startTour = () => {
+    setSelectedId(null); // 面板让位给字幕
+    setTourOn(true);
+  };
+  const exitTour = () => {
+    setTourOn(false);
+    handlesRef.current?.focus(null);
+  };
 
   // —— 手势动作映射 ——
   const stepSpeed = (dir: 1 | -1) => {
@@ -121,7 +132,8 @@ export default function SolarSystemPage() {
         </div>
       </div>
 
-      {/* 底部控制条 */}
+      {/* 底部控制条（导览时让位给字幕） */}
+      {!tourOn && (
       <div className="absolute bottom-4 md:bottom-6 left-1/2 -translate-x-1/2 z-10">
         <div className="flex items-center gap-1.5 md:gap-2 rounded-2xl border border-white/10 bg-black/45 backdrop-blur-xl px-2.5 py-2 shadow-2xl">
           {/* 播放 / 暂停 */}
@@ -218,6 +230,15 @@ export default function SolarSystemPage() {
 
           <div className="w-px h-6 bg-white/10 mx-0.5" />
 
+          {/* 导览模式 */}
+          <button
+            onClick={startTour}
+            className="px-2.5 h-8 rounded-xl text-[11px] text-white/50 hover:text-white/85 transition-colors"
+            title="纪录片式自动巡航讲解"
+          >
+            导览
+          </button>
+
           {/* 回到全景 */}
           <button
             onClick={closePanel}
@@ -227,9 +248,13 @@ export default function SolarSystemPage() {
           </button>
         </div>
       </div>
+      )}
 
-      {/* 星球科普面板 */}
-      <InfoPanel body={body} onClose={closePanel} />
+      {/* 星球科普面板（导览时由字幕接管） */}
+      <InfoPanel body={tourOn ? undefined : body} onClose={closePanel} />
+
+      {/* 导览字幕层 */}
+      <TourLayer active={tourOn} apiRef={handlesRef} onExit={exitTour} />
 
       {/* 摄像头手势控制层 */}
       <GestureLayer
