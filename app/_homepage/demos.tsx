@@ -31,6 +31,7 @@ import { ShadersThumb } from "./thumbs/shaders";
 import { ShaderFlowingLightThumb } from "./thumbs/shader-flowing-light";
 import { VoiceOrbCarouselThumb } from "./thumbs/voice-orb-carousel";
 import { VoiceChatWidgetThumb } from "./thumbs/voice-chat-widget";
+import { OptionsOrderWallThumb } from "./thumbs/options-order-wall";
 
 export type DemoCategory = "Interaction" | "Text Demo" | "Explored Demo" | "Agent UX/UI";
 
@@ -322,5 +323,14 @@ export const demos: DemoEntry[] = [
     category: "Agent UX/UI",
     tags: ["Framer Motion", "Shader", "Agent"],
     preview: <VoiceChatWidgetThumb />,
+  },
+  {
+    title: "Options Order Wall · 3D",
+    description:
+      "three.js 把期权链 OI 铺成 3D 柱阵（行权价 × 到期日 × 未平仓量），超阈值大单墙琥珀描边 + 呼吸脉冲高亮，带现价平面 / Max Pain / raycast tooltip。",
+    route: "/options-order-wall",
+    category: "Explored Demo",
+    tags: ["three.js", "3D", "Options"],
+    preview: <OptionsOrderWallThumb />,
   },
 ];
