@@ -187,6 +187,18 @@ export default function SolarSystemPage() {
           <p className="text-[11px] md:text-xs text-white/45">
             拖动旋转 · 滚轮缩放 · 点击星球查看科普卡片
           </p>
+          <p className="text-[10px] text-white/25">
+            行星纹理 ©{" "}
+            <a
+              href="https://www.solarsystemscope.com/textures/"
+              target="_blank"
+              rel="noreferrer"
+              className="underline hover:text-white/50"
+            >
+              Solar System Scope
+            </a>{" "}
+            · CC BY 4.0
+          </p>
         </div>
       </div>
 

@@ -143,7 +143,7 @@ const SUN_FRAG = /* glsl */ `
   }
 `;
 
-// ---------- 地球大气：BackSide 菲涅尔辉光壳 ----------
+// ---------- 地球大气：BackSide 菲涅尔辉光壳（向阳面亮、背阳面暗） ----------
 
 const ATMO_VERT = /* glsl */ `
   varying vec3 vVNormal;
@@ -154,12 +154,28 @@ const ATMO_VERT = /* glsl */ `
 `;
 
 const ATMO_FRAG = /* glsl */ `
+  uniform vec3 uSunDirView; // 视线空间太阳方向
   varying vec3 vVNormal;
   void main() {
-    float intensity = pow(0.66 - dot(vVNormal, vec3(0.0, 0.0, 1.0)), 3.5);
-    gl_FragColor = vec4(vec3(0.28, 0.56, 1.0) * 1.4, 1.0) * max(intensity, 0.0);
+    float rim = pow(0.66 - dot(vVNormal, vec3(0.0, 0.0, 1.0)), 3.8);
+    // 大气散射沿太阳方向渐亮，夜侧只留微光，避免均匀「蓝色甜甜圈」
+    float day = 0.18 + 0.82 * clamp(dot(normalize(vVNormal), normalize(uSunDirView)) * 1.3 + 0.4, 0.0, 1.0);
+    gl_FragColor = vec4(vec3(0.28, 0.56, 1.0) * 1.55, 1.0) * max(rim, 0.0) * day;
   }
 `;
+
+// 真实行星贴图（Solar System Scope · CC BY 4.0，2K）：异步渐进加载，
+// 程序化贴图做首帧占位与离线兜底
+const REAL_TEX: Record<string, string> = {
+  mercury: "2k_mercury.jpg",
+  venus: "2k_venus_atmosphere.jpg",
+  earth: "2k_earth_daymap.jpg",
+  mars: "2k_mars.jpg",
+  jupiter: "2k_jupiter.jpg",
+  saturn: "2k_saturn.jpg",
+  uranus: "2k_uranus.jpg",
+  neptune: "2k_neptune.jpg",
+};
 
 // ---------- God Rays：屏幕空间径向散射（crepuscular rays） ----------
 // 原理：提取亮部（基本只有太阳 HDR 盘面），沿「像素 → 太阳屏幕位置」的
@@ -313,6 +329,33 @@ export function createSolarSystem(
   composer.addPass(bloomPass);
   composer.addPass(new OutputPass());
 
+  // ---------- 真实贴图加载器 ----------
+  const maxAniso = renderer.capabilities.getMaxAnisotropy();
+  const texLoader = new THREE.TextureLoader();
+  const loadReal = (
+    file: string,
+    apply: (t: THREE.Texture) => void,
+    opts?: { linear?: boolean },
+  ) => {
+    texLoader.load(
+      `/textures/${file}`,
+      (t) => {
+        if (disposed) {
+          t.dispose();
+          return;
+        }
+        t.colorSpace = opts?.linear ? THREE.NoColorSpace : THREE.SRGBColorSpace;
+        t.anisotropy = maxAniso; // 斜视角下贴图依然清晰
+        track(t);
+        apply(t);
+      },
+      undefined,
+      () => {
+        // 加载失败（离线等）时保留程序化贴图
+      },
+    );
+  };
+
   // ---------- 灯光 ----------
   scene.add(new THREE.AmbientLight(0x445566, 0.65));
   const sunLight = new THREE.PointLight(0xfff2d8, 4.2, 0, 0); // 补偿 ACES 压暗
@@ -406,6 +449,7 @@ export function createSolarSystem(
       const srcCanvas = createBodyCanvas(body.id);
       const tex = track(new THREE.CanvasTexture(srcCanvas));
       tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = maxAniso;
       const std = new THREE.MeshStandardMaterial({
         map: tex,
         roughness: 0.92,
@@ -413,6 +457,13 @@ export function createSolarSystem(
         emissive: new THREE.Color(body.accent),
         emissiveIntensity: 0.06, // 暗面留一点可读性，方便科普观察
       });
+      // 真实卫星/探测器贴图就位后替换程序化占位
+      if (REAL_TEX[body.id]) {
+        loadReal(REAL_TEX[body.id], (t) => {
+          std.map = t;
+          std.needsUpdate = true;
+        });
+      }
       if (body.id === "earth") {
         // 夜面城市灯光：暖黄 emissiveMap，只在背阳面亮起（注入视线空间太阳方向做遮罩）
         const cityTex = track(new THREE.CanvasTexture(createCityLightsCanvas(srcCanvas)));
@@ -432,6 +483,49 @@ export function createSolarSystem(
               "#include <emissivemap_fragment>\n\ttotalEmissiveRadiance *= smoothstep(0.18, -0.22, dot(normal, uSunDirView));",
             );
         };
+        // NASA 夜景灯光图（真实城市分布）
+        loadReal("2k_earth_nightmap.jpg", (t) => {
+          std.emissiveMap = t;
+          std.emissive = new THREE.Color(0xffffff);
+          std.emissiveIntensity = 1.7;
+          std.needsUpdate = true;
+        });
+        // 地形法线：晨昏线附近山脉出现立体阴影
+        loadReal(
+          "2k_earth_normal_map.png",
+          (t) => {
+            std.normalMap = t;
+            std.normalScale.set(0.85, 0.85);
+            std.needsUpdate = true;
+          },
+          { linear: true },
+        );
+        // 高光图（白=海洋）反相重映射成 roughnessMap：海面出现太阳反光
+        loadReal(
+          "2k_earth_specular_map.png",
+          (t) => {
+            const img = t.image as HTMLImageElement;
+            const c = document.createElement("canvas");
+            c.width = img.width;
+            c.height = img.height;
+            const ctx = c.getContext("2d")!;
+            ctx.drawImage(img, 0, 0);
+            const d = ctx.getImageData(0, 0, c.width, c.height);
+            for (let i = 0; i < d.data.length; i += 4) {
+              // 海洋(255) → roughness ≈ 0.3，陆地(0) → ≈ 0.95
+              const v = 77 + (255 - d.data[i]) * 0.647;
+              d.data[i] = d.data[i + 1] = d.data[i + 2] = v;
+            }
+            ctx.putImageData(d, 0, 0);
+            const rough = track(new THREE.CanvasTexture(c));
+            rough.anisotropy = maxAniso;
+            std.roughnessMap = rough;
+            std.roughness = 1;
+            std.needsUpdate = true;
+            t.dispose();
+          },
+          { linear: true },
+        );
       }
       mat = track(std);
     }
@@ -455,6 +549,13 @@ export function createSolarSystem(
           roughness: 1,
         }),
       );
+      // NASA 真实云图：黑色区域经 alphaMap 变透明
+      loadReal("2k_earth_clouds.jpg", (t) => {
+        cloudMat.map = t;
+        cloudMat.alphaMap = t;
+        cloudMat.opacity = 0.95;
+        cloudMat.needsUpdate = true;
+      });
       earthClouds = new THREE.Mesh(
         track(new THREE.SphereGeometry(body.radius * 1.03, 48, 24)),
         cloudMat,
@@ -464,6 +565,7 @@ export function createSolarSystem(
       // 大气辉光壳：BackSide 菲涅尔
       const atmoMat = track(
         new THREE.ShaderMaterial({
+          uniforms: { uSunDirView: earthSunDirView },
           vertexShader: ATMO_VERT,
           fragmentShader: ATMO_FRAG,
           blending: THREE.AdditiveBlending,
@@ -473,7 +575,7 @@ export function createSolarSystem(
         }),
       );
       const atmo = new THREE.Mesh(
-        track(new THREE.SphereGeometry(body.radius * 1.18, 48, 24)),
+        track(new THREE.SphereGeometry(body.radius * 1.15, 48, 24)),
         atmoMat,
       );
       tiltGroup.add(atmo);
@@ -517,6 +619,13 @@ export function createSolarSystem(
           depthWrite: false,
         }),
       );
+      if (body.id === "saturn") {
+        // 卡西尼号实拍环贴图（2048×125 径向条带，含真实透明度）
+        loadReal("2k_saturn_ring_alpha.png", (t) => {
+          ringMat.map = t;
+          ringMat.needsUpdate = true;
+        });
+      }
       const ring = new THREE.Mesh(ringGeo, ringMat);
       ring.rotation.x = -Math.PI / 2;
       tiltGroup.add(ring);
@@ -587,6 +696,10 @@ export function createSolarSystem(
     const moonMat = track(
       new THREE.MeshStandardMaterial({ map: moonTex, roughness: 0.95 }),
     );
+    loadReal("2k_moon.jpg", (t) => {
+      moonMat.map = t;
+      moonMat.needsUpdate = true;
+    });
     const moon = new THREE.Mesh(moonGeo, moonMat);
     moon.position.x = 1.35;
     moonPivot.add(moon);
