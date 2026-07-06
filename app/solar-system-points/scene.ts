@@ -360,12 +360,17 @@ export function createSolarPoints(
   const renderer = new THREE.WebGLRenderer({
     antialias: true,
     powerPreference: "high-performance",
+    // 拷贝呈现而非交换呈现：规避 Chrome Skia Graphite 后端偶发的
+    // WebGL 画布残缺帧/黑块合成 bug
+    preserveDrawingBuffer: true,
   });
   const pixelRatio = capDpr(container.clientWidth, container.clientHeight);
   renderer.setPixelRatio(pixelRatio);
   renderer.setSize(container.clientWidth, container.clientHeight);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.domElement.style.display = "block";
+  renderer.domElement.style.transform = "translateZ(0)";
+  renderer.domElement.style.willChange = "transform";
   container.appendChild(renderer.domElement);
 
   const onCtxLost = (e: Event) => {
@@ -403,6 +408,9 @@ export function createSolarPoints(
   controls.maxDistance = 160;
   controls.autoRotate = false;
   controls.autoRotateSpeed = 0.4;
+
+  // 兼容模式（?compat=1）：绕过后处理直接渲染，弱环境保底 + 诊断隔离
+  const compatMode = new URLSearchParams(window.location.search).has("compat");
 
   // ---------- 后处理：Bloom（加色叠亮的太阳粒子与汇聚星尘会晕开成霓虹） ----------
   const composer = new EffectComposer(renderer);
@@ -1015,7 +1023,8 @@ export function createSolarPoints(
     }
 
     controls.update();
-    composer.render();
+    if (compatMode) renderer.render(scene, camera);
+    else composer.render();
     labelRenderer.render(scene, camera);
   };
   frame();

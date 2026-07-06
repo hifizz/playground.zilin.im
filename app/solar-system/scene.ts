@@ -278,12 +278,18 @@ export function createSolarSystem(
   const renderer = new THREE.WebGLRenderer({
     antialias: true,
     powerPreference: "high-performance", // 双显卡设备优先独显
+    // 拷贝呈现而非交换呈现：规避 Chrome Skia Graphite 后端偶发的
+    // WebGL 画布残缺帧/黑块合成 bug（无报错、GL 状态正常但显示不完整）
+    preserveDrawingBuffer: true,
   });
   const pixelRatio = capDpr(container.clientWidth, container.clientHeight);
   renderer.setPixelRatio(pixelRatio);
   renderer.setSize(container.clientWidth, container.clientHeight);
   renderer.toneMapping = THREE.ACESFilmicToneMapping; // 电影级色调映射
   renderer.domElement.style.display = "block";
+  // 独立合成层，避免与页面内容共享合成 tile
+  renderer.domElement.style.transform = "translateZ(0)";
+  renderer.domElement.style.willChange = "transform";
   container.appendChild(renderer.domElement);
 
   // 上下文丢失时阻止默认（允许浏览器恢复），恢复后强制重设尺寸
@@ -322,6 +328,10 @@ export function createSolarSystem(
   controls.maxDistance = 160;
   controls.autoRotate = false; // 开场动画结束后开启
   controls.autoRotateSpeed = 0.4;
+
+  // 兼容模式（?compat=1）：完全绕过后处理管线直接渲染。
+  // 既是弱环境保底，也用于隔离诊断合成呈现类问题
+  const compatMode = new URLSearchParams(window.location.search).has("compat");
 
   // ---------- 后处理：God Rays → Bloom ----------
   const composer = new EffectComposer(renderer);
@@ -1412,7 +1422,8 @@ export function createSolarSystem(
     }
 
     controls.update();
-    composer.render();
+    if (compatMode) renderer.render(scene, camera);
+    else composer.render();
     labelRenderer.render(scene, camera);
   };
   frame();
