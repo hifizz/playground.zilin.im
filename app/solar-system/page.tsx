@@ -31,15 +31,27 @@ export default function SolarSystemPage() {
   const [soundOn, setSoundOn] = useState(false);
   const [gestureOn, setGestureOn] = useState(false);
   const [tourOn, setTourOn] = useState(false);
+  const [trueScale, setTrueScale] = useState(false);
   const [webglFailed, setWebglFailed] = useState(false);
 
   const startTour = () => {
     setSelectedId(null); // 面板让位给字幕
+    if (trueScale) {
+      setTrueScale(false);
+      handlesRef.current?.setTrueScale(false); // 导览按压缩比例运镜
+    }
     setTourOn(true);
   };
   const exitTour = () => {
     setTourOn(false);
     handlesRef.current?.focus(null);
+  };
+  const toggleTrueScale = () => {
+    const next = !trueScale;
+    if (next && tourOn) exitTour();
+    setTrueScale(next);
+    setSelectedId(null);
+    handlesRef.current?.setTrueScale(next);
   };
 
   // —— 手势动作映射 ——
@@ -239,6 +251,19 @@ export default function SolarSystemPage() {
             导览
           </button>
 
+          {/* 比例真相 */}
+          <button
+            onClick={toggleTrueScale}
+            className={`px-2.5 h-8 rounded-xl text-[11px] transition-colors ${
+              trueScale
+                ? "bg-rose-400/25 text-rose-200"
+                : "text-white/50 hover:text-white/85"
+            }`}
+            title="切换到真实比例：行星缩成尘埃，看看太阳系有多空旷"
+          >
+            比例
+          </button>
+
           {/* 回到全景 */}
           <button
             onClick={closePanel}
@@ -248,6 +273,22 @@ export default function SolarSystemPage() {
           </button>
         </div>
       </div>
+      )}
+
+      {/* 比例真相解说卡 */}
+      {trueScale && !tourOn && (
+        <div className="pointer-events-none absolute bottom-20 md:bottom-24 left-1/2 -translate-x-1/2 z-10 w-[calc(100%-32px)] max-w-xl">
+          <div className="rounded-2xl border border-rose-300/20 bg-black/55 backdrop-blur-xl px-5 py-4 text-center">
+            <div className="text-[13px] font-medium text-rose-200 tracking-wide">
+              真实比例 · 太阳系几乎是空的
+            </div>
+            <p className="mt-1.5 text-[12px] leading-relaxed text-white/65">
+              尺寸与距离此刻均为真实比例：如果太阳是颗葡萄柚（14 cm），地球只是
+              15 米外的一粒沙，海王星在 450 米开外。星球们小到只剩下标签——
+              这就是行星际空间真实的样子。
+            </p>
+          </div>
+        </div>
       )}
 
       {/* 星球科普面板（导览时由字幕接管） */}

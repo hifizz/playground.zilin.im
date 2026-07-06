@@ -30,6 +30,10 @@ export type Body = {
   dayHours: number; // 真实自转周期（小时），负数 = 逆行自转
   tiltDeg: number; // 轴倾角（度）
   ring?: { inner: number; outer: number; opacity: number };
+
+  // —— 真实比例数据（「比例真相」模式用） ——
+  realRadiusKm: number; // 真实半径 km
+  realDistAU: number; // 距太阳真实距离 AU（太阳为 0）
 };
 
 export const BODIES: Body[] = [
@@ -52,6 +56,8 @@ export const BODIES: Body[] = [
     orbitDays: 0,
     dayHours: 609.6,
     tiltDeg: 7.25,
+    realRadiusKm: 696340,
+    realDistAU: 0,
   },
   {
     id: "mercury",
@@ -72,6 +78,8 @@ export const BODIES: Body[] = [
     orbitDays: 88,
     dayHours: 1407.6,
     tiltDeg: 0.03,
+    realRadiusKm: 2439.7,
+    realDistAU: 0.387,
   },
   {
     id: "venus",
@@ -92,6 +100,8 @@ export const BODIES: Body[] = [
     orbitDays: 224.7,
     dayHours: -5832.5,
     tiltDeg: 177.4,
+    realRadiusKm: 6051.8,
+    realDistAU: 0.723,
   },
   {
     id: "earth",
@@ -112,6 +122,8 @@ export const BODIES: Body[] = [
     orbitDays: 365.25,
     dayHours: 23.9,
     tiltDeg: 23.4,
+    realRadiusKm: 6371,
+    realDistAU: 1.0,
   },
   {
     id: "mars",
@@ -132,6 +144,8 @@ export const BODIES: Body[] = [
     orbitDays: 687,
     dayHours: 24.6,
     tiltDeg: 25.2,
+    realRadiusKm: 3389.5,
+    realDistAU: 1.524,
   },
   {
     id: "jupiter",
@@ -152,6 +166,8 @@ export const BODIES: Body[] = [
     orbitDays: 4331,
     dayHours: 9.9,
     tiltDeg: 3.1,
+    realRadiusKm: 69911,
+    realDistAU: 5.203,
   },
   {
     id: "saturn",
@@ -173,6 +189,8 @@ export const BODIES: Body[] = [
     dayHours: 10.7,
     tiltDeg: 26.7,
     ring: { inner: 1.9, outer: 2.9, opacity: 0.95 },
+    realRadiusKm: 58232,
+    realDistAU: 9.537,
   },
   {
     id: "uranus",
@@ -194,6 +212,8 @@ export const BODIES: Body[] = [
     dayHours: -17.2,
     tiltDeg: 97.8,
     ring: { inner: 1.5, outer: 1.9, opacity: 0.35 },
+    realRadiusKm: 25362,
+    realDistAU: 19.19,
   },
   {
     id: "neptune",
@@ -214,6 +234,8 @@ export const BODIES: Body[] = [
     orbitDays: 59800,
     dayHours: 16.1,
     tiltDeg: 28.3,
+    realRadiusKm: 24622,
+    realDistAU: 30.07,
   },
   {
     id: "halley",
@@ -235,6 +257,8 @@ export const BODIES: Body[] = [
     orbitDays: 27740,
     dayHours: 52.8,
     tiltDeg: 0,
+    realRadiusKm: 7.5,
+    realDistAU: 17.8,
   },
 ];
 
