@@ -31,6 +31,7 @@ import { ShadersThumb } from "./thumbs/shaders";
 import { ShaderFlowingLightThumb } from "./thumbs/shader-flowing-light";
 import { VoiceOrbCarouselThumb } from "./thumbs/voice-orb-carousel";
 import { VoiceChatWidgetThumb } from "./thumbs/voice-chat-widget";
+import { PromoImageThumb } from "./thumbs/promo-image";
 
 export type DemoCategory = "Interaction" | "Text Demo" | "Explored Demo" | "Agent UX/UI";
 
@@ -322,5 +323,14 @@ export const demos: DemoEntry[] = [
     category: "Agent UX/UI",
     tags: ["Framer Motion", "Shader", "Agent"],
     preview: <VoiceChatWidgetThumb />,
+  },
+  {
+    title: "宣传图工具",
+    description:
+      "上传图片 + 填 Title / Caption，叠在 paper-shaders 噪点渐变背景上按数据化模板排版，浏览器内一键导出 2x PNG。内容与版式分离，换模板即换版式。",
+    route: "/promo-image",
+    category: "Explored Demo",
+    tags: ["Shader", "Export", "Tool"],
+    preview: <PromoImageThumb />,
   },
 ];
