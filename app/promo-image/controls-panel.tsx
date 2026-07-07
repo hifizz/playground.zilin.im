@@ -9,12 +9,12 @@ import { useRef, useState } from "react";
 import { Download, ImagePlus, Loader2, X } from "lucide-react";
 import { templates } from "./templates";
 import {
-  RATIO_LABELS,
+  aspectsEqual,
+  RATIO_PRESETS,
   type Content,
   type Ratio,
+  type RatioPreset,
 } from "./types";
-
-const RATIOS: Ratio[] = ["1:1", "4:5", "1.91:1"];
 
 type Props = {
   content: Content;
@@ -22,8 +22,8 @@ type Props = {
   onCaption: (v: string) => void;
   onImageFile: (file: File) => void;
   onClearImage: () => void;
-  ratio: Ratio;
-  onRatio: (r: Ratio) => void;
+  aspect: Ratio;
+  onAspect: (r: Ratio) => void;
   templateId: string;
   onTemplate: (id: string) => void;
   onExport: () => void;
@@ -39,14 +39,109 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * 比例选择：预设网格 + 自定义 W:H。预设与自定义走同一个 onChange，
+ * 自定义输入本地保存字符串（允许清空重填），有效时即时应用；当前 aspect
+ * 命中某预设则高亮该预设，否则视为自定义。
+ */
+function RatioPicker({
+  aspect,
+  onChange,
+}: {
+  aspect: Ratio;
+  onChange: (r: Ratio) => void;
+}) {
+  const [cw, setCw] = useState(String(aspect.w));
+  const [ch, setCh] = useState(String(aspect.h));
+
+  const activeId = RATIO_PRESETS.find((p) => aspectsEqual(p, aspect))?.id ?? null;
+  const isCustom = activeId === null;
+
+  const pickPreset = (p: RatioPreset) => {
+    setCw(String(p.w));
+    setCh(String(p.h));
+    onChange({ w: p.w, h: p.h });
+  };
+
+  const onCustom = (wStr: string, hStr: string) => {
+    setCw(wStr);
+    setCh(hStr);
+    const w = parseFloat(wStr);
+    const h = parseFloat(hStr);
+    if (Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0) {
+      onChange({ w: Math.min(w, 1000), h: Math.min(h, 1000) });
+    }
+  };
+
+  const inputCls =
+    "w-14 rounded-md border border-neutral-200 bg-white px-1.5 py-1 text-center text-sm text-neutral-900 outline-none transition focus:border-neutral-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
+
+  return (
+    <div>
+      <SectionLabel>比例 Ratio</SectionLabel>
+      <div className="grid grid-cols-4 gap-1.5">
+        {RATIO_PRESETS.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => pickPreset(p)}
+            title={p.hint}
+            className={[
+              "rounded-lg border px-1 py-1.5 text-xs font-medium transition",
+              activeId === p.id
+                ? "border-neutral-900 bg-neutral-900 text-white"
+                : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300",
+            ].join(" ")}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 自定义 W:H */}
+      <div
+        className={[
+          "mt-2 flex items-center gap-2 rounded-lg border px-3 py-2 transition",
+          isCustom
+            ? "border-neutral-900 bg-neutral-900/[0.03]"
+            : "border-neutral-200 bg-white",
+        ].join(" ")}
+      >
+        <span className="mr-auto text-xs text-neutral-500">自定义</span>
+        <input
+          type="number"
+          min="0.1"
+          step="any"
+          inputMode="decimal"
+          aria-label="宽度比例"
+          value={cw}
+          onChange={(e) => onCustom(e.target.value, ch)}
+          className={inputCls}
+        />
+        <span className="text-neutral-400">:</span>
+        <input
+          type="number"
+          min="0.1"
+          step="any"
+          inputMode="decimal"
+          aria-label="高度比例"
+          value={ch}
+          onChange={(e) => onCustom(cw, e.target.value)}
+          className={inputCls}
+        />
+      </div>
+    </div>
+  );
+}
+
 export function ControlsPanel({
   content,
   onTitle,
   onCaption,
   onImageFile,
   onClearImage,
-  ratio,
-  onRatio,
+  aspect,
+  onAspect,
   templateId,
   onTemplate,
   onExport,
@@ -158,26 +253,7 @@ export function ControlsPanel({
       </div>
 
       {/* —— 比例 —— */}
-      <div>
-        <SectionLabel>比例 Ratio</SectionLabel>
-        <div className="grid grid-cols-3 gap-1.5">
-          {RATIOS.map((r) => (
-            <button
-              key={r}
-              type="button"
-              onClick={() => onRatio(r)}
-              className={[
-                "rounded-lg border px-2 py-2 text-xs font-medium transition",
-                ratio === r
-                  ? "border-neutral-900 bg-neutral-900 text-white"
-                  : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300",
-              ].join(" ")}
-            >
-              {RATIO_LABELS[r]}
-            </button>
-          ))}
-        </div>
-      </div>
+      <RatioPicker aspect={aspect} onChange={onAspect} />
 
       {/* —— 模板 —— */}
       <div>

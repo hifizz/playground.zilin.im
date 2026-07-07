@@ -20,7 +20,7 @@ export const templates: Template[] = [
   {
     id: "editorial",
     name: "Editorial · 图在上",
-    artboard: { ratio: "4:5" },
+    artboard: { ratio: { w: 4, h: 5 } },
     layers: [
       {
         type: "shader",
@@ -70,7 +70,7 @@ export const templates: Template[] = [
   {
     id: "spotlight",
     name: "Spotlight · 居中",
-    artboard: { ratio: "1:1" },
+    artboard: { ratio: { w: 1, h: 1 } },
     layers: [
       {
         type: "shader",
@@ -120,7 +120,7 @@ export const templates: Template[] = [
   {
     id: "banner",
     name: "Banner · 左图右字",
-    artboard: { ratio: "1.91:1" },
+    artboard: { ratio: { w: 1.91, h: 1 } },
     layers: [
       {
         type: "shader",

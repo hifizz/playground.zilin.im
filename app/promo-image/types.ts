@@ -11,7 +11,8 @@
  * - 层级 = 数组顺序（从底到顶），不单独引入 z-index。
  */
 
-export type Ratio = "1:1" | "4:5" | "1.91:1";
+/** 画布比例 = 宽高的相对分量（w:h）。既是预设，也是自定义的统一表示。 */
+export type Ratio = { w: number; h: number };
 
 /** 用户填的内容 */
 export type Content = {
@@ -89,24 +90,44 @@ export type Template = {
  */
 export const BASE_W = 1080;
 
-/** ratio → 宽高比（w / h） */
-export const RATIOS: Record<Ratio, number> = {
-  "1:1": 1,
-  "4:5": 4 / 5,
-  "1.91:1": 1.91,
-};
+export type RatioPreset = { id: string; label: string; hint: string; w: number; h: number };
 
-export const RATIO_LABELS: Record<Ratio, string> = {
-  "1:1": "1:1 · 方形",
-  "4:5": "4:5 · 竖版",
-  "1.91:1": "1.91:1 · 横版",
-};
+/** 常用比例预设（社交 / 营销）。用户也可在此之外自定义任意 w:h。 */
+export const RATIO_PRESETS: RatioPreset[] = [
+  { id: "1-1", label: "1:1", hint: "方形", w: 1, h: 1 },
+  { id: "4-5", label: "4:5", hint: "竖版", w: 4, h: 5 },
+  { id: "3-4", label: "3:4", hint: "竖版", w: 3, h: 4 },
+  { id: "2-3", label: "2:3", hint: "竖版", w: 2, h: 3 },
+  { id: "9-16", label: "9:16", hint: "竖屏", w: 9, h: 16 },
+  { id: "3-2", label: "3:2", hint: "照片", w: 3, h: 2 },
+  { id: "16-9", label: "16:9", hint: "宽屏", w: 16, h: 9 },
+  { id: "1.91-1", label: "1.91:1", hint: "链接卡", w: 1.91, h: 1 },
+];
+
+export const DEFAULT_RATIO: Ratio = { w: 4, h: 5 };
 
 export type Size = { w: number; h: number };
 
-/** 给定比例，算出设计空间画布的像素尺寸（宽恒为 BASE_W） */
+// 相对 BASE_W 的高度上下限，防止极端比例产生超大 / 超小画布。
+const MIN_H = 216; // 最扁 ≈ 5:1
+const MAX_H = 4320; // 最高 ≈ 1:4
+
+/** 给定比例，算出设计空间画布的像素尺寸（宽恒为 BASE_W，高按比例并夹取） */
 export function artboardSize(ratio: Ratio): Size {
-  return { w: BASE_W, h: Math.round(BASE_W / RATIOS[ratio]) };
+  const raw = (BASE_W * ratio.h) / ratio.w;
+  const h = Math.round(Math.min(Math.max(raw, MIN_H), MAX_H));
+  return { w: BASE_W, h };
+}
+
+/** 两个比例是否等价（w/h 近似相等） */
+export function aspectsEqual(a: Ratio, b: Ratio): boolean {
+  return Math.abs(a.w / a.h - b.w / b.h) < 1e-3;
+}
+
+/** 文件名 / 展示用比例串：4x5 / 16x9 / 1.91x1 */
+export function formatRatio(r: Ratio): string {
+  const fmt = (n: number) => (Number.isInteger(n) ? String(n) : String(+n.toFixed(2)));
+  return `${fmt(r.w)}x${fmt(r.h)}`;
 }
 
 /** 百分比 frame → 设计空间像素盒子（纯函数，便于单测） */

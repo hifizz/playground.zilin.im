@@ -327,7 +327,7 @@ export const demos: DemoEntry[] = [
   {
     title: "宣传图工具",
     description:
-      "上传图片 + 填 Title / Caption，叠在 paper-shaders 噪点渐变背景上按数据化模板排版，浏览器内一键导出 2x PNG。内容与版式分离，换模板即换版式。",
+      "上传图片 + 填 Title / Caption，叠在 paper-shaders 噪点渐变背景上按数据化模板排版，浏览器内一键导出 2x PNG。8 种比例预设 + 自定义 W:H，换模板即换版式。",
     route: "/promo-image",
     category: "Explored Demo",
     tags: ["Shader", "Export", "Tool"],

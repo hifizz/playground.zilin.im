@@ -21,7 +21,13 @@ import { ControlsPanel } from "./controls-panel";
 import { exportArtboardPng } from "./export-png";
 import { fileToImageDataUrl } from "./image-utils";
 import { defaultTemplate, templates } from "./templates";
-import { artboardSize, type Content, type Ratio } from "./types";
+import {
+  artboardSize,
+  DEFAULT_RATIO,
+  formatRatio,
+  type Content,
+  type Ratio,
+} from "./types";
 
 const DEFAULT_CONTENT: Content = {
   title: "用声音，重新定义交互",
@@ -49,7 +55,7 @@ const PREVIEW_PADDING = 56; // 预览区四周留白（px）
 
 export default function PromoImagePage() {
   const [content, setContent] = useState<Content>(DEFAULT_CONTENT);
-  const [ratio, setRatio] = useState<Ratio>("4:5");
+  const [aspect, setAspect] = useState<Ratio>(DEFAULT_RATIO);
   const [templateId, setTemplateId] = useState<string>(defaultTemplate.id);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +67,7 @@ export default function PromoImagePage() {
     () => templates.find((t) => t.id === templateId) ?? defaultTemplate,
     [templateId],
   );
-  const size = useMemo(() => artboardSize(ratio), [ratio]);
+  const size = useMemo(() => artboardSize(aspect), [aspect]);
 
   // 预览缩放：同时受宽、高约束（4:5 较高），不放大超过设计分辨率。
   const scale = useMemo(() => {
@@ -98,7 +104,7 @@ export default function PromoImagePage() {
         width: size.w,
         height: size.h,
         scale: 2,
-        fileName: `promo-${template.id}-${ratio.replace(":", "x")}.png`,
+        fileName: `promo-${template.id}-${formatRatio(aspect)}.png`,
       });
     } catch (e) {
       console.error(e);
@@ -106,7 +112,7 @@ export default function PromoImagePage() {
     } finally {
       setExporting(false);
     }
-  }, [size.w, size.h, template.id, ratio]);
+  }, [size.w, size.h, template.id, aspect]);
 
   return (
     <div className="min-h-screen bg-neutral-100 text-neutral-900">
@@ -136,8 +142,8 @@ export default function PromoImagePage() {
             onCaption={(v) => setContent((c) => ({ ...c, caption: v }))}
             onImageFile={onImageFile}
             onClearImage={clearImage}
-            ratio={ratio}
-            onRatio={setRatio}
+            aspect={aspect}
+            onAspect={setAspect}
             templateId={templateId}
             onTemplate={setTemplateId}
             onExport={handleExport}
