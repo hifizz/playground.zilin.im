@@ -10,8 +10,10 @@ import { Download, ImagePlus, Loader2, X } from "lucide-react";
 import { templates } from "./templates";
 import {
   aspectsEqual,
+  DEFAULT_IMAGE_TRANSFORM,
   RATIO_PRESETS,
   type Content,
+  type ImageTransform,
   type Ratio,
   type RatioPreset,
 } from "./types";
@@ -22,6 +24,7 @@ type Props = {
   onCaption: (v: string) => void;
   onImageFile: (file: File) => void;
   onClearImage: () => void;
+  onImageTransform: (t: ImageTransform) => void;
   aspect: Ratio;
   onAspect: (r: Ratio) => void;
   templateId: string;
@@ -140,6 +143,7 @@ export function ControlsPanel({
   onCaption,
   onImageFile,
   onClearImage,
+  onImageTransform,
   aspect,
   onAspect,
   templateId,
@@ -155,6 +159,13 @@ export function ControlsPanel({
     const file = files?.[0];
     if (file) onImageFile(file);
   };
+
+  const transform = content.imageTransform ?? DEFAULT_IMAGE_TRANSFORM;
+  const isDefaultTransform =
+    transform.fit === "cover" &&
+    transform.zoom === 1 &&
+    transform.offsetX === 0 &&
+    transform.offsetY === 0;
 
   return (
     <div className="flex w-full flex-col gap-6">
@@ -184,27 +195,94 @@ export function ControlsPanel({
       <div>
         <SectionLabel>图片 Image</SectionLabel>
         {content.image ? (
-          <div className="group relative h-28 w-full overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={content.image}
-              alt="已上传"
-              className="h-full w-full object-cover"
-            />
-            <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/0 opacity-0 transition group-hover:bg-black/40 group-hover:opacity-100">
+          <div className="flex flex-col gap-3">
+            <div className="group relative h-28 w-full overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={content.image}
+                alt="已上传"
+                className="h-full w-full object-cover"
+              />
+              <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/0 opacity-0 transition group-hover:bg-black/40 group-hover:opacity-100">
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  className="rounded-md bg-white/90 px-2.5 py-1.5 text-xs font-medium text-neutral-800 hover:bg-white"
+                >
+                  更换
+                </button>
+                <button
+                  type="button"
+                  onClick={onClearImage}
+                  className="flex items-center gap-1 rounded-md bg-white/90 px-2.5 py-1.5 text-xs font-medium text-neutral-800 hover:bg-white"
+                >
+                  <X size={12} /> 移除
+                </button>
+              </div>
+            </div>
+
+            {/* —— 适配方式 —— */}
+            <div className="grid grid-cols-2 gap-1.5">
+              {(
+                [
+                  { fit: "cover", label: "裁满填充" },
+                  { fit: "contain", label: "完整显示" },
+                ] as const
+              ).map((opt) => (
+                <button
+                  key={opt.fit}
+                  type="button"
+                  onClick={() =>
+                    onImageTransform({ ...transform, fit: opt.fit })
+                  }
+                  className={[
+                    "rounded-lg border px-2 py-1.5 text-xs font-medium transition",
+                    transform.fit === opt.fit
+                      ? "border-neutral-900 bg-neutral-900 text-white"
+                      : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300",
+                  ].join(" ")}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+
+            {/* —— 缩放 —— */}
+            <div>
+              <div className="mb-1 flex items-center justify-between text-xs text-neutral-500">
+                <span>缩放</span>
+                <span className="tabular-nums">
+                  {Math.round(transform.zoom * 100)}%
+                </span>
+              </div>
+              <input
+                type="range"
+                min={50}
+                max={300}
+                step={1}
+                value={Math.round(transform.zoom * 100)}
+                aria-label="图片缩放"
+                onChange={(e) =>
+                  onImageTransform({
+                    ...transform,
+                    zoom: Number(e.target.value) / 100,
+                  })
+                }
+                className="w-full accent-neutral-900"
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-neutral-400">
+                在右侧预览中拖动图片可调整位置
+              </span>
               <button
                 type="button"
-                onClick={() => fileRef.current?.click()}
-                className="rounded-md bg-white/90 px-2.5 py-1.5 text-xs font-medium text-neutral-800 hover:bg-white"
+                disabled={isDefaultTransform}
+                onClick={() => onImageTransform(DEFAULT_IMAGE_TRANSFORM)}
+                className="rounded-md border border-neutral-200 px-2 py-1 text-xs text-neutral-600 transition hover:border-neutral-300 disabled:opacity-40"
               >
-                更换
-              </button>
-              <button
-                type="button"
-                onClick={onClearImage}
-                className="flex items-center gap-1 rounded-md bg-white/90 px-2.5 py-1.5 text-xs font-medium text-neutral-800 hover:bg-white"
-              >
-                <X size={12} /> 移除
+                重置
               </button>
             </div>
           </div>

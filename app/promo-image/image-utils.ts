@@ -46,6 +46,10 @@ export async function fileToImageDataUrl(file: File): Promise<string> {
   const ctx = canvas.getContext("2d");
   if (!ctx) return original;
   ctx.drawImage(img, 0, 0, w, h);
-  // 降采样后统一转 JPEG（宣传图多为照片），控体积。
-  return canvas.toDataURL("image/jpeg", 0.92);
+  // 可能带透明通道的格式（png / webp）降采样后保留 PNG（保 alpha）；
+  // 照片类（jpeg 等）转 JPEG 控体积。
+  const keepAlpha = file.type === "image/png" || file.type === "image/webp";
+  return keepAlpha
+    ? canvas.toDataURL("image/png")
+    : canvas.toDataURL("image/jpeg", 0.92);
 }

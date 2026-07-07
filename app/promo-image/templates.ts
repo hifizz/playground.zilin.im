@@ -89,6 +89,7 @@ export const templates: Template[] = [
         frame: { x: 33, y: 11, w: 34, h: 34 },
         fit: "cover",
         radius: 999, // 大圆角 → 圆形
+        aspect: 1, // 锁正方形盒：画布任何比例下都是正圆，不会拉成胶囊
       },
       {
         type: "text",

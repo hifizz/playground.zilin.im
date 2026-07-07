@@ -26,6 +26,7 @@ import {
   DEFAULT_RATIO,
   formatRatio,
   type Content,
+  type ImageTransform,
   type Ratio,
 } from "./types";
 
@@ -83,14 +84,21 @@ export default function PromoImagePage() {
     setError(null);
     try {
       const url = await fileToImageDataUrl(file);
-      setContent((c) => ({ ...c, image: url }));
+      // 换图重置变换：旧图的位移 / 缩放对新图没有意义
+      setContent((c) => ({ ...c, image: url, imageTransform: undefined }));
     } catch (e) {
       setError(e instanceof Error ? e.message : "图片处理失败");
     }
   }, []);
 
   const clearImage = useCallback(
-    () => setContent((c) => ({ ...c, image: undefined })),
+    () =>
+      setContent((c) => ({ ...c, image: undefined, imageTransform: undefined })),
+    [],
+  );
+
+  const onImageTransform = useCallback(
+    (t: ImageTransform) => setContent((c) => ({ ...c, imageTransform: t })),
     [],
   );
 
@@ -142,6 +150,7 @@ export default function PromoImagePage() {
             onCaption={(v) => setContent((c) => ({ ...c, caption: v }))}
             onImageFile={onImageFile}
             onClearImage={clearImage}
+            onImageTransform={onImageTransform}
             aspect={aspect}
             onAspect={setAspect}
             templateId={templateId}
@@ -178,6 +187,8 @@ export default function PromoImagePage() {
               template={template}
               content={content}
               size={size}
+              interactive
+              onImageTransform={onImageTransform}
               style={{
                 transform: `scale(${scale})`,
                 transformOrigin: "top left",

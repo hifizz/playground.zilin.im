@@ -22,9 +22,12 @@ import {
 } from "react";
 import { GrainGradient, MeshGradient } from "@paper-design/shaders-react";
 import {
+  contractToAspect,
+  DEFAULT_IMAGE_TRANSFORM,
   frameToPx,
   type Content,
   type ImageLayer,
+  type ImageTransform,
   type ShaderLayer,
   type Size,
   type Template,
@@ -106,17 +109,33 @@ function ShaderBg({ layer }: { layer: ShaderLayer }) {
   );
 }
 
-/* —— 图片层（含无图占位） —— */
+/* —— 图片层（含无图占位、拖拽平移、手动适配布局） —— */
 function ImageBox({
   layer,
   content,
   size,
+  interactive,
+  onTransform,
 }: {
   layer: ImageLayer;
   content: Content;
   size: Size;
+  interactive?: boolean;
+  onTransform?: (t: ImageTransform) => void;
 }) {
-  const box = frameToPx(layer.frame, size);
+  const rawBox = frameToPx(layer.frame, size);
+  // aspect 锁：圆形框等在任何画布比例下保持形状（frame 内居中收缩）
+  const box = layer.aspect ? contractToAspect(rawBox, layer.aspect) : rawBox;
+  const t = content.imageTransform ?? DEFAULT_IMAGE_TRANSFORM;
+
+  const wrapRef = useRef<HTMLDivElement>(null);
+  // 自然尺寸按图片 src 记录：换图后旧值自动失效，无需 effect 重置
+  const [meta, setMeta] = useState<{ src: string; size: Size } | null>(null);
+  const natural = meta && meta.src === content.image ? meta.size : null;
+  const [dragging, setDragging] = useState(false);
+  // 拖拽起点（屏幕坐标）+ 起始偏移；delta 一律从起点算，避免累积误差
+  const dragStart = useRef<{ sx: number; sy: number; ox: number; oy: number } | null>(null);
+
   const base: React.CSSProperties = {
     position: "absolute",
     left: box.left,
@@ -128,18 +147,88 @@ function ImageBox({
   };
 
   if (content.image) {
+    // 手动适配：先算 cover/contain 基准缩放，再乘用户 zoom，最后加百分比位移。
+    // 全部落成内联 px 样式，导出克隆 DOM 时布局原样带走。
+    let imgStyle: React.CSSProperties;
+    if (natural) {
+      const coverS = Math.max(box.width / natural.w, box.height / natural.h);
+      const containS = Math.min(box.width / natural.w, box.height / natural.h);
+      const s = (t.fit === "cover" ? coverS : containS) * t.zoom;
+      const w = natural.w * s;
+      const h = natural.h * s;
+      imgStyle = {
+        position: "absolute",
+        left: (box.width - w) / 2 + (t.offsetX / 100) * box.width,
+        top: (box.height - h) / 2 + (t.offsetY / 100) * box.height,
+        width: w,
+        height: h,
+        maxWidth: "none", // 盖掉 preflight 的 img{max-width:100%}
+        display: "block",
+      };
+    } else {
+      // 自然尺寸未知（首帧）：先用 cover 占位，onLoad 后切换成手动布局
+      imgStyle = {
+        position: "absolute",
+        inset: 0,
+        width: "100%",
+        height: "100%",
+        objectFit: "cover",
+        display: "block",
+      };
+    }
+
+    const canDrag = Boolean(interactive && onTransform);
     return (
-      <div style={base}>
+      <div
+        ref={wrapRef}
+        style={{
+          ...base,
+          cursor: canDrag ? (dragging ? "grabbing" : "grab") : undefined,
+          touchAction: canDrag ? "none" : undefined,
+        }}
+        onPointerDown={(e) => {
+          if (!canDrag) return;
+          e.preventDefault();
+          wrapRef.current?.setPointerCapture(e.pointerId);
+          dragStart.current = { sx: e.clientX, sy: e.clientY, ox: t.offsetX, oy: t.offsetY };
+          setDragging(true);
+        }}
+        onPointerMove={(e) => {
+          const d = dragStart.current;
+          const rect = wrapRef.current?.getBoundingClientRect();
+          if (!d || !rect || !onTransform) return;
+          // 屏幕 delta / 屏上盒宽 = 相对 frame 的百分比（预览缩放自动抵消）
+          onTransform({
+            ...t,
+            offsetX: d.ox + ((e.clientX - d.sx) / rect.width) * 100,
+            offsetY: d.oy + ((e.clientY - d.sy) / rect.height) * 100,
+          });
+        }}
+        onPointerUp={(e) => {
+          wrapRef.current?.releasePointerCapture(e.pointerId);
+          dragStart.current = null;
+          setDragging(false);
+        }}
+        onPointerCancel={() => {
+          dragStart.current = null;
+          setDragging(false);
+        }}
+      >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={content.image}
           alt=""
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: layer.fit,
-            display: "block",
+          draggable={false}
+          onLoad={(e) => {
+            const img = e.currentTarget;
+            if (img.naturalWidth && img.naturalHeight && content.image) {
+              setMeta({
+                src: content.image,
+                size: { w: img.naturalWidth, h: img.naturalHeight },
+              });
+            }
           }}
+          style={imgStyle}
         />
       </div>
     );
@@ -266,6 +355,9 @@ export type ArtboardProps = {
   size: Size;
   /** 外层用来注入预览缩放 transform；导出时会被覆盖为 none */
   style?: React.CSSProperties;
+  /** 预览态开启：图片层可拖拽平移 */
+  interactive?: boolean;
+  onImageTransform?: (t: ImageTransform) => void;
 };
 
 /**
@@ -273,7 +365,10 @@ export type ArtboardProps = {
  * 导出管线直接对它光栅化。
  */
 export const Artboard = forwardRef<HTMLDivElement, ArtboardProps>(
-  function Artboard({ template, content, size, style }, ref) {
+  function Artboard(
+    { template, content, size, style, interactive, onImageTransform },
+    ref,
+  ) {
     const fontsTick = useDocumentFontsReady();
     const shaderLayer = template.layers.find(
       (l): l is ShaderLayer => l.type === "shader",
@@ -296,7 +391,14 @@ export const Artboard = forwardRef<HTMLDivElement, ArtboardProps>(
             return <ShaderBg key={i} layer={layer} />;
           if (layer.type === "image")
             return (
-              <ImageBox key={i} layer={layer} content={content} size={size} />
+              <ImageBox
+                key={i}
+                layer={layer}
+                content={content}
+                size={size}
+                interactive={interactive}
+                onTransform={onImageTransform}
+              />
             );
           return (
             <TextBox

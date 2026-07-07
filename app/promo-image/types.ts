@@ -14,11 +14,32 @@
 /** 画布比例 = 宽高的相对分量（w:h）。既是预设，也是自定义的统一表示。 */
 export type Ratio = { w: number; h: number };
 
+/**
+ * 图片在 frame 内的适配与变换（用户可调）：
+ * - fit：cover 裁满填充 / contain 完整显示（截图类素材友好，不放大裁切）。
+ * - zoom：相对基准适配的缩放倍率（1 = 恰好 cover/contain）。
+ * - offsetX/offsetY：相对 frame 宽高的百分比位移（拖拽平移）。
+ */
+export type ImageTransform = {
+  fit: "cover" | "contain";
+  zoom: number;
+  offsetX: number;
+  offsetY: number;
+};
+
+export const DEFAULT_IMAGE_TRANSFORM: ImageTransform = {
+  fit: "cover",
+  zoom: 1,
+  offsetX: 0,
+  offsetY: 0,
+};
+
 /** 用户填的内容 */
 export type Content = {
   title: string;
   caption: string;
   image?: string; // dataURL（本地上传后降采样），可空
+  imageTransform?: ImageTransform; // 缺省 = DEFAULT_IMAGE_TRANSFORM
 };
 
 /** 画布内定位框，四个值均为 0–100 的百分比 */
@@ -49,13 +70,18 @@ export type ShaderLayer = {
   speed?: number;
 };
 
-/** 图片层：object-fit cover 填充 frame，圆角 */
+/** 图片层：按 content.imageTransform 适配 frame，圆角 */
 export type ImageLayer = {
   type: "image";
   bind: "image";
   frame: Frame;
-  fit: "cover";
+  fit: "cover"; // 模板的默认适配（用户的 imageTransform 优先）
   radius?: number; // 设计空间像素（相对 BASE_W=1080）
+  /**
+   * 锁定 frame 实际像素盒的宽高比（w/h），在 frame 内居中收缩得到。
+   * 用途：圆形头像框设 aspect:1，画布换任何比例都保持正圆，不会变胶囊。
+   */
+  aspect?: number;
 };
 
 /** 文字层：渲染绑定的文字，自动缩字号适配 frame */
@@ -137,5 +163,21 @@ export function frameToPx(frame: Frame, size: Size) {
     top: (frame.y / 100) * size.h,
     width: (frame.w / 100) * size.w,
     height: (frame.h / 100) * size.h,
+  };
+}
+
+export type PxBox = ReturnType<typeof frameToPx>;
+
+/** 在盒子内居中收缩到指定宽高比（w/h）。ImageLayer.aspect 用。 */
+export function contractToAspect(box: PxBox, aspect: number): PxBox {
+  let w = box.width;
+  let h = box.height;
+  if (w / h > aspect) w = h * aspect;
+  else h = w / aspect;
+  return {
+    left: box.left + (box.width - w) / 2,
+    top: box.top + (box.height - h) / 2,
+    width: w,
+    height: h,
   };
 }
