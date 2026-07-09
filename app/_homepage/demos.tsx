@@ -31,6 +31,7 @@ import { ShadersThumb } from "./thumbs/shaders";
 import { ShaderFlowingLightThumb } from "./thumbs/shader-flowing-light";
 import { VoiceOrbCarouselThumb } from "./thumbs/voice-orb-carousel";
 import { VoiceChatWidgetThumb } from "./thumbs/voice-chat-widget";
+import { VoiceAgentTranscriptThumb } from "./thumbs/voice-agent-transcript";
 
 export type DemoCategory = "Interaction" | "Text Demo" | "Explored Demo" | "Agent UX/UI";
 
@@ -322,5 +323,14 @@ export const demos: DemoEntry[] = [
     category: "Agent UX/UI",
     tags: ["Framer Motion", "Shader", "Agent"],
     preview: <VoiceChatWidgetThumb />,
+  },
+  {
+    title: "Voice Agent Transcript",
+    description:
+      "复刻 ElevenLabs 对话式 AI 的「对话记录」挂件：sphere 头像卡片里，聊天气泡逐条登场，每条出现时带 y 轴上移 + 渐显，智能体消息前先冒「正在输入」三点。",
+    route: "/voice-agent-transcript",
+    category: "Agent UX/UI",
+    tags: ["Framer Motion", "Chat", "Agent"],
+    preview: <VoiceAgentTranscriptThumb />,
   },
 ];
