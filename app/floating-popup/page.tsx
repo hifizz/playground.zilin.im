@@ -639,11 +639,6 @@ const { left, top, side, fallback } = computePopupPosition(
 );
 // => position: fixed; left/top 直接可用；side/fallback 供动画与调试`}
           </pre>
-          <p className="mt-3 text-xs text-muted-foreground">
-            算法与代码已沉淀为 Agent Skill，装进项目后 Claude Code / Cursor 等 agent
-            会在划词浮层场景自动引用：
-          </p>
-          <SkillActions />
         </Block>
       </div>
     </div>
