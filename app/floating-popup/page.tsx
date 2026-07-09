@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Package } from "lucide-react";
 import {
   computePopupPosition,
   explainPopupPosition,
@@ -84,6 +84,53 @@ function Step({ k, children }: { k: string; children: React.ReactNode }) {
 
 const btnClass =
   "inline-flex items-center rounded-lg border bg-muted/40 px-3 py-1.5 text-xs transition-colors hover:bg-muted";
+
+/* -------------------------------------------------------------------------- */
+/* 获取 Skill：复制安装命令 + 跳转 skill 源码目录                              */
+/* -------------------------------------------------------------------------- */
+
+const SKILL_INSTALL_CMD = "npx skills add hifizz/skills --skill floating-popup-position";
+const SKILL_REPO_URL = "https://github.com/hifizz/skills/tree/main/skills/floating-popup-position";
+
+function SkillActions() {
+  const [copied, setCopied] = useState(false);
+
+  const getSkill = async () => {
+    try {
+      await navigator.clipboard.writeText(SKILL_INSTALL_CMD);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* 剪贴板不可用时仍然跳转，命令就在旁边可手动复制 */
+    }
+    window.open(SKILL_REPO_URL, "_blank", "noopener");
+  };
+
+  return (
+    <div className="mt-4 flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        onClick={getSkill}
+        className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-indigo-500"
+      >
+        <Package size={13} />
+        {copied ? "已复制安装命令" : "获取 Skill"}
+      </button>
+      <a
+        href={SKILL_REPO_URL}
+        target="_blank"
+        rel="noreferrer"
+        className={`${btnClass} gap-1`}
+      >
+        源码
+        <ArrowUpRight size={13} />
+      </a>
+      <code className="rounded-md bg-muted px-2 py-1.5 text-[11px] text-muted-foreground">
+        {SKILL_INSTALL_CMD}
+      </code>
+    </div>
+  );
+}
 
 /* -------------------------------------------------------------------------- */
 /* 案例 1：指定 ContainerRect 的交互沙箱                                       */
@@ -518,13 +565,23 @@ export default function FloatingPopupPage() {
           playground
         </Link>
 
-        <header className="mb-6">
+        <header className="mb-8">
           <h1 className="text-2xl font-semibold tracking-tight">Floating Popup 定位模型</h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">
-            抽象自「选区气泡」：popup 围绕 SelectedRect 在 ContainerRect 内定位，右 → 下 → 左 → 上
-            择位，永不越出安全区；四边都放不下时取遮挡选区最小的兜底位。纯函数模型见{" "}
-            <code className="rounded bg-muted px-1 py-0.5 text-xs">position.ts</code>。
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            划词工具条、AI 解释卡、批注气泡——任何「围绕一段选中内容弹出的浮层」都要回答同一个问题：
+            <span className="font-medium text-foreground">放哪里？</span>
+            难的不是「放右边」，而是几条约束要同时成立：不被视口裁切、与选区留呼吸间距、
+            与边缘留安全边距，popup 大到四个方向都塞不下时还得优雅退化，而不是糊在用户刚选中的字上。
           </p>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            本页把它抽象成三个矩形的纯几何关系：<b>FloatingPopup</b> 围绕 <b>SelectedRect</b>
+            （多行选区取包围盒）在 <b>ContainerRect</b>（通常是 viewport）内按 右 → 下 → 左 → 上
+            择位，交叉轴居中、越界时滑动，永不越出安全区；实在放不下就取「遮挡选区面积最小」的位置。
+            整个模型是一个零依赖纯函数（
+            <code className="rounded bg-muted px-1 py-0.5 text-xs">position.ts</code>
+            ），下面两个案例分别验证「任意指定容器」和「真实 viewport + 文本选择」。
+          </p>
+          <SkillActions />
         </header>
 
         <section className="mb-8">
@@ -582,6 +639,11 @@ const { left, top, side, fallback } = computePopupPosition(
 );
 // => position: fixed; left/top 直接可用；side/fallback 供动画与调试`}
           </pre>
+          <p className="mt-3 text-xs text-muted-foreground">
+            算法与代码已沉淀为 Agent Skill，装进项目后 Claude Code / Cursor 等 agent
+            会在划词浮层场景自动引用：
+          </p>
+          <SkillActions />
         </Block>
       </div>
     </div>
