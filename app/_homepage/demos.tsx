@@ -32,6 +32,9 @@ import { ShaderFlowingLightThumb } from "./thumbs/shader-flowing-light";
 import { VoiceOrbCarouselThumb } from "./thumbs/voice-orb-carousel";
 import { VoiceChatWidgetThumb } from "./thumbs/voice-chat-widget";
 import { AnimateHeightAutoThumb } from "./thumbs/animate-height-auto";
+import { SmoothTooltipThumb } from "./thumbs/smooth-tooltip";
+import { MobileFullscreenSvhThumb } from "./thumbs/mobile-fullscreen-svh";
+import { FloatingPopupThumb } from "./thumbs/floating-popup";
 
 export type DemoCategory = "Interaction" | "Text Demo" | "Explored Demo" | "Agent UX/UI";
 
@@ -332,5 +335,32 @@ export const demos: DemoEntry[] = [
     category: "Interaction",
     tags: ["CSS Animation", "Grid"],
     preview: <AnimateHeightAutoThumb />,
+  },
+  {
+    title: "Smooth Tooltip",
+    description:
+      "一条 SVG path 画出气泡轮廓：凹角外扩(C) · 直斜边(L) · 圆角顶点(A)。可调参 + 导入导出配置 + 真实悬停示例。",
+    route: "/smooth-tooltip",
+    category: "Interaction",
+    tags: ["SVG", "Tooltip"],
+    preview: <SmoothTooltipThumb />,
+  },
+  {
+    title: "Mobile Fullscreen · 纯 CSS svh",
+    description:
+      "对照 /mobile-fullscreen 的实验方案：不写视口 JS，纯 CSS 视口单位（svh/lvh/dvh/vh）实时切换，含 safe-area 与软键盘 interactive-widget。未验收。",
+    route: "/mobile-fullscreen-svh",
+    category: "Explored Demo",
+    tags: ["Mobile", "CSS"],
+    preview: <MobileFullscreenSvhThumb />,
+  },
+  {
+    title: "Floating Popup 定位模型",
+    description:
+      "选区气泡定位抽象成纯函数：popup 围绕 SelectedRect 在 ContainerRect 内按 右→下→左→上 择位，永不出安全区；放不下时取遮挡选区最小的兜底位。含可拖沙箱 + 真实文本选择案例。",
+    route: "/floating-popup",
+    category: "Explored Demo",
+    tags: ["Positioning", "Popup", "Selection"],
+    preview: <FloatingPopupThumb />,
   },
 ];
