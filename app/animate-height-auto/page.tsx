@@ -229,7 +229,7 @@ export default function AnimateHeightAutoPage() {
               },
             ]
           ).map(({ mode, label, pill }) => (
-            <div key={mode} className="flex flex-col items-center">
+            <div key={mode} className="flex min-w-0 flex-col items-center">
               <p className="mb-4 text-[15px] font-medium text-black/50">{label}</p>
               <div className="w-full max-w-[400px]">
                 <PlanCard
@@ -289,7 +289,7 @@ export default function AnimateHeightAutoPage() {
 
         {/* 原理说明 */}
         <div className="mt-14 grid gap-4 md:grid-cols-2">
-          <section className="rounded-2xl bg-white p-5 ring-1 ring-black/[0.06]">
+          <section className="min-w-0 rounded-2xl bg-white p-5 ring-1 ring-black/[0.06]">
             <h2 className="text-[14px] font-semibold text-[#d13438]">
               为什么 height: auto 会跳变
             </h2>
@@ -301,13 +301,14 @@ export default function AnimateHeightAutoPage() {
             </p>
             <pre className="mt-3 overflow-x-auto rounded-xl bg-[#faf5f5] p-3.5 font-mono text-[12px] leading-relaxed text-[#a63d40]">
 {`.panel {
-  height: auto;              /* 目标不可插值 */
-  transition: height 600ms;  /* ❌ 不会生效,瞬间跳变 */
+  /* ❌ auto 不可插值,过渡不生效 */
+  height: auto;
+  transition: height 600ms;
 }`}
             </pre>
           </section>
 
-          <section className="rounded-2xl bg-white p-5 ring-1 ring-black/[0.06]">
+          <section className="min-w-0 rounded-2xl bg-white p-5 ring-1 ring-black/[0.06]">
             <h2 className="text-[14px] font-semibold text-[#2f9e63]">
               0fr → 1fr 为什么流畅
             </h2>
@@ -322,11 +323,13 @@ export default function AnimateHeightAutoPage() {
             <pre className="mt-3 overflow-x-auto rounded-xl bg-[#f3faf5] p-3.5 font-mono text-[12px] leading-relaxed text-[#2c7a52]">
 {`.expander {
   display: grid;
-  grid-template-rows: 0fr;             /* 收起 */
-  transition: grid-template-rows 600ms;
+  /* 收起 0fr ↔ 展开 1fr ✅ */
+  grid-template-rows: 0fr;
+  transition:
+    grid-template-rows 600ms;
 }
 .expander[data-open] {
-  grid-template-rows: 1fr;             /* 展开 ✅ */
+  grid-template-rows: 1fr;
 }
 .expander > div {
   min-height: 0;
