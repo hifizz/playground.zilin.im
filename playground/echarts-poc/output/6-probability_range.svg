@@ -1,0 +1,90 @@
+<svg width="880" height="560" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" baseProfile="full" viewBox="0 0 880 560">
+<rect width="880" height="560" x="0" y="0" fill="#0d0d0f"></rect>
+<path d="M50.5 40A2.5 2.5 0 0 1 53 42.5L53 59.5A2.5 2.5 0 0 1 50.5 62A2.5 2.5 0 0 1 48 59.5L48 42.5A2.5 2.5 0 0 1 50.5 40" fill="#FF6B1A" class="zr5-cls-28"></path>
+<text dominant-baseline="central" text-anchor="start" style="font-size:21px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;font-weight:700;" y="10.5" transform="translate(65 41)" fill="rgb(255,255,255)" fill-opacity="0.92">情景分析与期望回报</text>
+<text dominant-baseline="central" text-anchor="start" style="font-size:11.5px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;" xml:space="preserve" y="5.75" transform="translate(768.06 50)" fill="rgb(255,255,255)" fill-opacity="0.38">股价 · 港元</text>
+<text dominant-baseline="central" text-anchor="start" style="font-size:11.5px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;" y="5.75" transform="translate(750 116)" fill="rgb(255,255,255)" fill-opacity="0.38">概率</text>
+<text dominant-baseline="central" text-anchor="start" style="font-size:11.5px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;" y="5.75" transform="translate(48 534)" fill="rgb(255,255,255)" fill-opacity="0.38">期望价为三情景锚点价格的概率加权结果</text>
+<path d="M118.5 152L118.5 490" fill="none" pointer-events="visible" stroke="rgb(255,255,255)" stroke-opacity="0.05" class="zr5-cls-29"></path>
+<path d="M205.5 152L205.5 490" fill="none" pointer-events="visible" stroke="rgb(255,255,255)" stroke-opacity="0.05" class="zr5-cls-29"></path>
+<path d="M293.5 152L293.5 490" fill="none" pointer-events="visible" stroke="rgb(255,255,255)" stroke-opacity="0.05" class="zr5-cls-29"></path>
+<path d="M380.5 152L380.5 490" fill="none" pointer-events="visible" stroke="rgb(255,255,255)" stroke-opacity="0.05" class="zr5-cls-29"></path>
+<path d="M467.5 152L467.5 490" fill="none" pointer-events="visible" stroke="rgb(255,255,255)" stroke-opacity="0.05" class="zr5-cls-29"></path>
+<path d="M555.5 152L555.5 490" fill="none" pointer-events="visible" stroke="rgb(255,255,255)" stroke-opacity="0.05" class="zr5-cls-29"></path>
+<path d="M642.5 152L642.5 490" fill="none" pointer-events="visible" stroke="rgb(255,255,255)" stroke-opacity="0.05" class="zr5-cls-29"></path>
+<path d="M730.5 152L730.5 490" fill="none" pointer-events="visible" stroke="rgb(255,255,255)" stroke-opacity="0.05" class="zr5-cls-29"></path>
+<text dominant-baseline="central" text-anchor="end" style="font-size:14px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;font-weight:600;" transform="translate(100 208.3333)" fill="rgb(255,255,255)" fill-opacity="0.92">牛市</text>
+<text dominant-baseline="central" text-anchor="end" style="font: normal normal 12px 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif" xml:space="preserve" x="-28" transform="translate(100 208.3333)" fill="rgb(255,255,255)" fill-opacity="0.62"> </text>
+<text dominant-baseline="central" text-anchor="end" style="font-size:10px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;" x="-31.36" transform="translate(100 208.3333)" fill="#5FBF7F">●</text>
+<text dominant-baseline="central" text-anchor="end" style="font-size:14px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;font-weight:600;" transform="translate(100 321)" fill="rgb(255,255,255)" fill-opacity="0.92">基准</text>
+<text dominant-baseline="central" text-anchor="end" style="font: normal normal 12px 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif" xml:space="preserve" x="-28" transform="translate(100 321)" fill="rgb(255,255,255)" fill-opacity="0.62"> </text>
+<text dominant-baseline="central" text-anchor="end" style="font-size:10px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;" x="-31.36" transform="translate(100 321)" fill="#FF6B1A">●</text>
+<text dominant-baseline="central" text-anchor="end" style="font-size:14px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;font-weight:600;" transform="translate(100 433.6667)" fill="rgb(255,255,255)" fill-opacity="0.92">熊市</text>
+<text dominant-baseline="central" text-anchor="end" style="font: normal normal 12px 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif" xml:space="preserve" x="-28" transform="translate(100 433.6667)" fill="rgb(255,255,255)" fill-opacity="0.62"> </text>
+<text dominant-baseline="central" text-anchor="end" style="font-size:10px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;" x="-31.36" transform="translate(100 433.6667)" fill="#D45757">●</text>
+<text dominant-baseline="central" text-anchor="start" style="font-size:16px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;font-weight:700;" transform="translate(750 208.3333)" fill="rgb(255,255,255)" fill-opacity="0.92">25%</text>
+<text dominant-baseline="central" text-anchor="start" style="font-size:16px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;font-weight:700;" transform="translate(750 321)" fill="rgb(255,255,255)" fill-opacity="0.92">45%</text>
+<text dominant-baseline="central" text-anchor="start" style="font-size:16px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;font-weight:700;" transform="translate(750 433.6667)" fill="rgb(255,255,255)" fill-opacity="0.92">30%</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;" y="5.5" transform="translate(118 498)" fill="rgb(255,255,255)" fill-opacity="0.38">50</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;" y="5.5" transform="translate(205.4286 498)" fill="rgb(255,255,255)" fill-opacity="0.38">100</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;" y="5.5" transform="translate(292.8571 498)" fill="rgb(255,255,255)" fill-opacity="0.38">150</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;" y="5.5" transform="translate(380.2857 498)" fill="rgb(255,255,255)" fill-opacity="0.38">200</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;" y="5.5" transform="translate(467.7143 498)" fill="rgb(255,255,255)" fill-opacity="0.38">250</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;" y="5.5" transform="translate(555.1429 498)" fill="rgb(255,255,255)" fill-opacity="0.38">300</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;" y="5.5" transform="translate(642.5714 498)" fill="rgb(255,255,255)" fill-opacity="0.38">350</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;" y="5.5" transform="translate(730 498)" fill="rgb(255,255,255)" fill-opacity="0.38">400</text>
+<path d="M551.7 194.3L593.6 194.3A14 14 0 0 1 607.6 208.3A14 14 0 0 1 593.6 222.3L551.7 222.3A14 14 0 0 1 537.7 208.3A14 14 0 0 1 551.7 194.3" fill="rgb(95,191,127)" fill-opacity="0.26" ecmeta_series_index="0" ecmeta_data_index="0" ecmeta_ssr_type="chart" class="zr5-cls-30"></path>
+<text dominant-baseline="central" text-anchor="end" style="font-size:11.5px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;" x="527.6571428571428" y="208.33333333333331" fill="rgb(255,255,255)" fill-opacity="0.38">290</text>
+<text dominant-baseline="central" text-anchor="start" style="font-size:11.5px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;" x="617.6" y="208.33333333333331" fill="rgb(255,255,255)" fill-opacity="0.38">330</text>
+<path d="M359.3 307L401.3 307A14 14 0 0 1 415.3 321A14 14 0 0 1 401.3 335L359.3 335A14 14 0 0 1 345.3 321A14 14 0 0 1 359.3 307" fill="rgb(255,107,26)" fill-opacity="0.26" ecmeta_series_index="0" ecmeta_data_index="1" ecmeta_ssr_type="chart" class="zr5-cls-31"></path>
+<text dominant-baseline="central" text-anchor="end" style="font-size:11.5px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;" x="335.3142857142857" y="321" fill="rgb(255,255,255)" fill-opacity="0.38">180</text>
+<text dominant-baseline="central" text-anchor="start" style="font-size:11.5px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;" x="425.25714285714287" y="321" fill="rgb(255,255,255)" fill-opacity="0.38">220</text>
+<path d="M219.4 419.7L261.4 419.7A14 14 0 0 1 275.4 433.7A14 14 0 0 1 261.4 447.7L219.4 447.7A14 14 0 0 1 205.4 433.7A14 14 0 0 1 219.4 419.7" fill="rgb(212,87,87)" fill-opacity="0.26" ecmeta_series_index="0" ecmeta_data_index="2" ecmeta_ssr_type="chart" class="zr5-cls-32"></path>
+<text dominant-baseline="central" text-anchor="end" style="font-size:11.5px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;" x="195.42857142857144" y="433.6666666666667" fill="rgb(255,255,255)" fill-opacity="0.38">100</text>
+<text dominant-baseline="central" text-anchor="start" style="font-size:11.5px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;" x="285.37142857142857" y="433.6666666666667" fill="rgb(255,255,255)" fill-opacity="0.38">140</text>
+<path d="M292.5 152L292.5 490" fill="none" pointer-events="visible" stroke="rgb(255,255,255)" stroke-width="1.2" stroke-opacity="0.4" stroke-dasharray="4,5" ecmeta_series_index="1" ecmeta_data_index="0" ecmeta_ssr_type="chart" ecmeta_silent="true" class="zr5-cls-29"></path>
+<path d="M406.5 152L406.5 490" fill="none" pointer-events="visible" stroke="#FF6B1A" stroke-width="1.4" stroke-dasharray="4,5" ecmeta_series_index="1" ecmeta_data_index="1" ecmeta_ssr_type="chart" ecmeta_silent="true" class="zr5-cls-29"></path>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:12px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;" xml:space="preserve" y="-6" transform="translate(292.1577 142)" fill="rgb(255,255,255)" fill-opacity="0.62">现价 149.6</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:12.5px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;font-weight:700;" xml:space="preserve" y="-6.25" transform="translate(406.5143 142)" fill="#FF6B1A">期望价 215（+44%）</text>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(5.5,0,0,5.5,590.1143,208.3333)" fill="#5FBF7F" fill-opacity="0.8" stroke="#0d0d0f" stroke-width="0.45454545454545453" stroke-opacity="0.8" ecmeta_series_index="1" ecmeta_data_index="0" ecmeta_ssr_type="chart" class="zr5-cls-33"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(5.5,0,0,5.5,380.2857,321)" fill="#FF6B1A" fill-opacity="0.8" stroke="#0d0d0f" stroke-width="0.45454545454545453" stroke-opacity="0.8" ecmeta_series_index="1" ecmeta_data_index="1" ecmeta_ssr_type="chart" class="zr5-cls-28"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(5.5,0,0,5.5,240.4,433.6667)" fill="#D45757" fill-opacity="0.8" stroke="#0d0d0f" stroke-width="0.45454545454545453" stroke-opacity="0.8" ecmeta_series_index="1" ecmeta_data_index="2" ecmeta_ssr_type="chart" class="zr5-cls-34"></path>
+<text dominant-baseline="central" text-anchor="start" style="font-size:13.5px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;font-weight:700;" x="-32.6725" y="-6.75" transform="translate(590.1143 190.5833)" fill="rgb(255,255,255)" fill-opacity="0.7360000000000001">320</text>
+<text dominant-baseline="central" text-anchor="start" style="font-size:11.5px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;font-weight:600;" xml:space="preserve" x="-9.9925" y="-6.75" transform="translate(590.1143 190.5833)" fill="#5FBF7F" fill-opacity="0.8">  +114%</text>
+<text dominant-baseline="central" text-anchor="start" style="font-size:13.5px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;font-weight:700;" x="-29.4525" y="-6.75" transform="translate(380.2857 303.25)" fill="rgb(255,255,255)" fill-opacity="0.7360000000000001">200</text>
+<text dominant-baseline="central" text-anchor="start" style="font-size:11.5px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;font-weight:600;" xml:space="preserve" x="-6.772500000000001" y="-6.75" transform="translate(380.2857 303.25)" fill="#5FBF7F" fill-opacity="0.8">  +34%</text>
+<text dominant-baseline="central" text-anchor="start" style="font-size:13.5px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;font-weight:700;" x="-28.015" y="-6.75" transform="translate(240.4 415.9167)" fill="rgb(255,255,255)" fill-opacity="0.7360000000000001">120</text>
+<text dominant-baseline="central" text-anchor="start" style="font-size:11.5px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;font-weight:600;" xml:space="preserve" x="-5.335000000000001" y="-6.75" transform="translate(240.4 415.9167)" fill="#D45757" fill-opacity="0.8">  -20%</text>
+<style ><![CDATA[
+.zr5-cls-28:hover {
+cursor:pointer;
+fill:rgba(255,117,28,1);
+}
+.zr5-cls-29:hover {
+pointer-events:none;
+}
+.zr5-cls-30:hover {
+cursor:pointer;
+fill:rgba(104,210,139,0.26);
+}
+.zr5-cls-31:hover {
+cursor:pointer;
+fill:rgba(255,117,28,0.26);
+}
+.zr5-cls-32:hover {
+cursor:pointer;
+fill:rgba(233,95,95,0.26);
+}
+.zr5-cls-33:hover {
+cursor:pointer;
+fill:rgba(104,210,139,1);
+}
+.zr5-cls-34:hover {
+cursor:pointer;
+fill:rgba(233,95,95,1);
+}
+
+]]>
+
+</style>
+</svg>
