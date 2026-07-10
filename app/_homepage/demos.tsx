@@ -31,6 +31,7 @@ import { ShadersThumb } from "./thumbs/shaders";
 import { ShaderFlowingLightThumb } from "./thumbs/shader-flowing-light";
 import { VoiceOrbCarouselThumb } from "./thumbs/voice-orb-carousel";
 import { VoiceChatWidgetThumb } from "./thumbs/voice-chat-widget";
+import { AnimateHeightAutoThumb } from "./thumbs/animate-height-auto";
 
 export type DemoCategory = "Interaction" | "Text Demo" | "Explored Demo" | "Agent UX/UI";
 
@@ -322,5 +323,14 @@ export const demos: DemoEntry[] = [
     category: "Agent UX/UI",
     tags: ["Framer Motion", "Shader", "Agent"],
     preview: <VoiceChatWidgetThumb />,
+  },
+  {
+    title: "Animate height: auto",
+    description:
+      "同一份未知高度内容做展开动画:height:auto 不可插值直接跳变 vs grid-template-rows 0fr→1fr 平滑生长,纯 CSS 并排对比。",
+    route: "/animate-height-auto",
+    category: "Interaction",
+    tags: ["CSS Animation", "Grid"],
+    preview: <AnimateHeightAutoThumb />,
   },
 ];
