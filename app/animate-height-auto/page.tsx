@@ -164,22 +164,37 @@ function CodePill({
 }
 
 export default function AnimateHeightAutoPage() {
-  const [expanded, setExpanded] = useState(true);
+  // 两张卡各自绑定 expand 状态,可以单独把玩
+  const [expanded, setExpanded] = useState<Record<ExpandMode, boolean>>({
+    instant: true,
+    fluid: true,
+  });
   const [auto, setAuto] = useState(true);
   const [duration, setDuration] = useState(600);
 
-  // 自动回放:展开 ↔ 收起 交替,方便并排观察两种实现的差异
+  const anyExpanded = expanded.instant || expanded.fluid;
+
+  // 自动回放:两卡同步翻转;若开启时状态不一致,第一拍先一起收起再循环
   useEffect(() => {
     if (!auto) return;
-    const timer = setInterval(() => {
-      setExpanded((v) => !v);
+    const timer = setTimeout(() => {
+      const next = !anyExpanded;
+      setExpanded({ instant: next, fluid: next });
     }, duration + 1500);
-    return () => clearInterval(timer);
-  }, [auto, duration]);
+    return () => clearTimeout(timer);
+  }, [auto, duration, anyExpanded]);
 
-  const manualToggle = () => {
+  // 点击卡片:只切换这一张,同时接管(停掉自动回放)
+  const toggleCard = (mode: ExpandMode) => {
     setAuto(false);
-    setExpanded((v) => !v);
+    setExpanded((prev) => ({ ...prev, [mode]: !prev[mode] }));
+  };
+
+  // 下方按钮:两张一起切换,便于并排对比
+  const toggleAll = () => {
+    setAuto(false);
+    const next = !anyExpanded;
+    setExpanded({ instant: next, fluid: next });
   };
 
   return (
@@ -193,7 +208,8 @@ export default function AnimateHeightAutoPage() {
           <p className="mt-1.5 text-[14px] text-black/45">
             同一份未知高度的内容做展开动画:不可插值的{" "}
             <code className="font-mono text-[13px]">auto</code> 直接跳变,可插值的{" "}
-            <code className="font-mono text-[13px]">fr</code> 平滑生长。点击卡片或下方按钮切换。
+            <code className="font-mono text-[13px]">fr</code>{" "}
+            平滑生长。点击卡片单独切换,下方按钮两张一起切。
           </p>
         </header>
 
@@ -218,9 +234,9 @@ export default function AnimateHeightAutoPage() {
               <div className="w-full max-w-[400px]">
                 <PlanCard
                   mode={mode}
-                  expanded={expanded}
+                  expanded={expanded[mode]}
                   duration={duration}
-                  onToggle={manualToggle}
+                  onToggle={() => toggleCard(mode)}
                 />
               </div>
               <div className="mt-6">{pill}</div>
@@ -232,10 +248,10 @@ export default function AnimateHeightAutoPage() {
         <div className="mt-4 flex justify-center">
           <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-3 rounded-2xl bg-white px-5 py-3 shadow-[0_8px_24px_-8px_rgba(0,0,0,0.1)] ring-1 ring-black/[0.06]">
             <button
-              onClick={manualToggle}
+              onClick={toggleAll}
               className="rounded-full bg-black/85 px-4 py-2 text-[13px] font-medium text-white transition hover:bg-black active:scale-[0.97]"
             >
-              {expanded ? "Collapse" : "Expand"}
+              {anyExpanded ? "Collapse all" : "Expand all"}
             </button>
 
             <button
