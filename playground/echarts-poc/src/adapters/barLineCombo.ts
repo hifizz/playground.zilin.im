@@ -58,6 +58,7 @@ export function barLineComboAdapter(spec: BarLineComboSpec): EChartsOption {
         name: line.name,
         type: 'line',
         z: 3,
+        // 中性白线叠在橙柱上：不引入第二个色相，靠明度差分离
         lineStyle: { color: TOKENS.trend, width: 2.5 },
         itemStyle: { color: TOKENS.trend, borderColor: TOKENS.bg, borderWidth: 2 },
         symbolSize: 8,
@@ -66,7 +67,7 @@ export function barLineComboAdapter(spec: BarLineComboSpec): EChartsOption {
           position: 'bottom',
           distance: 9,
           formatter: (p: any) => fmt(p.value),
-          color: '#A9D2E4',
+          color: 'rgba(255,255,255,0.82)',
           fontSize: 11.5,
           fontWeight: 600,
           fontFamily: TOKENS.fontFamily,

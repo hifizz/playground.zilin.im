@@ -121,7 +121,7 @@ export function probabilityRangeAdapter(spec: ProbabilityRangeSpec): EChartsOpti
               {
                 type: 'rect',
                 shape: { x: x1, y: y - bh / 2, width: x2 - x1, height: bh, r: bh / 2 },
-                style: { fill: rgba(colors[i], 0.26) },
+                style: { fill: rgba(colors[i], 0.3) },
               },
               { type: 'text', style: { ...textStyle, text: fmt(s.low), x: x1 - 10, y, textAlign: 'right' } },
               { type: 'text', style: { ...textStyle, text: fmt(s.high), x: x2 + 10, y, textAlign: 'left' } },

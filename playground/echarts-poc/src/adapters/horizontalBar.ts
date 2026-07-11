@@ -85,7 +85,7 @@ export function horizontalBarAdapter(spec: HorizontalBarSpec): EChartsOption {
             return name === hlName ? `{dot|●} {hlv|${fmt(m)}%}` : `{dot|●} {v|${fmt(m)}%}`;
           },
           rich: {
-            dot: { color: TOKENS.trend, fontSize: 9, fontFamily: TOKENS.fontFamily },
+            dot: { color: TOKENS.brand2, fontSize: 9, fontFamily: TOKENS.fontFamily },
             v: { color: TOKENS.text2, fontSize: 12.5, fontFamily: TOKENS.fontFamily },
             hlv: { color: TOKENS.text1, fontSize: 12.5, fontWeight: 700, fontFamily: TOKENS.fontFamily },
           },

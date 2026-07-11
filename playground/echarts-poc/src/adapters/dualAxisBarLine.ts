@@ -4,9 +4,10 @@ import type { DualAxisBarLineSpec } from '../types';
 import { SIZES, PAD_X, fmt, headerGraphics } from './common';
 
 const BAR_COLORS = [TOKENS.brand1, '#C97B4A'];
+// 利润率不是多空语义，不用绿/红；浅橙实线 + 中性灰虚线，和橙柱同族不抢戏
 const LINE_STYLES = [
-  { color: TOKENS.bull, labelColor: '#93D6AC', dashed: false },
-  { color: TOKENS.trend, labelColor: '#A9D2E4', dashed: true },
+  { color: TOKENS.brand3, labelColor: TOKENS.brand3, dashed: false },
+  { color: 'rgba(255,255,255,0.60)', labelColor: 'rgba(255,255,255,0.66)', dashed: true },
 ];
 
 const GRID_TOP = 148;
