@@ -243,6 +243,55 @@
 .tc .swx-title { flex: none; display: flex; align-items: center; gap: 8px; padding: 11px 13px; border-bottom: 1px solid var(--rule); font-family: var(--font-read); font-size: 13.5px; font-weight: 600; color: var(--ink); }
 .tc .swx-title svg { flex: none; color: var(--ink-faint); }
 
+/* ---------------- 画布模式（React Flow 容器 + 手稿风 thread 卡） ----------------
+   React Flow 自带全局类（.react-flow__*），此处全部再套 .tc 前缀二次作用域；
+   主题经 RF 的 --xy-* 定制点对齐纸色系。容器 flex:1 + min-height:0 给出确定高度。 */
+.tc .canvas-wrap { flex: 1; min-height: 0; width: 100%; position: relative; }
+.tc .canvas-loading { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--ink-faint); font-family: var(--font-mono); font-size: 12px; }
+.tc .canvas-wrap .react-flow {
+  background: var(--paper);
+  --xy-background-pattern-color-default: var(--rule-strong);
+  --xy-edge-stroke-default: var(--rule-strong);
+  --xy-edge-stroke-selected-default: var(--ink-soft);
+  --xy-minimap-background-color-default: #fbf9f2;
+  --xy-minimap-node-background-color-default: #e6dfd0;
+  --xy-controls-button-background-color-default: #fff;
+  --xy-controls-button-background-color-hover-default: var(--paper-2);
+  --xy-controls-button-border-color-default: var(--rule);
+  --xy-controls-button-color-default: var(--ink-soft);
+  --xy-attribution-background-color-default: #ffffff88;
+}
+.tc .canvas-wrap .react-flow__minimap { border: 1px solid var(--rule-strong); border-radius: 9px; overflow: hidden; }
+/* MiniMap 节点深度色：SVG fill 属性不解析 var()，经 .fc-N（--fc）+ CSS fill 上色 */
+.tc .canvas-wrap .react-flow__minimap-node { fill: var(--fc, #8a8377); stroke: none; }
+.tc .canvas-wrap .react-flow__controls { border: 1px solid var(--rule-strong); border-radius: 9px; overflow: hidden; box-shadow: 0 4px 14px -9px rgba(30, 26, 20, 0.3); }
+.tc .canvas-wrap .react-flow__attribution { font-size: 9px; color: var(--ink-faint); }
+
+/* thread 卡：与列模式同一套纸墨语言（深度色左缘 / 脚注徽章 / 衬线标题）。
+   尺寸与 use-canvas-layout 的估高常量同步：宽 280、padding 11×13、行高见各行注释 */
+.tc .canvas-card { width: 280px; background: #fff; border: 1px solid var(--rule-strong); border-left: 3px solid var(--accent, #8a8377); border-radius: 10px; padding: 11px 13px; font-family: var(--font-ui); box-shadow: 0 4px 14px -9px rgba(30, 26, 20, 0.22); cursor: grab; }
+.tc .react-flow__node.dragging .canvas-card { cursor: grabbing; }
+.tc .react-flow__node.selected .canvas-card { border-color: var(--accent, #8a8377); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent, #8a8377) 30%, transparent), 0 8px 20px -10px rgba(30, 26, 20, 0.35); }
+/* 只读画布：handle 只作边的定位锚点——用 opacity 隐藏，display:none 会破坏边坐标 */
+.tc .canvas-card .react-flow__handle { opacity: 0; pointer-events: none; }
+.tc .canvas-card .chead { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; min-height: 20px; }
+.tc .canvas-card .fn { font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: #fff; background: var(--accent, #8a8377); border-radius: 4px; padding: 2px 5px; flex: none; line-height: 1.2; }
+.tc .canvas-card .ttl { font-family: var(--font-read); font-size: 14.5px; font-weight: 600; color: var(--ink); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.35; }
+.tc .canvas-card .sub { font-size: 11.5px; line-height: 1.5; color: var(--ink-faint); margin-bottom: 4px; }
+.tc .canvas-card .anch { font-family: var(--font-read); font-size: 11.5px; line-height: 1.5; color: var(--ink-soft); background: color-mix(in srgb, var(--accent, #8a8377) 7%, transparent); border-radius: 5px; padding: 3px 6px; margin-bottom: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.tc .canvas-card .sum { font-size: 12px; line-height: 1.58; color: var(--ink-soft); margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.tc .canvas-card .meta { display: flex; align-items: center; gap: 10px; font-family: var(--font-mono); font-size: 10px; color: var(--ink-faint); }
+.tc .canvas-card .meta .am { display: inline-flex; align-items: center; gap: 5px; }
+.tc .canvas-card .meta .dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+
+/* 画布左上 Panel：重新排列 + 操作提示 */
+.tc .canvas-panel { display: flex; align-items: center; gap: 9px; }
+.tc .canvas-panel .cbtn { box-shadow: 0 3px 10px -6px rgba(30, 26, 20, 0.35); }
+.tc .canvas-panel .canvas-tip { font-family: var(--font-mono); font-size: 11px; color: var(--ink-soft); background: #ffffffcc; border: 1px solid var(--rule); border-radius: 7px; padding: 5px 9px; }
+
+/* 顶栏「视图」seg 的图标按钮 */
+.tc .seg button.mode { display: inline-flex; align-items: center; gap: 5px; }
+
 /* ---------------- 滚动条 / 动效降级 ---------------- */
 .tc ::-webkit-scrollbar { width: 9px; height: 9px; }
 .tc ::-webkit-scrollbar-thumb { background: var(--rule-strong); border-radius: 6px; }

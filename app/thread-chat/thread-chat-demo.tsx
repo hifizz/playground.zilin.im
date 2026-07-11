@@ -7,16 +7,19 @@
  * · core/          headless 会话树 store + 选择器（useSyncExternalStore 绑定）；
  * · chat/          单会话视图（消息列表 + composer），不知道树/列/分支；
  * · branching/     把「分支能力」注入 chat：锚点/脚注/面包屑/继承上文/划选气泡；
- * · orchestration/ 列槽编排：放置策略（替换⑥/细条⑤）、切换器、Artifact 抽屉。
+ * · orchestration/ 视图编排：列视图（放置策略：替换⑥/细条⑤、切换器、Artifact 抽屉）
+ *                  与画布视图（thread-canvas，React Flow 全树纵览，懒加载）两个平级视图层。
  *
  * 「打开某会话」的统一意图入口是 openBranchUI：脚注 / ⌘K / 每列 ⇄ / 子树弹层 /
- * Artifact 定位来源全部走它，列满时按当前策略替换（可撤销）或折叠细条。
+ * Artifact 定位来源 / 画布双击节点全部走它——画布模式下先切回列视图（打开 = 去列里读），
+ * 列满时按当前策略替换（可撤销）或折叠细条。
  * --------------------------------------------------------------------------
  */
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Highlighter, Network, PanelRightOpen } from "lucide-react";
+import { Columns3, Highlighter, Network, PanelRightOpen, Waypoints } from "lucide-react";
 import "./thread-chat.css";
 import { artifactSeedFor, cannedIntro, cannedReply, seedStore } from "./data";
 import { createThreadStore } from "./core/store";
@@ -33,6 +36,17 @@ import {
 } from "./orchestration/thread-columns";
 import { ThreadSwitcher, type SwitcherMode } from "./orchestration/thread-switcher";
 import { ArtifactDrawer } from "./orchestration/artifact-drawer";
+import type { CanvasViewState } from "./orchestration/use-canvas-layout";
+
+/** 画布视图层懒加载：React Flow 只在首次进入画布模式时才落地（且跳过 SSR） */
+const ThreadCanvas = dynamic(
+  () => import("./orchestration/thread-canvas").then((m) => m.ThreadCanvas),
+  { ssr: false, loading: () => <div className="canvas-loading">画布加载中…</div> },
+);
+
+type ViewMode = "columns" | "canvas";
+
+const MAIN_SUBTITLE = "一段关于 Agent 记忆系统的对话";
 
 interface ToastState {
   msg: string;
@@ -66,6 +80,13 @@ export function ThreadChatDemo() {
   const [mode, setMode] = useState<PlacementMode>("replace");
   const cols = useColumnSlots({ store, maxExpanded, mode });
 
+  /* ---------- 视图形态：列（深读）| 画布（纵览全树） ---------- */
+  const [viewMode, setViewMode] = useState<ViewMode>("columns");
+  /** 画布视图状态宿主（节点 pin 表）：跨「列 ⇄ 画布」切换存活，属视口状态不进 core store。
+      与上面的 store 同一模式：useState(初始化函数) 造出的长寿可变对象（type-only import，
+      不把画布模块拖进首屏 bundle） */
+  const [canvasViewState] = useState<CanvasViewState>(() => ({ pins: new Map() }));
+
   /* ---------- 其余 UI 状态 ---------- */
   const [hintOn, setHintOn] = useState(true);
   const [sel, setSel] = useState<SelectionInfo | null>(null);
@@ -85,8 +106,10 @@ export function ThreadChatDemo() {
     return () => clearTimeout(t);
   }, [toast]);
 
-  /* ---------- 统一意图入口：打开某会话（脚注 / ⌘K / 子树 / 定位来源都走这里） ---------- */
+  /* ---------- 统一意图入口：打开某会话（脚注 / ⌘K / 子树 / 定位来源 / 画布双击都走这里） ---------- */
   function openBranchUI(id: string, sourceId?: string | null) {
+    // 意图收敛：打开会话 = 去列里读它——画布模式下先切回列视图再放置
+    setViewMode("columns");
     if (id === "main") {
       cols.flashThread("main");
       return;
@@ -208,7 +231,8 @@ export function ThreadChatDemo() {
         <b>替换来源列</b>（提示条可撤销），顶栏切到<b>细条⑤</b>则改为把最久未用的列折成竖直细条。
         <b>拖动列间分割线可调宽度，双击恢复均分</b>。面包屑可就地回退；按{" "}
         <span className="kbd">⌘K</span> 搜会话树，点列头 <b>⇄</b>{" "}
-        把该列切换成任意会话，<b>⑂</b> 查看该会话的子分支。分支里产出的 Artifact 会从右侧抽屉弹出。
+        把该列切换成任意会话，<b>⑂</b> 查看该会话的子分支。分支里产出的 Artifact
+        会从右侧抽屉弹出。顶栏可切换<b>画布视图</b>，纵览整棵会话树，双击节点回到列模式。
       </div>
       <span className="close" onClick={() => setHintOn(false)}>
         ✕
@@ -234,33 +258,60 @@ export function ThreadChatDemo() {
         </div>
         <div className="spacer" />
         <div className="seg">
-          <span
-            className="lbl"
-            title={winW === null ? undefined : `视口 ${winW}px，约每 ${COL_MIN_W}px 一列`}
+          <span className="lbl" title="列 = 并排深读；画布 = 纵览整棵会话树">
+            视图
+          </span>
+          <button
+            className={`mode ${viewMode === "columns" ? "on" : ""}`}
+            title="列视图：并排深读多个会话"
+            onClick={() => setViewMode("columns")}
           >
-            {segLabel}
-          </span>
-          {(["auto", 2, 3, 4] as const).map((v) => (
-            <button
-              key={v}
-              className={(v === "auto" ? forceCols === null : forceCols === v) ? "on" : ""}
-              onClick={() => setForceCols(v === "auto" ? null : v)}
-            >
-              {v === "auto" ? "自适应" : v}
-            </button>
-          ))}
-        </div>
-        <div className="seg">
-          <span className="lbl" title="列满时的放置策略">
-            列满
-          </span>
-          <button className={mode === "replace" ? "on" : ""} onClick={() => changeMode("replace")}>
-            替换⑥
+            <Columns3 size={12} />列
           </button>
-          <button className={mode === "fold" ? "on" : ""} onClick={() => changeMode("fold")}>
-            细条⑤
+          <button
+            className={`mode ${viewMode === "canvas" ? "on" : ""}`}
+            title="画布视图：纵览整棵会话树，双击节点回到列模式"
+            onClick={() => setViewMode("canvas")}
+          >
+            <Waypoints size={12} />
+            画布
           </button>
         </div>
+        {viewMode === "columns" && (
+          <>
+            <div className="seg">
+              <span
+                className="lbl"
+                title={winW === null ? undefined : `视口 ${winW}px，约每 ${COL_MIN_W}px 一列`}
+              >
+                {segLabel}
+              </span>
+              {(["auto", 2, 3, 4] as const).map((v) => (
+                <button
+                  key={v}
+                  className={(v === "auto" ? forceCols === null : forceCols === v) ? "on" : ""}
+                  onClick={() => setForceCols(v === "auto" ? null : v)}
+                >
+                  {v === "auto" ? "自适应" : v}
+                </button>
+              ))}
+            </div>
+            <div className="seg">
+              <span className="lbl" title="列满时的放置策略">
+                列满
+              </span>
+              <button
+                className={mode === "replace" ? "on" : ""}
+                onClick={() => changeMode("replace")}
+              >
+                替换⑥
+              </button>
+              <button className={mode === "fold" ? "on" : ""} onClick={() => changeMode("fold")}>
+                细条⑤
+              </button>
+            </div>
+          </>
+        )}
         <button className="tbtn" title="搜索并打开任意会话（⌘K）" onClick={toggleGlobalSwitcher}>
           <Network size={13} />
           会话树{branchCount > 0 ? ` · ${branchCount}` : ""}
@@ -278,36 +329,48 @@ export function ThreadChatDemo() {
         <span className="demo-pill">回复写死</span>
       </div>
 
-      <ThreadColumns
-        state={state}
-        slots={cols.slots}
-        widths={cols.widths}
-        flashId={cols.flashId}
-        colsRef={cols.colsRef}
-        onExpandStrip={(id) => openBranchUI(id, null)}
-        onCommitWidths={cols.commitWidths}
-        onResetWidths={cols.resetWidths}
-        renderThread={(threadId, vpIndex) => (
-          <BranchableChat
-            state={state}
-            threadId={threadId}
-            subtitle={threadId === "main" ? "一段关于 Agent 记忆系统的对话" : undefined}
-            intro={threadId === "main" ? hintNode : undefined}
-            onOpenThread={(target) => openBranchUI(target, threadId)}
-            onOpenArtifact={(aid) => {
-              setActiveArt(aid);
-              setDrawerOpen(true);
-            }}
-            onCrumbNav={(target) => cols.navColumn(vpIndex, target, "collapse")}
-            onOpenSwitcher={(btn) => openColumnSwitcher(vpIndex, btn)}
-            onOpenSubtree={(btn) => openSubtree(threadId, btn)}
-            onCollapse={() => cols.closeColumn(vpIndex)}
-            onSend={(text) => store.send(threadId, text, cannedReply())}
-          />
-        )}
-      />
+      {viewMode === "columns" ? (
+        <ThreadColumns
+          state={state}
+          slots={cols.slots}
+          widths={cols.widths}
+          flashId={cols.flashId}
+          colsRef={cols.colsRef}
+          onExpandStrip={(id) => openBranchUI(id, null)}
+          onCommitWidths={cols.commitWidths}
+          onResetWidths={cols.resetWidths}
+          renderThread={(threadId, vpIndex) => (
+            <BranchableChat
+              state={state}
+              threadId={threadId}
+              subtitle={threadId === "main" ? MAIN_SUBTITLE : undefined}
+              intro={threadId === "main" ? hintNode : undefined}
+              onOpenThread={(target) => openBranchUI(target, threadId)}
+              onOpenArtifact={(aid) => {
+                setActiveArt(aid);
+                setDrawerOpen(true);
+              }}
+              onCrumbNav={(target) => cols.navColumn(vpIndex, target, "collapse")}
+              onOpenSwitcher={(btn) => openColumnSwitcher(vpIndex, btn)}
+              onOpenSubtree={(btn) => openSubtree(threadId, btn)}
+              onCollapse={() => cols.closeColumn(vpIndex)}
+              onSend={(text) => store.send(threadId, text, cannedReply())}
+            />
+          )}
+        />
+      ) : (
+        <ThreadCanvas
+          store={store}
+          mainSubtitle={MAIN_SUBTITLE}
+          viewState={canvasViewState}
+          onOpenThread={(id) => openBranchUI(id, null)}
+        />
+      )}
 
-      <SelectionBubble state={state} sel={sel} onSelChange={setSel} onFork={handleFork} />
+      {/* Phase 1 画布只读：划选开分支仅列模式提供 */}
+      {viewMode === "columns" && (
+        <SelectionBubble state={state} sel={sel} onSelChange={setSel} onFork={handleFork} />
+      )}
 
       {switcher && (
         <ThreadSwitcher
