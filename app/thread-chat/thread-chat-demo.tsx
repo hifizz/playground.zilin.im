@@ -206,7 +206,8 @@ export function ThreadChatDemo() {
       <div>
         <b>划选 AI 回复里的文字</b>即可开分支，列数随屏宽自适应（2–4 列）。列满后继续深入默认
         <b>替换来源列</b>（提示条可撤销），顶栏切到<b>细条⑤</b>则改为把最久未用的列折成竖直细条。
-        面包屑可就地回退；按 <span className="kbd">⌘K</span> 搜会话树，点列头 <b>⇄</b>{" "}
+        <b>拖动列间分割线可调宽度，双击恢复均分</b>。面包屑可就地回退；按{" "}
+        <span className="kbd">⌘K</span> 搜会话树，点列头 <b>⇄</b>{" "}
         把该列切换成任意会话，<b>⑂</b> 查看该会话的子分支。分支里产出的 Artifact 会从右侧抽屉弹出。
       </div>
       <span className="close" onClick={() => setHintOn(false)}>
@@ -280,9 +281,12 @@ export function ThreadChatDemo() {
       <ThreadColumns
         state={state}
         slots={cols.slots}
+        widths={cols.widths}
         flashId={cols.flashId}
         colsRef={cols.colsRef}
         onExpandStrip={(id) => openBranchUI(id, null)}
+        onCommitWidths={cols.commitWidths}
+        onResetWidths={cols.resetWidths}
         renderThread={(threadId, vpIndex) => (
           <BranchableChat
             state={state}

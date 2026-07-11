@@ -20,6 +20,8 @@
   --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", sans-serif;
   --font-read: Georgia, "Songti SC", "STSong", serif;
   --font-mono: "SF Mono", ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
+  --col-min: 340px;
+  --col-max: 760px;
 
   height: 100dvh;
   display: flex;
@@ -55,9 +57,12 @@
 .tc .demo-pill { font-family: var(--font-mono); font-size: 11px; color: var(--ink-soft); border: 1px solid var(--rule-strong); border-radius: 999px; padding: 4px 10px; background: #fff8; }
 .tc .kbd { font-family: var(--font-mono); font-size: 10px; color: var(--ink-soft); border: 1px solid var(--rule-strong); border-bottom-width: 2px; border-radius: 5px; padding: 1px 5px; background: #fff; }
 
-/* ---------------- 列布局 ---------------- */
-.tc .cols { flex: 1; display: flex; overflow-x: auto; }
-.tc .column { flex: 1 1 0; min-width: 340px; height: 100%; display: flex; flex-direction: column; border-right: 1px solid var(--rule); background: var(--paper); position: relative; }
+/* ---------------- 列布局 ----------------
+   宽度约束：--col-min / --col-max 夹住每列；全部列到达 max 后剩余空间居中留白。
+   safe center：内容溢出（窄屏总 min 超容器）时按 start 对齐，保证横向滚动可达最左列；
+   不支持 safe 关键字的旧引擎会整条丢弃该声明，退回默认 flex-start（等于现状）。 */
+.tc .cols { flex: 1; display: flex; overflow-x: auto; justify-content: safe center; }
+.tc .column { flex: 1 1 0; min-width: var(--col-min); max-width: var(--col-max); height: 100%; display: flex; flex-direction: column; border-right: 1px solid var(--rule); background: var(--paper); position: relative; }
 .tc .column.branch { background: linear-gradient(180deg, #faf8f2 0, var(--paper) 130px); }
 .tc .column.branch::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent); z-index: 1; }
 .tc .column:last-child { border-right: none; }
@@ -66,6 +71,16 @@
   0% { background: color-mix(in srgb, var(--accent) 14%, var(--paper)); }
   100% { }
 }
+
+/* ---------------- 列间分割线（相邻两个展开列之间，可拖拽 / 键盘调宽） ----------------
+   9px 热区骑在两列交界上（负 margin 各吞 4.5px，不占行宽）；默认视觉为中央 1px
+   --rule 线，顶掉左列自身的 border-right（改透明，保留 1px 占位使观感不变）。 */
+.tc .col-resizer { flex: none; width: 9px; margin: 0 -4.5px; position: relative; z-index: 3; cursor: col-resize; touch-action: none; outline: none; }
+.tc .col-resizer::before { content: ""; position: absolute; top: 0; bottom: 0; left: 4px; width: 1px; background: var(--rule); transition: left 0.12s, width 0.12s, background 0.12s; }
+.tc .col-resizer:hover::before, .tc .col-resizer.active::before, .tc .col-resizer:focus-visible::before { left: 3px; width: 3px; background: var(--d1); }
+.tc .cols .column:has(+ .col-resizer) { border-right-color: transparent; }
+/* 程序性变宽（双击恢复均分）才走过渡；拖拽期间绝不允许挂 .easing */
+.tc .cols.easing .column { transition: width 0.32s cubic-bezier(0.32, 0.72, 0, 1), flex-basis 0.32s cubic-bezier(0.32, 0.72, 0, 1); }
 
 .tc .col-head { flex: none; padding: 12px 18px; border-bottom: 1px solid var(--rule); background: #ffffff55; }
 .tc .crumb { font-family: var(--font-mono); font-size: 11px; color: var(--ink-soft); display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-bottom: 9px; }
