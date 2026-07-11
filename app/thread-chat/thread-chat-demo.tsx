@@ -27,7 +27,7 @@ import { useThreadStore } from "./core/use-thread-store";
 import { threadTitle, type TreeRow } from "./core/selectors";
 import { BranchableChat } from "./branching/branchable-chat";
 import { SelectionBubble, type SelectionInfo } from "./branching/selection-bubble";
-import { type PlacementMode } from "./orchestration/placement";
+import { type PlacementHint, type PlacementMode } from "./orchestration/placement";
 import {
   COL_MIN_W,
   ThreadColumns,
@@ -106,15 +106,16 @@ export function ThreadChatDemo() {
     return () => clearTimeout(t);
   }, [toast]);
 
-  /* ---------- 统一意图入口：打开某会话（脚注 / ⌘K / 子树 / 定位来源 / 画布双击都走这里） ---------- */
-  function openBranchUI(id: string, sourceId?: string | null) {
+  /* ---------- 统一意图入口：打开某会话（脚注 / ⌘K / 子树 / 定位来源 / 画布双击都走这里）
+       hint：可选放置提示（⌘ keepSource「保留来源列，开在其右」/ targetId 显式让位列） ---------- */
+  function openBranchUI(id: string, sourceId?: string | null, hint?: PlacementHint) {
     // 意图收敛：打开会话 = 去列里读它——画布模式下先切回列视图再放置
     setViewMode("columns");
     if (id === "main") {
       cols.flashThread("main");
       return;
     }
-    const eff = cols.openThread(id, sourceId ?? null);
+    const eff = cols.openThread(id, sourceId ?? null, hint);
     if (eff.kind === "replaced") {
       showToast(
         `第 ${eff.idx + 2} 列已替换：「${threadTitle(state, eff.replacedId)}」→「${threadTitle(state, id)}」`,
@@ -130,8 +131,8 @@ export function ThreadChatDemo() {
     }
   }
 
-  /* ---------- 开分支：store.fork + 放置 + artifact 自动弹出 ---------- */
-  function handleFork(s: SelectionInfo) {
+  /* ---------- 开分支：store.fork + 放置 + artifact 自动弹出（hint 来自气泡：⌘ / 列条点选） ---------- */
+  function handleFork(s: SelectionInfo, hint?: PlacementHint) {
     const r = store.fork({
       sourceThreadId: s.threadId,
       sourceMsgId: s.msgId,
@@ -140,7 +141,7 @@ export function ThreadChatDemo() {
       artifactSeed: artifactSeedFor(s.text),
     });
     if (!r) return;
-    const eff = cols.openThread(r.threadId, s.threadId);
+    const eff = cols.openThread(r.threadId, s.threadId, hint);
     if (r.artifactId) {
       setActiveArt(r.artifactId);
       setDrawerOpen(true);
@@ -229,6 +230,8 @@ export function ThreadChatDemo() {
       <div>
         <b>划选 AI 回复里的文字</b>即可开分支，列数随屏宽自适应（2–4 列）。列满后继续深入默认
         <b>替换来源列</b>（提示条可撤销），顶栏切到<b>细条⑤</b>则改为把最久未用的列折成竖直细条。
+        按住 <span className="kbd">⌘</span>/Ctrl 划选开分支或点脚注 = <b>保留本列</b>
+        、新会话开在紧邻右侧；气泡底部的迷你列条会预览将替换 / 折叠哪一列，点小格可改选让位目标。
         <b>拖动列间分割线可调宽度，双击恢复均分</b>。面包屑可就地回退；按{" "}
         <span className="kbd">⌘K</span> 搜会话树，点列头 <b>⇄</b>{" "}
         把该列切换成任意会话，<b>⑂</b> 查看该会话的子分支。分支里产出的 Artifact
@@ -345,7 +348,7 @@ export function ThreadChatDemo() {
               threadId={threadId}
               subtitle={threadId === "main" ? MAIN_SUBTITLE : undefined}
               intro={threadId === "main" ? hintNode : undefined}
-              onOpenThread={(target) => openBranchUI(target, threadId)}
+              onOpenThread={(target, opts) => openBranchUI(target, threadId, opts)}
               onOpenArtifact={(aid) => {
                 setActiveArt(aid);
                 setDrawerOpen(true);
@@ -367,9 +370,19 @@ export function ThreadChatDemo() {
         />
       )}
 
-      {/* Phase 1 画布只读：划选开分支仅列模式提供 */}
+      {/* Phase 1 画布只读：划选开分支仅列模式提供。列槽上下文喂给气泡的迷你列条，
+          预览与提交共用 placement 同一套规则 */}
       {viewMode === "columns" && (
-        <SelectionBubble state={state} sel={sel} onSelChange={setSel} onFork={handleFork} />
+        <SelectionBubble
+          state={state}
+          sel={sel}
+          onSelChange={setSel}
+          onFork={handleFork}
+          slots={cols.slots}
+          mode={mode}
+          maxExpanded={maxExpanded}
+          lastActiveOf={(id) => state.threads[id]?.lastActive ?? 0}
+        />
       )}
 
       {switcher && (

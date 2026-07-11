@@ -45,8 +45,9 @@ export interface BranchableChatProps {
   subtitle?: string;
   /** 消息列表顶部的插卡（主线 hint） */
   intro?: React.ReactNode;
-  /** 统一意图：打开某会话（本列作为「来源列」参与放置策略） */
-  onOpenThread: (targetId: string) => void;
+  /** 统一意图：打开某会话（本列作为「来源列」参与放置策略）。
+      opts.keepSource：⌘/Ctrl 点击 = 保留本列，把目标开在紧邻右侧 */
+  onOpenThread: (targetId: string, opts?: { keepSource?: boolean }) => void;
   onOpenArtifact: (artifactId: string) => void;
   /** 面包屑就地回退（collapse 语义由 orchestration 实现） */
   onCrumbNav: (targetId: string) => void;
@@ -98,12 +99,15 @@ export function BranchableChat({
         const s0 = Math.max(r.start, p.start);
         const e0 = Math.min(r.end, pEnd);
         if (s0 > pos) nodes.push(...withBreaks(t.slice(pos, s0), `t${pos}`));
+        const forkTitle = `分支「${threadTitle(state, r.fork.threadId)}」· 点击打开 · ⌘点击保留本列在右侧打开`;
+        const openFork = (e: React.MouseEvent) =>
+          onOpenThread(r.fork.threadId, { keepSource: e.metaKey || e.ctrlKey });
         nodes.push(
           <span
             key={`a${ri}-${s0}`}
             className={`anchored fc-${dc(r.fork.depth)}`}
-            title={`分支「${threadTitle(state, r.fork.threadId)}」· 点击打开`}
-            onClick={() => onOpenThread(r.fork.threadId)}
+            title={forkTitle}
+            onClick={openFork}
           >
             {withBreaks(t.slice(s0, e0), `at${s0}`)}
           </span>,
@@ -113,8 +117,8 @@ export function BranchableChat({
             <sup
               key={`f${ri}`}
               className={`fnote fc-${dc(r.fork.depth)}`}
-              title={`分支「${threadTitle(state, r.fork.threadId)}」· 点击打开`}
-              onClick={() => onOpenThread(r.fork.threadId)}
+              title={forkTitle}
+              onClick={openFork}
             >
               {r.fork.num}
             </sup>,

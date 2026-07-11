@@ -21,6 +21,7 @@ import {
   place,
   trimSlots,
   type PlaceEffect,
+  type PlacementHint,
   type PlacementMode,
   type Slot,
 } from "./placement";
@@ -90,14 +91,16 @@ export function useColumnSlots({ store, maxExpanded, mode }: UseColumnSlotsArgs)
     return () => clearTimeout(t);
   }, [flash]);
 
-  /** 统一放置入口：打开（或原地展开）某会话，返回发生的副作用供上层做 toast */
-  function openThread(id: string, sourceId: string | null): PlaceEffect {
+  /** 统一放置入口：打开（或原地展开）某会话，返回发生的副作用供上层做 toast。
+      hint 为可选放置提示（⌘ keepSource / 迷你列条 targetId），见 placement.ts */
+  function openThread(id: string, sourceId: string | null, hint?: PlacementHint): PlaceEffect {
     store.touch(id);
     const state = store.getState();
     const { slots: next, effect } = place(mode, effectiveSlots, id, {
       sourceId,
       maxExpanded,
       lastActiveOf: (tid) => state.threads[tid]?.lastActive ?? 0,
+      hint,
     });
     setSlots(next);
     // 槽位空间连续性：替换发生时，被替换列的显式宽度转移给顶上来的新列
