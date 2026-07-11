@@ -240,7 +240,7 @@ ThreadTreeState { threads, artifacts, artifactOrder, recents, footnoteCounter, s
 
 ## 11. 未决问题与后续方向
 
-- **气泡内轻量对话**（调研中）：划选后在气泡里直接输入并完成快速问答、可升格为完整分支——P1「气泡也是视口」的自然延伸。涉及 fork 首条消息策略：空分支 / 自动首问 / 用户带问开分支（当前 demo 是「自动引导回复」变体）。
+- **气泡内轻量对话**（已调研，见 `docs/bubble-chat-research.md`）：划选后在气泡里直接输入并完成快速问答、可升格为完整分支——P1「气泡也是视口」的自然延伸。调研结论：气泡 = 树的第三种视口，首次提交输入即 fork（无 intro）、升格 = `openBranchUI` 换视口不换数据；fork 首条消息策略推荐「可选输入框：留空 = 代拟首问，输入 = 用户带问开分支」；MVP Phase A（气泡带输入框，~150 行）→ Phase B（多轮 + 升格）。
 - **画布 Phase 2/3**：节点内继续对话、画布内划选开分支、artifact/图片类混合内容节点（拆解见 `docs/canvas-mode-research.md` §6）。
 - **移动端形态**：分栏在手机上不成立；调研判断**画布 + fitView 可能是移动端更优默认视图**（pan/zoom 是天然手势），或降级为原型②的单栏面包屑钻取。
 - **⑤ vs ⑥ 的最终取舍**：两策略已是运行时开关，等真实使用数据（分支深度分布、兄弟对照频率）定夺。
@@ -253,5 +253,6 @@ ThreadTreeState { threads, artifacts, artifactOrder, recents, footnoteCounter, s
 | `docs/prototype-research-overview.html` | 原始交互调研：动机、六约束、六原型对照表、下一步问题（本项目的「宪法」） |
 | `docs/prototype-6-responsive.html` | 方案⑥的原始单文件 HTML 原型（本实现的起点，可直接浏览器打开对照） |
 | `docs/canvas-mode-research.md` | 无限画布模式技术调研：选型（React Flow vs tldraw vs konva）、路由与状态共享、Phase 1–3 拆解 |
+| `docs/bubble-chat-research.md` | 气泡内轻量对话调研：8 个内联对话范式对照、fork 首条消息策略、「气泡 = 第三种视口」论证、MVP 拆解 |
 | `/e2e/thread-chat/` | 四套 E2E 断言脚本 + 运行说明 |
 | PR #12 | 六个 commit 的完整演进记录，每个 commit message 都写明了动机与验证 |
