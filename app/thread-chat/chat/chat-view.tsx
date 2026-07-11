@@ -5,6 +5,9 @@
  * 这一层不知道「树 / 列 / 分支」的存在：锚点高亮、脚注、artifact 卡片等
  * 分支能力全部通过 renderAssistantBody / renderAfterMessage 两个渲染插槽注入，
  * 列头 / focus banner / 继承上文则作为 header / banner ReactNode 传入。
+ *
+ * .lane 是纯展示的阅读通道包装（max --lane-max、列内居中）：消息流与 composer
+ * 的内容收敛在通道里，纸面 / padding / 边框仍随列通栏；本层不感知列宽。
  */
 
 import React, { useRef } from "react";
@@ -102,26 +105,30 @@ export function ChatView({
       {header}
       {banner}
       <div className="msg-list" data-list={threadId} ref={listRef}>
-        {intro}
-        {messages.map(renderMessage)}
+        <div className="lane">
+          {intro}
+          {messages.map(renderMessage)}
+        </div>
       </div>
       <div className={`composer ${isMain ? "" : "branch"}`}>
-        <div className="box">
-          <textarea
-            rows={1}
-            placeholder={isMain ? "继续在主线提问…" : "在这个分支里追问…"}
-            ref={taRef}
-            onInput={(e) => autoGrow(e.currentTarget)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                doSend();
-              }
-            }}
-          />
-          <button className="send" onClick={doSend}>
-            发送
-          </button>
+        <div className="lane">
+          <div className="box">
+            <textarea
+              rows={1}
+              placeholder={isMain ? "继续在主线提问…" : "在这个分支里追问…"}
+              ref={taRef}
+              onInput={(e) => autoGrow(e.currentTarget)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  doSend();
+                }
+              }}
+            />
+            <button className="send" onClick={doSend}>
+              发送
+            </button>
+          </div>
         </div>
       </div>
     </>

@@ -167,59 +167,63 @@ export function BranchableChat({
 
   const header = (
     <div className="col-head">
-      {isMain ? (
-        <>
-          <div className="ctitle-row">
-            <span className="anchor-tag">锚定</span>
-            <span className="ctitle main">主线</span>
-            <div className="cactions">{subtreeBtn}</div>
-          </div>
-          {subtitle && <div className="col-sub">{subtitle}</div>}
-        </>
-      ) : (
-        <>
-          <div className="crumb">
-            {chain.map((c, i) => {
-              const here = i === chain.length - 1;
-              return (
-                <React.Fragment key={c.id}>
-                  <span
-                    className={here ? "here" : "seg2"}
-                    onClick={here ? undefined : () => onCrumbNav(c.id)}
-                    title={here ? undefined : `回到「${c.title}」`}
-                  >
-                    {c.title}
-                  </span>
-                  {!here && <span className="chev">›</span>}
-                </React.Fragment>
-              );
-            })}
-          </div>
-          <div className="ctitle-row">
-            <span className="depth-badge">L{thread.depth}</span>
-            <span className="ctitle">{thread.title}</span>
-            <div className="cactions">
-              {subtreeBtn}
-              <button
-                className="cbtn"
-                title="把本列切换为任意会话"
-                onClick={(e) => onOpenSwitcher(e.currentTarget)}
-              >
-                ⇄ 切换
-              </button>
-              <button className="cbtn" title="收起本列" onClick={onCollapse}>
-                收起
-              </button>
+      {/* 列头背景 / 底部分隔线随列通栏，内容收敛在 .lane 阅读通道内（与消息流对齐） */}
+      <div className="lane">
+        {isMain ? (
+          <>
+            <div className="ctitle-row">
+              <span className="anchor-tag">锚定</span>
+              <span className="ctitle main">主线</span>
+              <div className="cactions">{subtreeBtn}</div>
             </div>
-          </div>
-        </>
-      )}
+            {subtitle && <div className="col-sub">{subtitle}</div>}
+          </>
+        ) : (
+          <>
+            <div className="crumb">
+              {chain.map((c, i) => {
+                const here = i === chain.length - 1;
+                return (
+                  <React.Fragment key={c.id}>
+                    <span
+                      className={here ? "here" : "seg2"}
+                      onClick={here ? undefined : () => onCrumbNav(c.id)}
+                      title={here ? undefined : `回到「${c.title}」`}
+                    >
+                      {c.title}
+                    </span>
+                    {!here && <span className="chev">›</span>}
+                  </React.Fragment>
+                );
+              })}
+            </div>
+            <div className="ctitle-row">
+              <span className="depth-badge">L{thread.depth}</span>
+              <span className="ctitle">{thread.title}</span>
+              <div className="cactions">
+                {subtreeBtn}
+                <button
+                  className="cbtn"
+                  title="把本列切换为任意会话"
+                  onClick={(e) => onOpenSwitcher(e.currentTarget)}
+                >
+                  ⇄ 切换
+                </button>
+                <button className="cbtn" title="收起本列" onClick={onCollapse}>
+                  收起
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 
-  /* ---------- focus banner + 继承的上文（仅分支列） ---------- */
+  /* ---------- focus banner + 继承的上文（仅分支列） ----------
+     父级（列）没有水平 padding，用 .lane.pad 承担 18px 侧距并居中通道 */
   const banner = isMain ? null : (
-    <>
+    <div className="lane pad">
       <div className="focus-banner">
         <span className="fn">{thread.footnote}</span>
         <div className="ft">
@@ -243,7 +247,7 @@ export function BranchableChat({
           ))}
         </div>
       </details>
-    </>
+    </div>
   );
 
   return (

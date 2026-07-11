@@ -5,6 +5,11 @@
  * 职责边界：会话树归 core store；「哪些会话摆在哪些列、谁折叠成细条」这类
  * 视口状态归这里的 React state（useColumnSlots）。列内长什么样由上层通过
  * renderThread 渲染插槽决定（本层不认识 chat / 分支装饰）。
+ *
+ * 列宽模型（fill）：列行永远铺满容器。自动列 flex:1 1 0；显式调宽的列以
+ * flex-basis 承载宽度（flex:1 1 <px>，grow/shrink 保留），容器变化时全行
+ * 吸收差值，不产生两侧 gutter。commit 以整行为单位（basis 总和 == 容器时
+ * flex 解算逐列等于所存宽度，所见即所存），见 use-column-resize 头注。
  */
 
 import React, { useEffect, useRef, useState, useSyncExternalStore } from "react";
@@ -54,9 +59,10 @@ function omitWidths(w: Record<string, number>, ids: readonly string[]): Record<s
 
 export function useColumnSlots({ store, maxExpanded, mode }: UseColumnSlotsArgs) {
   const [slots, setSlots] = useState<Slot[]>([]);
-  /** 显式列宽（px，threadId → width）：仅拖拽/键盘调过宽的列有值，无值 = 自动均分。
-      条目跟随「槽位空间」走：替换/原地切换会话时转移给新 id；收起/裁掉清条目；
-      fold/unfold 保留条目（细条固定 30px 不参与）。 */
+  /** 显式列宽（px，threadId → width）：有值的列以 flex-basis 承载宽度，无值 = 自动均分。
+      拖拽/键盘 commit 以整行为单位落条目（fill 模型下 basis 总和==容器才无跳动），
+      双击复位删除整行条目。条目跟随「槽位空间」走：替换/原地切换会话时转移给新 id；
+      收起/裁掉清条目；fold/unfold 保留条目（细条固定 30px 不参与）。 */
   const [widths, setWidths] = useState<Record<string, number>>({});
   const [flash, setFlash] = useState<{ id: string; n: number } | null>(null);
   const flashSeq = useRef(0);
@@ -177,12 +183,12 @@ export function useColumnSlots({ store, maxExpanded, mode }: UseColumnSlotsArgs)
     return dropped;
   }
 
-  /** 拖拽末帧 / 键盘步进的提交：合并写入显式列宽 */
+  /** 拖拽末帧 / 键盘步进的提交：整行合并写入显式列宽 */
   function commitWidths(patch: Record<string, number>) {
     setWidths((w) => ({ ...w, ...patch }));
   }
 
-  /** 双击分割线：删除两列的显式宽度，恢复自动均分 */
+  /** 双击分割线：删除整行的显式宽度，恢复自动均分 */
   function resetWidths(ids: string[]) {
     setWidths((w) => omitWidths(w, ids));
   }
@@ -213,7 +219,8 @@ function ColumnShell({
 }: {
   thread: Thread;
   flashing: boolean;
-  /** 显式列宽（px）：有值则 flex:0 0 auto 定宽（仍受 CSS min/max clamp），无值走自动均分 */
+  /** 显式列宽（px）：有值则以 flex-basis 承载（flex:1 1 <px>，grow/shrink 保留，
+      行永远铺满容器），无值走自动均分（CSS flex:1 1 0）。下限仍由 CSS min-width 兜底 */
   width?: number;
   children: React.ReactNode;
 }) {
@@ -225,7 +232,7 @@ function ColumnShell({
       style={
         {
           "--accent": accentOf(thread),
-          ...(width !== undefined ? { flex: "0 0 auto", width } : null),
+          ...(width !== undefined ? { flex: `1 1 ${width}px` } : null),
         } as React.CSSProperties
       }
     >
@@ -258,7 +265,7 @@ function ColumnResizer({
       onPointerMove={rz.onPointerMove}
       onPointerUp={rz.onPointerUp}
       onPointerCancel={rz.onPointerCancel}
-      onDoubleClick={() => rz.onDoubleClick(leftId, rightId)}
+      onDoubleClick={rz.onDoubleClick}
       onKeyDown={(e) => rz.onKeyDown(e, leftId, rightId)}
     />
   );
@@ -291,9 +298,9 @@ export interface ThreadColumnsProps {
   renderThread: (threadId: string, vpIndex: number) => React.ReactNode;
   /** 点击细条（上层走统一的 openThread 意图入口） */
   onExpandStrip: (id: string) => void;
-  /** 拖拽末帧 / 键盘步进：合并写入若干列的显式宽度 */
+  /** 拖拽末帧 / 键盘步进：整行合并写入各列的显式宽度 */
   onCommitWidths: (patch: Record<string, number>) => void;
-  /** 双击分割线：删除两列的显式宽度（恢复自动均分） */
+  /** 双击分割线：删除整行的显式宽度（恢复自动均分） */
   onResetWidths: (ids: string[]) => void;
 }
 

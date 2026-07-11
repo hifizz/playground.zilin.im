@@ -2,21 +2,35 @@
 /**
  * orchestration/use-column-resize —— 列间分割线的拖拽 / 键盘 / 双击复位逻辑。
  *
+ * 布局模型（与 ColumnShell 的约定）：列行永远铺满容器——自动列 flex:1 1 0，
+ * 显式调宽列 flex:1 1 <px>（flex-basis 承载宽度，grow/shrink 保留）。推论：
+ * 只有「整行 basis 总和 == 容器宽」时 flex 解算才逐列等于所存宽度（零自由空间），
+ * 否则剩余空间会被 grow 均摊进每一列。因此 commit 的单位是整行：
+ * · 拖拽末帧 / 键盘步进把行内每个展开列的实测宽度一起写回（零和 + 其余列未动
+ *   保证总和 == 容器），commit 瞬间 flex 解算结果与末帧 DOM 相同，无视觉跳动；
+ * · 双击「恢复自动均分」同理作用于整行——只删两列会把它们的 basis 释放给全行
+ *   均摊（结果并非均分），故删除整行条目，让所有列回到 flex:1 1 0 的均分。
+ *
  * 流畅性优先的实现约定：
  * · 拖拽期间绝不 setState —— pointermove 只累计位移，rAF 合帧后每帧至多一次
- *   直接写两列 DOM 的 style.width / style.flex；pointerup 才把末帧宽度 commit
- *   回 React 状态（widths），commit 值与末帧 DOM 严格一致，无跳动。
- * · 零和分配：左 +d 右 -d，位移被截断到两列都落在 [--col-min, --col-max] 内。
- * · 双击恢复自动均分属「程序性变宽」，走 CSS transition（.cols.easing）：先删
- *   状态条目让 React 回到自动布局，再在 rAF 里做 FLIP——量出目标宽、钉回起始宽、
- *   挂 .easing 写目标宽，过渡结束后清掉内联样式交还给自动布局。拖拽期间绝不挂该类。
+ *   直接写两列 DOM 的 style.flex/width（flex:0 0 auto + width，1:1 跟手）；
+ *   pointerup 才整行 commit 回 React 状态（widths），并在 React 冲刷后、首帧
+ *   绘制前把两列 inline 样式对齐成 commit 值（清掉命令式残留的 width，避免
+ *   陈旧 width / flex:0 0 auto 在后续窗口 resize 时干扰 flex-basis 布局）。
+ * · 零和分配：左 +d 右 -d，位移截断到两列都 ≥ --col-min；上限不再由 --col-max
+ *   约束（该变量已从样式移除，缺省 = Infinity；若未来重新定义则重新生效），
+ *   拖拽上限自然由「邻列 min + 容器宽」决定。
+ * · 双击复位属「程序性变宽」，走 CSS transition（.cols.easing）的 FLIP：先删
+ *   整行条目让 React 回到自动布局，再在 rAF 里量出目标宽、钉回起始宽、挂
+ *   .easing 写目标宽，过渡结束后清掉内联样式交还自动布局。拖拽期间绝不挂该类。
  */
 
 import { useEffect, useRef } from "react";
 import type React from "react";
 
 const FALLBACK_MIN = 340;
-const FALLBACK_MAX = 760;
+/** --col-max 已从样式移除：缺省上限为 Infinity（若未来重新定义该变量则重新生效） */
+const FALLBACK_MAX = Infinity;
 /** 键盘 ←/→ 单次调整步长（px） */
 const KEY_STEP = 24;
 /** 与 .cols.easing 的 transition 时长对齐（+缓冲），到点清理内联样式 */
@@ -53,9 +67,9 @@ export interface UseColumnResizeArgs {
   colsRef: React.RefObject<HTMLDivElement | null>;
   /** 该列当前是否有显式宽度条目（双击复位的空操作短路） */
   hasWidth: (id: string) => boolean;
-  /** 拖拽末帧 / 键盘步进的提交：合并写入两列宽度 */
+  /** 拖拽末帧 / 键盘步进的提交：整行合并写入各列宽度 */
   onCommit: (patch: Record<string, number>) => void;
-  /** 双击复位：删除两列的宽度条目（恢复自动均分） */
+  /** 双击复位：删除整行的宽度条目（恢复自动均分） */
   onReset: (ids: string[]) => void;
 }
 
@@ -64,7 +78,7 @@ export interface ColumnResizeHandlers {
   onPointerMove: (e: React.PointerEvent<HTMLElement>) => void;
   onPointerUp: (e: React.PointerEvent<HTMLElement>) => void;
   onPointerCancel: (e: React.PointerEvent<HTMLElement>) => void;
-  onDoubleClick: (leftId: string, rightId: string) => void;
+  onDoubleClick: () => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLElement>, leftId: string, rightId: string) => void;
 }
 
@@ -112,6 +126,23 @@ export function useColumnResize({
     colsRef.current?.querySelector<HTMLElement>(`.column[data-thread-id="${CSS.escape(id)}"]`) ??
     null;
 
+  /** 行内全部展开列（DOM 顺序；细条不参与宽度体系） */
+  const rowCols = (): { el: HTMLElement; id: string }[] => {
+    const els = colsRef.current?.querySelectorAll<HTMLElement>(".column[data-thread-id]");
+    if (!els) return [];
+    return Array.from(els).flatMap((el) => {
+      const id = el.dataset.threadId;
+      return id ? [{ el, id }] : [];
+    });
+  };
+
+  /** 整行实测宽度（commit 的基底：其余列钉在当前实测宽，保证 basis 总和==容器） */
+  const measureRow = (): Record<string, number> => {
+    const patch: Record<string, number> = {};
+    for (const { el, id } of rowCols()) patch[id] = el.getBoundingClientRect().width;
+    return patch;
+  };
+
   /** min/max 以 CSS 变量为唯一来源（--col-min / --col-max，从 .tc 继承到分割线上） */
   const limitsOf = (el: HTMLElement) => {
     const cs = getComputedStyle(el);
@@ -155,7 +186,25 @@ export function useColumnResize({
     if (!s.moved) return; // 纯点击（含双击的两次按放）：不碰状态
     // 末帧对齐：把最后一次位移同步进 DOM，保证 commit 值与视觉严格一致
     applyDrag(s);
-    onCommit({ [s.leftId]: s.lastLeft, [s.rightId]: s.lastRight });
+    // 整行 commit：basis 总和 == 容器（零和 + 其余列未动），flex 解算逐列等于末帧 DOM
+    const patch = measureRow();
+    patch[s.leftId] = s.lastLeft;
+    patch[s.rightId] = s.lastRight;
+    onCommit(patch);
+    // React 已在事件末尾同步冲刷；首帧绘制前把两列 inline 对齐成 commit 值——
+    // 清掉命令式 width，flex 显式钉成 1 1 <px>（若 commit 值与旧条目相同，React
+    // 会跳过写入，残留的 flex:0 0 auto 会让该列在后续 resize 中不参与伸缩）。
+    requestAnimationFrame(() => {
+      if (drag.current || ease.current) return; // 新交互已接管，样式归它管
+      for (const [el, w] of [
+        [s.leftEl, s.lastLeft],
+        [s.rightEl, s.lastRight],
+      ] as const) {
+        if (!el.isConnected) continue;
+        el.style.flex = `1 1 ${w}px`;
+        el.style.width = "";
+      }
+    });
   };
 
   const onPointerDown = (e: React.PointerEvent<HTMLElement>, leftId: string, rightId: string) => {
@@ -211,37 +260,36 @@ export function useColumnResize({
   // 系统抢走指针（如手势）：与 pointerup 同样按当前位置收尾，视觉不回跳
   const onPointerCancel = onPointerUp;
 
-  const onDoubleClick = (leftId: string, rightId: string) => {
+  const onDoubleClick = () => {
     if (drag.current) return;
-    if (!hasWidth(leftId) && !hasWidth(rightId)) return; // 本就自动均分
-    const leftEl = colEl(leftId);
-    const rightEl = colEl(rightId);
     const colsEl = colsRef.current;
-    if (!leftEl || !rightEl || !colsEl) return;
+    if (!colsEl) return;
+    const cells = rowCols();
+    if (!cells.some((c) => hasWidth(c.id))) return; // 本就自动均分
     stopEase();
-    const firstL = leftEl.getBoundingClientRect().width;
-    const firstR = rightEl.getBoundingClientRect().width;
-    // 先提交状态：双击是离散事件，React 会在本任务末同步冲刷 DOM（两列回到自动布局）
-    onReset([leftId, rightId]);
+    const firsts = cells.map((c) => c.el.getBoundingClientRect().width);
+    // 先提交状态：双击是离散事件，React 会在本任务末同步冲刷 DOM（整行回到自动布局）
+    onReset(cells.map((c) => c.id));
     // rAF 跑在冲刷之后、绘制之前：量出目标宽（Last）→ 钉回起始宽（First）→
     // 挂 .easing 写目标宽，由 CSS transition 完成动画（FLIP），全程不再碰状态。
+    // 各列同时长同缓动，过渡中每帧宽度和恒等于容器——动画期间也无 gutter。
     requestAnimationFrame(() => {
       if (drag.current || ease.current) return; // 已有新交互接管，状态本身已是最终值
-      if (!leftEl.isConnected || !rightEl.isConnected) return;
-      const lastL = leftEl.getBoundingClientRect().width;
-      const lastR = rightEl.getBoundingClientRect().width;
-      if (Math.abs(lastL - firstL) < 1 && Math.abs(lastR - firstR) < 1) return;
+      if (cells.some((c) => !c.el.isConnected)) return;
+      const lasts = cells.map((c) => c.el.getBoundingClientRect().width);
+      if (cells.every((_, i) => Math.abs(lasts[i] - firsts[i]) < 1)) return;
       const pin = (el: HTMLElement, w: number) => {
         el.style.flex = "0 0 auto";
         el.style.width = `${w}px`;
       };
-      pin(leftEl, firstL);
-      pin(rightEl, firstR);
+      cells.forEach((c, i) => pin(c.el, firsts[i]));
       forceReflow(colsEl); // 确立过渡起点
       colsEl.classList.add("easing");
-      pin(leftEl, lastL);
-      pin(rightEl, lastR);
-      ease.current = { els: [leftEl, rightEl], timer: window.setTimeout(stopEase, EASE_MS) };
+      cells.forEach((c, i) => pin(c.el, lasts[i]));
+      ease.current = {
+        els: cells.map((c) => c.el),
+        timer: window.setTimeout(stopEase, EASE_MS),
+      };
     });
   };
 
@@ -258,7 +306,11 @@ export function useColumnResize({
     const rw = rightEl.getBoundingClientRect().width;
     const d = clampDelta(e.key === "ArrowRight" ? KEY_STEP : -KEY_STEP, lw, rw, min, max);
     if (d === 0) return;
-    onCommit({ [leftId]: lw + d, [rightId]: rw - d });
+    // 键盘步进同样整行 commit：其余列钉在当前实测宽，零和步进不引发整行重排
+    const patch = measureRow();
+    patch[leftId] = lw + d;
+    patch[rightId] = rw - d;
+    onCommit(patch);
   };
 
   return { onPointerDown, onPointerMove, onPointerUp, onPointerCancel, onDoubleClick, onKeyDown };
