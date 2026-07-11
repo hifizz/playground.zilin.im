@@ -35,6 +35,7 @@ import { AnimateHeightAutoThumb } from "./thumbs/animate-height-auto";
 import { SmoothTooltipThumb } from "./thumbs/smooth-tooltip";
 import { MobileFullscreenSvhThumb } from "./thumbs/mobile-fullscreen-svh";
 import { FloatingPopupThumb } from "./thumbs/floating-popup";
+import { ThreadChatThumb } from "./thumbs/thread-chat";
 
 export type DemoCategory = "Interaction" | "Text Demo" | "Explored Demo" | "Agent UX/UI";
 
@@ -362,5 +363,14 @@ export const demos: DemoEntry[] = [
     category: "Explored Demo",
     tags: ["Positioning", "Popup", "Selection"],
     preview: <FloatingPopupThumb />,
+  },
+  {
+    title: "Thread Chat · 分支对话",
+    description:
+      "划选 AI 回复任意文字就地开分支：自适应 2–4 列 + 列满面包屑替换（可撤销），⌘K 会话树 / 每列 ⇄ 切换器指定打开任意会话，Artifact 右侧抽屉舞台。",
+    route: "/thread-chat",
+    category: "Agent UX/UI",
+    tags: ["Branching", "Command Palette", "Drawer"],
+    preview: <ThreadChatThumb />,
   },
 ];

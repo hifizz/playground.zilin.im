@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thread Chat 交互方案调研文档</title>
+<style>
+  :root{
+    --paper:#f5f2ea; --paper-2:#efe9dd; --card:#fbf9f3;
+    --ink:#24211b; --ink-soft:#5f594e; --ink-faint:#9c9384;
+    --rule:#e2dccd; --rule-strong:#d3cbb8;
+    --d1:#2f7d6b; --d2:#b07d2e; --d3:#a94f5e; --d4:#5568a3; --d5:#7a5ea8;
+    --font-ui:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB",sans-serif;
+    --font-read:Georgia,"Songti SC","STSong",serif;
+    --font-mono:"SF Mono",ui-monospace,"JetBrains Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font-ui);line-height:1.75;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:920px;margin:0 auto;padding:56px 28px 120px}
+
+  header.doc{border-bottom:2px solid var(--rule-strong);padding-bottom:24px;margin-bottom:8px}
+  header.doc .kicker{font-family:var(--font-mono);font-size:12px;letter-spacing:1px;color:var(--d1);text-transform:uppercase}
+  header.doc h1{font-family:var(--font-read);font-size:34px;line-height:1.2;margin:10px 0 6px;font-weight:600}
+  header.doc .sub{color:var(--ink-soft);font-size:15px}
+  header.doc .meta{font-family:var(--font-mono);font-size:12px;color:var(--ink-faint);margin-top:14px}
+
+  h2{font-family:var(--font-read);font-size:24px;font-weight:600;margin:52px 0 4px;padding-top:8px;
+    display:flex;align-items:baseline;gap:12px}
+  h2 .num{font-family:var(--font-mono);font-size:14px;color:var(--d1);font-weight:700}
+  h2+.lead{color:var(--ink-soft);margin:0 0 18px;font-size:15px}
+  h3{font-family:var(--font-read);font-size:18px;font-weight:600;margin:30px 0 8px}
+  p{margin:0 0 14px}
+  a{color:var(--d1)}
+  .wrap>section>p, .wrap>section>ul{font-size:15.5px}
+  ul{margin:0 0 16px;padding-left:22px}
+  li{margin:0 0 7px}
+  strong{font-weight:600}
+  code{font-family:var(--font-mono);font-size:.9em;background:var(--paper-2);border-radius:4px;padding:1px 5px}
+
+  .callout{background:var(--card);border:1px solid var(--rule-strong);border-left:3px solid var(--d1);
+    border-radius:0 10px 10px 0;padding:14px 18px;margin:18px 0;font-size:14.5px}
+  .callout .tag{font-family:var(--font-mono);font-size:11px;letter-spacing:.5px;color:var(--d1);text-transform:uppercase;display:block;margin-bottom:5px}
+  .callout.warn{border-left-color:var(--d3)}
+  .callout.warn .tag{color:var(--d3)}
+
+  /* feature tiers */
+  .tiers{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:18px 0}
+  .tier{background:var(--card);border:1px solid var(--rule-strong);border-radius:11px;padding:14px 16px}
+  .tier h4{margin:0 0 9px;font-family:var(--font-mono);font-size:12px;letter-spacing:.5px;display:flex;align-items:center;gap:8px}
+  .tier h4 .badge{width:10px;height:10px;border-radius:3px}
+  .tier ul{margin:0;padding-left:18px;font-size:13.5px;line-height:1.6}
+  .tier li{margin:0 0 5px;color:var(--ink-soft)}
+  .b-must{background:var(--d1)} .b-adv{background:var(--d2)} .b-watch{background:var(--d4)} .b-never{background:var(--d3)}
+
+  /* schematic cards */
+  .protos{display:flex;flex-direction:column;gap:22px;margin:20px 0}
+  .proto{background:var(--card);border:1px solid var(--rule-strong);border-radius:14px;overflow:hidden;
+    display:grid;grid-template-columns:360px 1fr}
+  .proto .viz{background:#f1ede3;border-right:1px solid var(--rule);padding:18px;display:flex;align-items:center;justify-content:center}
+  .proto .viz svg{width:100%;height:auto;display:block}
+  .proto .body{padding:18px 20px}
+  .proto .body h3{margin:0 0 2px;display:flex;align-items:center;gap:9px}
+  .proto .body .file{font-family:var(--font-mono);font-size:11px;color:var(--ink-faint);margin-bottom:10px;word-break:break-all}
+  .proto .body .mech{font-size:14px;color:var(--ink);margin-bottom:10px}
+  .proto .pc{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;font-size:13px}
+  .proto .pc .h{font-family:var(--font-mono);font-size:10px;letter-spacing:.5px;color:var(--ink-faint);text-transform:uppercase;margin-bottom:3px}
+  .proto .pc ul{margin:0;padding-left:16px}
+  .proto .pc li{margin:0 0 3px;color:var(--ink-soft)}
+  .proto .fit{margin-top:12px;font-size:13px;padding-top:10px;border-top:1px dashed var(--rule)}
+  .proto .fit b{color:var(--d1)}
+  .proto .idx{font-family:var(--font-mono);font-size:11px;font-weight:700;color:#fff;background:var(--d1);border-radius:6px;padding:2px 7px}
+
+  /* comparison table */
+  .tablewrap{overflow-x:auto;margin:20px -28px;padding:0 28px}
+  table{border-collapse:collapse;width:100%;font-size:12.5px;min-width:820px}
+  th,td{border:1px solid var(--rule-strong);padding:9px 11px;text-align:left;vertical-align:top}
+  th{background:var(--paper-2);font-family:var(--font-mono);font-size:11px;letter-spacing:.3px;color:var(--ink-soft);font-weight:700;white-space:nowrap}
+  td:first-child,th:first-child{position:sticky;left:0;background:var(--card);font-weight:600}
+  tbody tr:nth-child(even) td{background:#faf8f2}
+  tbody tr:nth-child(even) td:first-child{background:#f4f0e6}
+  .pill{display:inline-block;font-family:var(--font-mono);font-size:10px;padding:1px 6px;border-radius:5px;color:#fff}
+
+  .next{background:var(--card);border:1px solid var(--rule-strong);border-radius:12px;padding:6px 20px 8px;margin:16px 0}
+  .next ol{padding-left:20px}
+  .next li{margin:12px 0}
+  .next li b{font-family:var(--font-read)}
+
+  footer.doc{margin-top:60px;padding-top:20px;border-top:1px solid var(--rule);color:var(--ink-faint);font-size:12.5px;font-family:var(--font-mono)}
+
+  @media(max-width:760px){
+    .proto{grid-template-columns:1fr}
+    .proto .viz{border-right:none;border-bottom:1px solid var(--rule)}
+    .tiers{grid-template-columns:1fr}
+    .proto .pc{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="doc">
+  <div class="kicker">Interaction Research · 交互调研</div>
+  <h1>Thread Chat：分支对话的交互方案调研</h1>
+  <div class="sub">把线性聊天升级为「可导航的思考树」——六个原型的对照与取舍</div>
+  <div class="meta">面向 · AI 学习产品 v1（Chatbot 形态） ｜ 状态 · 交互原型阶段 ｜ 产出 · 6 个可交互 HTML 原型 + 本对照文档</div>
+</header>
+
+<section>
+<h2><span class="num">01</span> Motivation · 我们为什么要做这个</h2>
+<p class="lead">起点是一个具体的产品设想，也是一个关于「人怎么思考」的观察。</p>
+
+<p>今天的 Chatbot 都是<strong>线性</strong>的：你和 AI 的对话是一条从上到下的直线。但真实的思考不是线性的。当 AI 给出一段回答，里面往往埋着好几个你想追问的点——某个术语、某个论断、某个例子。如果你顺着其中一个追下去，主线的思路就被打断了；如果你把好几个追问都堆在同一条线里，最后自己都理不清哪个回答对应哪个问题。</p>
+
+<p>Thread Chat 想解决的就是这件事：<strong>让用户能划选 AI 回复里的任意一段文字，就地开启一个分支对话</strong>。这个分支继承从对话开头到划选处的全部上下文，背后是一套完整的 Chatbot。用户在分支里把这个点聊透，再回到主线继续——针对同一个回答提出不同的问题、分别聊清楚、再收束回主线。</p>
+
+<div class="callout">
+  <span class="tag">一句话目标</span>
+  把一条线性的对话，变成一棵<strong>可导航的思考树</strong>：主干是主线，枝条是分支，节点之间可回溯、可对照。这契合人「发散—收敛」的思考节奏，而不是强迫思考迁就聊天框的线性。
+</div>
+</section>
+
+<section>
+<h2><span class="num">02</span> 核心交互与目标状态</h2>
+<p class="lead">四个动作构成完整闭环。</p>
+<ul>
+  <li><strong>划选</strong>：在任意 AI 回复里选中一段文字，浮出一个迷你对话框。</li>
+  <li><strong>开分支</strong>：确认后开启一个新的分支对话，被划选的文字成为该分支的「讨论焦点」。</li>
+  <li><strong>继承上下文</strong>：分支自动继承从对话开头到分叉点的全部消息（分叉之后主线与分支互不干扰）。</li>
+  <li><strong>回溯与对照</strong>：分支聊完可以回主线；分支里的结论可以「带回主线」；被划选过的文字留下脚注式标记，随时能重新打开对应分支。</li>
+</ul>
+<p>再往上，分支本身可以再开分支（<strong>嵌套</strong>），于是整个会话长成一棵树。产品要解决的核心难题，就是<strong>怎么在有限的屏幕上，让用户舒适地浏览和导航这棵树</strong>——这正是六个原型在各自回答的问题。</p>
+</section>
+
+<section>
+<h2><span class="num">03</span> 关键约束 · 一切方案都绕不开的硬骨头</h2>
+<p class="lead">这些约束是在原型迭代中逐步被逼出来的，它们决定了方案的边界。</p>
+
+<h3>约束一：横向空间是有限的，而分栏假设它无限</h3>
+<p>把每个分支做成一列并排展示，最直观。但屏幕宽度有限，分支一多，列就装不下。<strong>几乎所有分栏方案的麻烦，根子都在这里。</strong></p>
+
+<h3>约束二：人的对照带宽只有 3–4 列</h3>
+<p>就算屏幕够宽，同时打开 7 列对话本身就是反人类的——没有人能同时对照那么多。所以「把 7 列排整齐」是伪命题，真正的解法是「根本不让它变成 7 列」。</p>
+
+<h3>约束三：分支树是二维的，屏幕列是一维的</h3>
+<p>一个典型的错乱场景：在第 4 列划选 3 句话开了第 5/6/7 列（互为兄弟），又从第 6 列往下开子分支。这个子分支该插在哪？插在 6 和 7 之间会把 7 挤走、打乱用户的空间记忆；追加到最右边又会让它和父亲（第 6 列）被第 7 列隔开。<strong>一维的列序，天然装不下二维的树。</strong></p>
+
+<h3>约束四：Artifact 会和分栏抢横向空间</h3>
+<p>如果每个分支还能在右侧展示 artifact（代码、文档、图表），它和分栏争的是同一个横向维度，会让空间问题雪上加霜。</p>
+
+<h3>约束五：划选锚点在富文本下会失效</h3>
+<p>用户看到的「第 100 个字符」和数据库里存的未必一致——Markdown 渲染（粗体、代码块、链接）会让 offset 错位。这是工程实现层面必须专门处理的坑。</p>
+
+<h3>约束六：移动端不成立</h3>
+<p>分栏在手机上根本铺不开。任何最终方案都要有移动端的降级形态（单列钻取 / 全屏切换）。</p>
+
+<div class="callout warn">
+  <span class="tag">收敛出的核心原则</span>
+  不要让横向空间无限扩张。给它一个硬上限，用<strong>「坞 / 地图 / 焦点」三件套</strong>管理超出上限的部分——这条原则同时解决了约束一、二、三，是后面几个原型的共同底座。
+</div>
+</section>
+
+<section>
+<h2><span class="num">04</span> 功能子集清单</h2>
+<p class="lead">在 v1 / v2 的讨论里，我们把功能按优先级分成了四层。原型阶段验证的是交互骨架（必做层），进阶层留待后续。</p>
+
+<div class="tiers">
+  <div class="tier">
+    <h4><span class="badge b-must"></span>必做 · v1 骨架</h4>
+    <ul>
+      <li>划选开分支 + 迷你对话框</li>
+      <li>分支继承分叉点前的全部上下文</li>
+      <li>分支自动生成标题（不打断思考流）</li>
+      <li>主线消息上标记「此处有分支」（脚注标记）</li>
+      <li>分支列表 / 树的基本展示与导航</li>
+    </ul>
+  </div>
+  <div class="tier">
+    <h4><span class="badge b-adv"></span>进阶 · 有余力再做</h4>
+    <ul>
+      <li>分支结论「带回主线」（手动按钮版）</li>
+      <li>跨分支引用（<code>@</code> 弱引用）</li>
+      <li>分支组织与检索（归档 / 搜索 / 分组）</li>
+      <li>跨会话的持久记忆（Memory Bank 基础版）</li>
+    </ul>
+  </div>
+  <div class="tier">
+    <h4><span class="badge b-watch"></span>观望 · 有反馈再定</h4>
+    <ul>
+      <li>嵌套分支的完整 UI 引导（数据层已支持）</li>
+      <li>分支的知识图谱 / 全景视图</li>
+      <li>Artifact 与分支的深度融合（分支作为记忆产生器）</li>
+    </ul>
+  </div>
+  <div class="tier">
+    <h4><span class="badge b-never"></span>暂不做 · 违背产品初衷或属 v3</h4>
+    <ul>
+      <li>分支自动合并回主线（违反「不打扰主线」）</li>
+      <li>AI 主动建议开分支（干扰思考流）</li>
+      <li>跨用户共享分支（涉及权限协作，属 v3）</li>
+    </ul>
+  </div>
+</div>
+</section>
+
+<section>
+<h2><span class="num">05</span> 两个交叉议题的结论</h2>
+<p class="lead">这两个问题横跨所有布局方案，是原型迭代中专门讨论并落地的。</p>
+
+<h3>议题 A：Artifact 与分栏抢位置 → 独立舞台</h3>
+<p>结论是<strong>双区布局</strong>：分栏区在左（横向可扩），Artifact 有一个右侧固定的<strong>独立舞台</strong>，全局唯一、用标签页管理多个 artifact、标签圆点用深度色标注来源分支。宽屏常驻，窄屏降级为 Drawer 盖上来。关键决策是「<strong>全局单一舞台</strong>」而非每列各开——否则 artifact 会二次放大分栏的混乱。（已实现于原型 ③④⑤）</p>
+
+<h3>议题 B：分栏顺序错乱 → 约束消灭混乱</h3>
+<p>不用算法去「整理」混乱，而是用约束「消灭」混乱：<strong>限制同时展开的列数（3–4）</strong>，超出的分支不消失，而是收进分支坞 / 折叠成细条 / 被替换（配面包屑回溯）。父子关系与列序始终稳定。（已实现于原型 ③⑤⑥）</p>
+</section>
+
+<section>
+<h2><span class="num">06</span> 六个原型的结构示意与说明</h2>
+<p class="lead">六个原型共用同一套视觉语言（手稿批注风 + 脚注式分支标记 + 深度分色），差异全在<strong>布局与导航机制</strong>。下面每张示意图标出了各自的「签名机制」。</p>
+
+<div class="protos">
+
+  <!-- ① 基础分栏 -->
+  <div class="proto">
+    <div class="viz">
+      <svg viewBox="0 0 340 200" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="340" height="200" fill="#f7f4ee" rx="8"/>
+        <rect x="10" y="14" width="96" height="172" rx="6" fill="#fff" stroke="#d3cbb8"/>
+        <rect x="112" y="14" width="72" height="172" rx="6" fill="#fbf9f3" stroke="#2f7d6b"/><rect x="112" y="14" width="3" height="172" fill="#2f7d6b"/>
+        <rect x="190" y="14" width="72" height="172" rx="6" fill="#fbf9f3" stroke="#b07d2e"/><rect x="190" y="14" width="3" height="172" fill="#b07d2e"/>
+        <rect x="268" y="14" width="72" height="172" rx="6" fill="#fbf9f3" stroke="#a94f5e"/><rect x="268" y="14" width="3" height="172" fill="#a94f5e"/>
+        <text x="20" y="34" font-family="Georgia" font-size="11" fill="#24211b">主线</text>
+        <rect x="20" y="44" width="60" height="5" rx="2" fill="#e2dccd"/><rect x="20" y="54" width="76" height="5" rx="2" fill="#e2dccd"/>
+        <rect x="46" y="64" width="9" height="7" rx="2" fill="#2f7d6b"/><rect x="60" y="64" width="9" height="7" rx="2" fill="#b07d2e"/>
+        <text x="122" y="34" font-family="mono" font-size="8" fill="#2f7d6b">L1</text>
+        <text x="200" y="34" font-family="mono" font-size="8" fill="#b07d2e">L1</text>
+        <text x="278" y="34" font-family="mono" font-size="8" fill="#a94f5e">L2</text>
+        <path d="M330 100 h6" stroke="#9c9384" stroke-width="1.5" marker-end="url(#a1)"/>
+        <defs><marker id="a1" markerWidth="6" markerHeight="6" refX="4" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6" fill="#9c9384"/></marker></defs>
+        <text x="170" y="199" font-family="mono" font-size="8" fill="#9c9384" text-anchor="middle">全部平铺 · 横向可能溢出</text>
+      </svg>
+    </div>
+    <div class="body">
+      <h3><span class="idx">①</span> 基础分栏（全平铺）</h3>
+      <div class="file">thread-chat-demo.html</div>
+      <div class="mech">所有打开的分支并排成列，一眼看全貌。开分支即往右加一列，横向可滚动。最朴素、最直观的形态。</div>
+      <div class="pc">
+        <div><div class="h">优点</div><ul><li>全貌可见，对照最直接</li><li>心智模型最简单</li></ul></div>
+        <div><div class="h">缺点</div><ul><li>分支多了横向爆炸</li><li>开新分支会挤动已有列</li></ul></div>
+      </div>
+      <div class="fit"><b>适合</b>：验证核心交互；分支很少的轻量场景。作为后续所有版本的基线。</div>
+    </div>
+  </div>
+
+  <!-- ② 侧栏面包屑 -->
+  <div class="proto">
+    <div class="viz">
+      <svg viewBox="0 0 340 200" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="340" height="200" fill="#f7f4ee" rx="8"/>
+        <rect x="10" y="14" width="180" height="172" rx="6" fill="#fff" stroke="#d3cbb8"/>
+        <rect x="196" y="14" width="134" height="172" rx="6" fill="#fbf9f3" stroke="#2f7d6b"/><rect x="196" y="14" width="3" height="172" fill="#2f7d6b"/>
+        <text x="22" y="34" font-family="Georgia" font-size="11" fill="#24211b">主线</text>
+        <rect x="22" y="46" width="120" height="5" rx="2" fill="#e2dccd"/><rect x="22" y="56" width="150" height="5" rx="2" fill="#e2dccd"/>
+        <rect x="206" y="24" width="118" height="12" rx="3" fill="#eef2ee" stroke="#2f7d6b" stroke-opacity=".4"/>
+        <text x="210" y="33" font-family="mono" font-size="7" fill="#2f7d6b">主线 › 向量检索 › Embedding</text>
+        <rect x="206" y="44" width="60" height="5" rx="2" fill="#e2dccd"/><rect x="206" y="54" width="90" height="5" rx="2" fill="#e2dccd"/>
+        <text x="263" y="199" font-family="mono" font-size="8" fill="#9c9384" text-anchor="middle">单面板钻取 · 面包屑导航</text>
+      </svg>
+    </div>
+    <div class="body">
+      <h3><span class="idx">②</span> 侧栏 + 面包屑（单面板钻取）</h3>
+      <div class="file">thread-chat-demo-sidebar.html</div>
+      <div class="mech">主线常驻左侧，右侧只有一个分支面板，一次看一个分支。往深钻时面板「替换」内容，顶部面包屑记录整条路径，点面包屑回退。另有分支地图看全貌。</div>
+      <div class="pc">
+        <div><div class="h">优点</div><ul><li>永远只占一列宽，省屏幕</li><li>天然适配移动端</li><li>专注、干扰小</li></ul></div>
+        <div><div class="h">缺点</div><ul><li>看不到全貌（靠地图补）</li><li>切换兄弟分支要多点几下</li></ul></div>
+      </div>
+      <div class="fit"><b>适合</b>：移动端 / 窄屏；顺着一条线深挖的专注场景。</div>
+    </div>
+  </div>
+
+  <!-- ③ 横条管理 -->
+  <div class="proto">
+    <div class="viz">
+      <svg viewBox="0 0 340 200" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="340" height="200" fill="#f7f4ee" rx="8"/>
+        <rect x="10" y="12" width="320" height="16" rx="5" fill="#faf8f2" stroke="#e2dccd"/>
+        <rect x="16" y="16" width="30" height="8" rx="4" fill="#2f7d6b" fill-opacity=".2" stroke="#2f7d6b"/>
+        <rect x="50" y="16" width="30" height="8" rx="4" fill="#b07d2e" fill-opacity=".2" stroke="#b07d2e"/>
+        <rect x="84" y="16" width="34" height="8" rx="4" fill="#a94f5e" fill-opacity=".2" stroke="#a94f5e"/>
+        <text x="300" y="23" font-family="mono" font-size="7" fill="#9c9384">分支坞</text>
+        <rect x="10" y="34" width="88" height="152" rx="6" fill="#fff" stroke="#d3cbb8"/>
+        <rect x="102" y="34" width="70" height="152" rx="6" fill="#fbf9f3" stroke="#2f7d6b"/><rect x="102" y="34" width="3" height="152" fill="#2f7d6b"/>
+        <rect x="176" y="34" width="70" height="152" rx="6" fill="#fbf9f3" stroke="#b07d2e"/><rect x="176" y="34" width="3" height="152" fill="#b07d2e"/>
+        <rect x="252" y="34" width="78" height="152" rx="6" fill="#f1ede3" stroke="#d3cbb8"/>
+        <text x="291" y="50" font-family="mono" font-size="7" fill="#9c9384" text-anchor="middle">Artifact</text>
+        <text x="291" y="60" font-family="mono" font-size="7" fill="#9c9384" text-anchor="middle">舞台</text>
+        <rect x="260" y="70" width="62" height="40" rx="4" fill="#f3efe5" stroke="#e2dccd"/>
+        <text x="41" y="199" font-family="mono" font-size="8" fill="#9c9384" text-anchor="middle">3 栏上限 · 超出退回顶部横条</text>
+      </svg>
+    </div>
+    <div class="body">
+      <h3><span class="idx">③</span> 横条管理版（坞 + 舞台）</h3>
+      <div class="file">thread-chat-demo-managed.html</div>
+      <div class="mech">「三件套」首次集齐：主线 + 最多 2 分支列，超出的自动<strong>退回顶部横条</strong>（分支坞）；右侧独立 Artifact 舞台；外加分支地图、pin、关闭。</div>
+      <div class="pc">
+        <div><div class="h">优点</div><ul><li>横向永不超 3 栏</li><li>Artifact 不抢位置</li><li>功能最完整</li></ul></div>
+        <div><div class="h">缺点</div><ul><li>被挤的列「消失」到横条，空间连续性弱</li><li>横条层级表达浅</li></ul></div>
+      </div>
+      <div class="fit"><b>适合</b>：功能完整度优先、桌面为主的重度工具。</div>
+    </div>
+  </div>
+
+  <!-- ④ 竖栏树 -->
+  <div class="proto">
+    <div class="viz">
+      <svg viewBox="0 0 340 200" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="340" height="200" fill="#f7f4ee" rx="8"/>
+        <rect x="10" y="14" width="86" height="172" rx="6" fill="#f1ede3" stroke="#d3cbb8"/>
+        <text x="18" y="30" font-family="mono" font-size="8" fill="#5f594e">分支树</text>
+        <circle cx="20" cy="44" r="3" fill="#8a8377"/><text x="28" y="47" font-family="Georgia" font-size="9" fill="#24211b">主线</text>
+        <circle cx="30" cy="60" r="3" fill="#2f7d6b"/><text x="38" y="63" font-family="Georgia" font-size="9" fill="#24211b">向量检索</text>
+        <circle cx="40" cy="76" r="3" fill="#b07d2e"/><text x="48" y="79" font-family="Georgia" font-size="9" fill="#24211b">Embed…</text>
+        <circle cx="30" cy="92" r="3" fill="#2f7d6b"/><text x="38" y="95" font-family="Georgia" font-size="9" fill="#24211b">图记忆</text>
+        <circle cx="40" cy="108" r="3" fill="#a94f5e"/><text x="48" y="111" font-family="Georgia" font-size="9" fill="#24211b">Zep…</text>
+        <rect x="102" y="14" width="108" height="172" rx="6" fill="#fff" stroke="#d3cbb8"/>
+        <rect x="216" y="14" width="52" height="172" rx="6" fill="#fbf9f3" stroke="#2f7d6b"/><rect x="216" y="14" width="3" height="172" fill="#2f7d6b"/>
+        <rect x="274" y="14" width="56" height="172" rx="6" fill="#f1ede3" stroke="#d3cbb8"/>
+        <text x="302" y="30" font-family="mono" font-size="6.5" fill="#9c9384" text-anchor="middle">Artifact</text>
+        <text x="150" y="199" font-family="mono" font-size="8" fill="#9c9384" text-anchor="middle">左侧竖树 · 真缩进 · 可折叠</text>
+      </svg>
+    </div>
+    <div class="body">
+      <h3><span class="idx">④</span> 左侧竖栏树导航</h3>
+      <div class="file">thread-chat-demo-rail.html</div>
+      <div class="mech">分支坞从顶部横条改为<strong>左侧竖直树</strong>：真正的树形缩进、子树可展开/折叠、整条栏可收成图标窄条。其余三件套与 ③ 一致。</div>
+      <div class="pc">
+        <div><div class="h">优点</div><ul><li>能表达很深的树</li><li>结构感最强</li><li>可折叠省空间</li></ul></div>
+        <div><div class="h">缺点</div><ul><li>吃一条水平宽度</li><li>浅树时略重</li></ul></div>
+      </div>
+      <div class="fit"><b>适合</b>：分支多且深、需要强结构感（如层层深挖一个知识点）。</div>
+    </div>
+  </div>
+
+  <!-- ⑤ 限栏细条 -->
+  <div class="proto">
+    <div class="viz">
+      <svg viewBox="0 0 340 200" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="340" height="200" fill="#f7f4ee" rx="8"/>
+        <rect x="10" y="12" width="320" height="14" rx="5" fill="#faf8f2" stroke="#e2dccd"/>
+        <text x="16" y="22" font-family="mono" font-size="7" fill="#9c9384">全部分支</text>
+        <rect x="10" y="32" width="80" height="154" rx="6" fill="#fff" stroke="#d3cbb8"/>
+        <text x="18" y="48" font-family="Georgia" font-size="10" fill="#24211b">主线</text>
+        <!-- thin strip -->
+        <rect x="94" y="32" width="20" height="154" rx="4" fill="#eef2ee" stroke="#2f7d6b"/><rect x="94" y="32" width="3" height="154" fill="#2f7d6b"/>
+        <text x="106" y="120" font-family="Georgia" font-size="9" fill="#24211b" transform="rotate(90 106 120)">向量检索</text>
+        <rect x="120" y="32" width="66" height="154" rx="6" fill="#fbf9f3" stroke="#b07d2e"/><rect x="120" y="32" width="3" height="154" fill="#b07d2e"/>
+        <rect x="192" y="32" width="66" height="154" rx="6" fill="#fbf9f3" stroke="#a94f5e"/><rect x="192" y="32" width="3" height="154" fill="#a94f5e"/>
+        <rect x="264" y="32" width="66" height="154" rx="6" fill="#f1ede3" stroke="#d3cbb8"/>
+        <text x="297" y="48" font-family="mono" font-size="6.5" fill="#9c9384" text-anchor="middle">Artifact</text>
+        <path d="M104 90 a10 10 0 0 1 14 0" stroke="#2f7d6b" fill="none" stroke-width="1.5"/>
+        <text x="150" y="199" font-family="mono" font-size="8" fill="#9c9384" text-anchor="middle">超限就地折叠为细条 · 空间不位移</text>
+      </svg>
+    </div>
+    <div class="body">
+      <h3><span class="idx">⑤</span> 限栏 + 细条折叠</h3>
+      <div class="file">thread-chat-demo-capped.html</div>
+      <div class="mech">最多展开 3 栏。开第 4 个时，最久没碰的那栏<strong>在原地缩成一根竖直细条</strong>（不消失、不换位），点细条就地展开。顶部横条 + 舞台 + pin + 地图齐全。</div>
+      <div class="pc">
+        <div><div class="h">优点</div><ul><li>列不瞬移，空间连续性最好</li><li>细条一眼可见可点</li><li>约束彻底消灭错乱</li></ul></div>
+        <div><div class="h">缺点</div><ul><li>细条累积会变长（靠滚动）</li></ul></div>
+      </div>
+      <div class="fit"><b>适合</b>：平衡「对照爽感」与「不混乱」，综合最接近可直接落地。</div>
+    </div>
+  </div>
+
+  <!-- ⑥ 自适应替换 -->
+  <div class="proto">
+    <div class="viz">
+      <svg viewBox="0 0 340 200" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="340" height="200" fill="#f7f4ee" rx="8"/>
+        <rect x="10" y="14" width="76" height="172" rx="6" fill="#fff" stroke="#d3cbb8"/>
+        <text x="18" y="30" font-family="Georgia" font-size="10" fill="#24211b">主线</text>
+        <rect x="92" y="14" width="76" height="172" rx="6" fill="#fbf9f3" stroke="#2f7d6b"/><rect x="92" y="14" width="3" height="172" fill="#2f7d6b"/>
+        <rect x="174" y="14" width="76" height="172" rx="6" fill="#fbf9f3" stroke="#b07d2e"/><rect x="174" y="14" width="3" height="172" fill="#b07d2e"/>
+        <rect x="256" y="14" width="74" height="172" rx="6" fill="#fbf9f3" stroke="#a94f5e"/><rect x="256" y="14" width="3" height="172" fill="#a94f5e"/>
+        <rect x="262" y="22" width="62" height="11" rx="3" fill="#fbe9ec" stroke="#a94f5e" stroke-opacity=".4"/>
+        <text x="266" y="30" font-family="mono" font-size="6.5" fill="#a94f5e">主线›图›时序›冲突</text>
+        <path d="M300 40 v8" stroke="#a94f5e" stroke-width="1.5"/><path d="M296 46 l4 4 l4 -4" stroke="#a94f5e" fill="none" stroke-width="1.5"/>
+        <text x="293" y="60" font-family="mono" font-size="6.5" fill="#a94f5e" text-anchor="middle">替换本列</text>
+        <text x="170" y="199" font-family="mono" font-size="8" fill="#9c9384" text-anchor="middle">列数随分辨率(2–4) · 超出替换当前列</text>
+      </svg>
+    </div>
+    <div class="body">
+      <h3><span class="idx">⑥</span> 自适应列数 + 面包屑替换</h3>
+      <div class="file">thread-chat-demo-responsive.html</div>
+      <div class="mech">列数按屏幕宽度自动定（约每 430px 一列，2–4 之间：MacBook 得 3、4K 得 4，可手动切）。列满后再往深钻，<strong>替换来源列</strong>，该列面包屑累积整条路径，点面包屑就地回退。</div>
+      <div class="pc">
+        <div><div class="h">优点</div><ul><li>贴合屏幕，横向永远整齐</li><li>面包屑承载无限深度</li><li>无细条杂物，最干净</li></ul></div>
+        <div><div class="h">缺点</div><ul><li>替换是破坏性的——被替换分支退出视野，需靠面包屑/地图召回</li></ul></div>
+      </div>
+      <div class="fit"><b>适合</b>：「层层深入理解一个概念」的线性深挖，最贴合 AI 学习产品。</div>
+    </div>
+  </div>
+
+</div>
+</section>
+
+<section>
+<h2><span class="num">07</span> 总览对照表</h2>
+<p class="lead">横向对比六个原型的关键维度。「空间连续性」= 被挤下去的分支是否仍可见。</p>
+
+<div class="tablewrap">
+<table>
+  <thead>
+    <tr>
+      <th>版本</th><th>布局形态</th><th>溢出 / 超限处理</th><th>看全貌方式</th><th>Artifact</th><th>层级表达</th><th>空间连续性</th><th>最适合</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>① 基础分栏</td>
+      <td>全部并排成列</td>
+      <td><span class="pill" style="background:#a94f5e">无</span> 横向滚动</td>
+      <td>横向滚动即全貌</td>
+      <td>—</td>
+      <td>弱（靠颜色）</td>
+      <td>高（不消失）</td>
+      <td>验证交互 / 极少分支</td>
+    </tr>
+    <tr>
+      <td>② 侧栏面包屑</td>
+      <td>主线 + 单面板</td>
+      <td>面板替换内容</td>
+      <td>分支地图</td>
+      <td>—</td>
+      <td>中（面包屑）</td>
+      <td>低（替换）</td>
+      <td>移动端 / 专注深挖</td>
+    </tr>
+    <tr>
+      <td>③ 横条管理</td>
+      <td>顶部横条 + ≤3 列 + 舞台</td>
+      <td>退回顶部横条</td>
+      <td>横条 + 地图</td>
+      <td><span class="pill" style="background:#2f7d6b">独立舞台</span></td>
+      <td>弱（横条）</td>
+      <td>中（退回横条）</td>
+      <td>功能完整的桌面重度工具</td>
+    </tr>
+    <tr>
+      <td>④ 竖栏树</td>
+      <td>左侧竖树 + 列 + 舞台</td>
+      <td>退回左树 / 折叠子树</td>
+      <td>左侧竖树本身</td>
+      <td><span class="pill" style="background:#2f7d6b">独立舞台</span></td>
+      <td><span class="pill" style="background:#2f7d6b">强（真缩进）</span></td>
+      <td>中</td>
+      <td>深树 / 强结构感</td>
+    </tr>
+    <tr>
+      <td>⑤ 限栏细条</td>
+      <td>顶部横条 + 列/细条 + 舞台</td>
+      <td>就地折叠为细条</td>
+      <td>横条 + 地图</td>
+      <td><span class="pill" style="background:#2f7d6b">独立舞台</span></td>
+      <td>中</td>
+      <td><span class="pill" style="background:#2f7d6b">最高（原地）</span></td>
+      <td>平衡对照与秩序（最易落地）</td>
+    </tr>
+    <tr>
+      <td>⑥ 自适应替换</td>
+      <td>自适应 2–4 等宽列</td>
+      <td>替换当前列 + 面包屑</td>
+      <td>分支地图</td>
+      <td>—</td>
+      <td>中（面包屑）</td>
+      <td>低（替换）</td>
+      <td>线性深挖 / 贴合屏幕</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<div class="callout">
+  <span class="tag">阶段性倾向（供参考，非定论）</span>
+  若 AI 学习产品主打「顺着一个概念层层深入」且需兼顾移动端，<strong>⑥ 自适应替换</strong> 与 <strong>② 侧栏面包屑</strong> 是深挖场景的最优解；若希望在桌面上保留多列对照又不失秩序，<strong>⑤ 限栏细条</strong> 的综合体验最平衡、最接近可直接落地。三者可以是「桌面用 ⑤/⑥、移动端降级为 ②」的同一套产品的不同断点。
+</div>
+</section>
+
+<section>
+<h2><span class="num">08</span> 下一步交互调研问题</h2>
+<p class="lead">原型阶段验证了「桌面端的树导航」，但要走向产品，还有几个未决问题需要专门调研。</p>
+
+<div class="next">
+<ol>
+  <li><b>移动端形态</b>：分栏在手机上不成立。是全量走「侧栏面包屑（②）」，还是桌面分栏、移动端自动降级为单列钻取？断点如何切换？这是决定产品能否移动优先的关键。</li>
+  <li><b>破坏性替换 vs 空间连续性的最终取舍</b>：⑥ 的「替换」最干净但会丢失被替换分支的可见性；⑤ 的「细条」保留可见性但会累积。需要用真实使用数据（分支深度分布、兄弟分支对照频率）来定夺，而不是凭感觉。</li>
+  <li><b>划选锚点在 Markdown 富文本下的鲁棒定位</b>：offset 会因渲染错位。需调研「存文本片段 + 前后上下文做定位」等方案，这是工程实现的第一个硬骨头。</li>
+  <li><b>分支的持久化与跨会话记忆</b>：把分支结论沉淀为「跨会话的知识库」——分支作为记忆的天然产生器。数据模型（树 vs DAG）、写入/读取时机需要设计。</li>
+  <li><b>首次引导与空态</b>：「划选开分支」不是用户的既有习惯，需要设计引导让用户形成这个动作。这决定了功能的实际使用率。</li>
+  <li><b>Artifact 与分支的融合深度</b>：舞台已解决「抢空间」，但更进一步——分支能否自动生成 artifact、artifact 能否反向锚定回分支？这是「观望层」里最有潜力的一条。</li>
+</ol>
+</div>
+</section>
+
+<footer class="doc">
+  Thread Chat 交互方案调研 · 六原型对照 · 视觉示意为结构示意图（非渲染截图）<br>
+  产出文件：thread-chat-demo.html ｜ -sidebar ｜ -managed ｜ -rail ｜ -capped ｜ -responsive
+</footer>
+
+</div>
+</body>
+</html>
