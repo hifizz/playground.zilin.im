@@ -200,6 +200,26 @@
 .tc .toast .undo { cursor: pointer; flex: none; border: 1px solid rgba(255, 255, 255, 0.35); background: rgba(255, 255, 255, 0.1); color: #fff; border-radius: 7px; padding: 3px 10px; font-size: 12px; font-family: var(--font-ui); }
 .tc .toast .undo:hover { background: rgba(255, 255, 255, 0.2); }
 
+/* ---------------- 方案⑤：折叠细条（列满时把 LRU 列原地折成竖条） ---------------- */
+.tc .col-strip { flex: none; width: 30px; padding: 12px 0 10px; border: none; border-right: 1px solid var(--rule); background: linear-gradient(180deg, #faf8f2, var(--paper)); position: relative; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 9px; font-family: var(--font-ui); }
+.tc .col-strip::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent); }
+.tc .col-strip:hover { background: var(--paper-2); }
+.tc .col-strip .fn { font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: #fff; background: var(--accent); border-radius: 4px; padding: 2px 4px; flex: none; }
+/* 注意：竖排文本在 column flex 里属正交书写模式，需 flex:1 拿到确定高度否则塌缩；
+   text-orientation 用 sideways —— 部分环境（如 CI 无头浏览器的 CJK 回退字体）缺少
+   直立排版的垂直度量，mixed/upright 会把中文排成 0 高，sideways 各处渲染一致。 */
+.tc .col-strip .vt { writing-mode: vertical-rl; text-orientation: sideways; flex: 1 1 auto; min-height: 0; align-self: center; text-align: center; font-family: var(--font-read); font-size: 12px; letter-spacing: 2px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tc .col-strip:hover .vt { color: var(--ink); }
+
+/* ---------------- 列头「子分支」按钮（ListTree 图标 + 直接子分支数） ---------------- */
+.tc .cbtn.tree { display: inline-flex; align-items: center; gap: 4px; }
+.tc .cbtn.tree .n { font-family: var(--font-mono); font-size: 10px; font-weight: 700; line-height: 1; }
+
+/* ---------------- 子树弹层（复用 .swx 体系） ---------------- */
+.tc .swx.subtree { width: min(340px, 92vw); max-height: 400px; }
+.tc .swx-title { flex: none; display: flex; align-items: center; gap: 8px; padding: 11px 13px; border-bottom: 1px solid var(--rule); font-family: var(--font-read); font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.tc .swx-title svg { flex: none; color: var(--ink-faint); }
+
 /* ---------------- 滚动条 / 动效降级 ---------------- */
 .tc ::-webkit-scrollbar { width: 9px; height: 9px; }
 .tc ::-webkit-scrollbar-thumb { background: var(--rule-strong); border-radius: 6px; }

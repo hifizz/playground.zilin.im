@@ -1,62 +1,9 @@
 /**
- * Thread Chat 方案⑥（自适应列 + 面包屑替换）优化版 —— 写死的演示数据。
- *
- * 相比原型 HTML 的改动：
- * 1. 移除「带回主线」相关内容（summary 消息类型、canned 回复里的提及）。
- * 2. 新增 Artifact：主线与部分分支话题会附带一个 artifact，
- *    在右侧抽屉「舞台」中展示（全局唯一舞台，标签页管理，深度色圆点标来源）。
+ * Thread Chat —— 写死的演示内容（种子数据 + 各话题的 canned 回复 / artifact 种子）。
+ * 类型定义已挪到 core/types.ts；本文件只负责「内容」，不含任何逻辑。
  */
 
-export type Role = "user" | "assistant";
-export type ArtifactKind = "code" | "note";
-
-export interface Artifact {
-  id: string;
-  title: string;
-  kind: ArtifactKind;
-  lang?: string;
-  content: string;
-  /** 产生该 artifact 的会话（main 或分支 id） */
-  sourceBranchId: string;
-}
-
-export interface Fork {
-  text: string;
-  num: number;
-  branchId: string;
-  depth: number;
-}
-
-export interface Message {
-  id: string;
-  role: Role;
-  text: string;
-  forks: Fork[];
-  artifactIds?: string[];
-}
-
-export interface Branch {
-  id: string;
-  parentId: string | null;
-  depth: number;
-  title: string;
-  anchorText: string | null;
-  forkFromMsgId: string | null;
-  footnote: number | null;
-  children: string[];
-  messages: Message[];
-  /** 单调递增的活跃计数，用于「列满时替换最久未使用列」 */
-  lastActive: number;
-}
-
-export interface Store {
-  branches: Record<string, Branch>;
-  artifacts: Record<string, Artifact>;
-  artifactOrder: string[];
-  footnoteCounter: number;
-  seq: number;
-  tick: number;
-}
+import type { ArtifactKind, ArtifactSeed, Message, ThreadTreeState } from "./core/types";
 
 /* ---------------- 主线内容 ---------------- */
 
@@ -101,10 +48,7 @@ export const REPLIES = [
 
 /* ---------------- Artifact 种子（按分支锚点话题触发） ---------------- */
 
-export const ARTIFACT_SEEDS: Record<
-  string,
-  { title: string; kind: ArtifactKind; lang?: string; content: string }
-> = {
+export const ARTIFACT_SEEDS: Record<string, ArtifactSeed> = {
   向量检索: {
     title: "余弦相似度检索 · 最小实现",
     kind: "code",
@@ -177,9 +121,9 @@ const MAIN_ARTIFACT: { title: string; kind: ArtifactKind; content: string } = {
 · 上下文腐烂：塞得越多，有效注意力越稀；目标是每时刻只拉最相关的一小撮。`,
 };
 
-/* ---------------- 初始 Store ---------------- */
+/* ---------------- 初始树 state ---------------- */
 
-export function seedStore(): Store {
+export function seedStore(): ThreadTreeState {
   let seq = 1;
   const uid = (p: string) => p + seq++;
 
@@ -194,7 +138,7 @@ export function seedStore(): Store {
   };
 
   return {
-    branches: {
+    threads: {
       main: {
         id: "main",
         parentId: null,
@@ -209,9 +153,10 @@ export function seedStore(): Store {
       },
     },
     artifacts: {
-      [artId]: { id: artId, sourceBranchId: "main", ...MAIN_ARTIFACT },
+      [artId]: { id: artId, sourceThreadId: "main", ...MAIN_ARTIFACT },
     },
     artifactOrder: [artId],
+    recents: [],
     footnoteCounter: 0,
     seq,
     tick: 1,
@@ -223,7 +168,7 @@ export function cannedIntro(anchor: string): string {
   return `关于「${anchor}」的分支讨论（演示内容）。真实产品里会由模型结合上方继承的上下文给出解释。你可以继续追问，也可以再划选一段文字向更深处展开；按 ⌘K 随时跳回任何一个会话。`;
 }
 
-export function artifactSeedFor(anchor: string) {
+export function artifactSeedFor(anchor: string): ArtifactSeed | null {
   for (const k in ARTIFACT_SEEDS) if (anchor.includes(k)) return ARTIFACT_SEEDS[k];
   return null;
 }
