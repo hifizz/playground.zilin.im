@@ -156,6 +156,19 @@
 .tc .composer.branch .box:focus-within { border-color: var(--accent); }
 .tc .composer textarea { flex: 1; border: none; outline: none; resize: none; font-family: var(--font-ui); font-size: 14px; line-height: 1.5; background: transparent; color: var(--ink); max-height: 120px; min-height: 20px; }
 .tc .send { flex: none; border: none; cursor: pointer; border-radius: 9px; padding: 7px 13px; font-size: 13px; font-weight: 600; color: #fff; background: var(--accent, #3a3733); }
+.tc .send:disabled { opacity: 0.45; cursor: default; }
+
+/* ---------------- 流式回复状态（pending 打字点 / streaming 光标 / error 重试） ---------------- */
+.tc .bubble .typing { display: inline-flex; gap: 4px; padding: 4px 0; }
+.tc .bubble .typing i { width: 5px; height: 5px; border-radius: 50%; background: #8a8378; animation: tc-typing 1s ease-in-out infinite; }
+.tc .bubble .typing i:nth-child(2) { animation-delay: 0.15s; }
+.tc .bubble .typing i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes tc-typing { 0%, 100% { opacity: 0.25; transform: translateY(0); } 50% { opacity: 0.9; transform: translateY(-2px); } }
+.tc .bubble .scaret { display: inline-block; width: 7px; height: 14px; margin: 0 0 -2px 2px; background: var(--accent, #3a3733); animation: tc-caret 0.8s steps(1) infinite; }
+@keyframes tc-caret { 50% { opacity: 0; } }
+.tc .msg-error { margin-top: 6px; display: flex; align-items: center; gap: 8px; font-size: 12px; color: #a4392f; }
+.tc .msg-error .retry { border: 1px solid #a4392f; background: transparent; color: #a4392f; border-radius: 6px; padding: 2px 9px; font-size: 12px; cursor: pointer; }
+.tc .msg-error .retry:hover { background: rgba(164, 57, 47, 0.08); }
 
 /* ---------------- 划选气泡 ---------------- */
 .tc .sel-bubble { position: fixed; z-index: 60; background: var(--ink); color: #fff; border-radius: 11px; padding: 8px 9px 9px; box-shadow: 0 10px 30px -8px rgba(30, 26, 20, 0.5); width: 230px; animation: tc-pop 0.14s ease; }

@@ -21,7 +21,8 @@ import dynamic from "next/dynamic";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Columns3, Highlighter, Network, PanelRightOpen, Waypoints } from "lucide-react";
 import "./thread-chat.css";
-import { artifactSeedFor, cannedIntro, cannedReply, seedStore } from "./data";
+import { artifactSeedFor, seedStore } from "./data";
+import { createMockProvider } from "./mock-provider";
 import { createThreadStore } from "./core/store";
 import { useThreadStore } from "./core/use-thread-store";
 import { threadTitle, type TreeRow } from "./core/selectors";
@@ -64,8 +65,9 @@ function anchoredPos(btn: HTMLElement, w: number, h: number) {
 }
 
 export function ThreadChatDemo() {
-  /* ---------- 会话树：外部可变 store，version 快照驱动重渲 ---------- */
-  const [store] = useState(() => createThreadStore(seedStore()));
+  /* ---------- 会话树：外部可变 store，version 快照驱动重渲；
+       回复经 ReplyProvider 流式生成（demo 期为 mock，接真实模型时只换 provider） ---------- */
+  const [store] = useState(() => createThreadStore(seedStore(), createMockProvider()));
   useThreadStore(store);
   const state = store.getState();
 
@@ -138,7 +140,6 @@ export function ThreadChatDemo() {
       sourceThreadId: s.threadId,
       sourceMsgId: s.msgId,
       anchorText: s.text,
-      introText: cannedIntro(s.text),
       firstQuestion: question,
       artifactSeed: artifactSeedFor(s.text),
     });
@@ -331,7 +332,7 @@ export function ThreadChatDemo() {
           Artifact
           <span className="cnt">{state.artifactOrder.length}</span>
         </button>
-        <span className="demo-pill">回复写死</span>
+        <span className="demo-pill">mock 流式回复</span>
       </div>
 
       {viewMode === "columns" ? (
@@ -359,7 +360,8 @@ export function ThreadChatDemo() {
               onOpenSwitcher={(btn) => openColumnSwitcher(vpIndex, btn)}
               onOpenSubtree={(btn) => openSubtree(threadId, btn)}
               onCollapse={() => cols.closeColumn(vpIndex)}
-              onSend={(text) => store.send(threadId, text, cannedReply())}
+              onSend={(text) => store.send(threadId, text)}
+              onRetry={(msgId) => store.retryReply(threadId, msgId)}
             />
           )}
         />

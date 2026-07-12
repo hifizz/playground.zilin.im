@@ -57,6 +57,8 @@ export interface BranchableChatProps {
   onOpenSubtree: (anchor: HTMLElement) => void;
   onCollapse: () => void;
   onSend: (text: string) => void;
+  /** 重试一条 error 态的回复（透传 ChatView） */
+  onRetry?: (msgId: string) => void;
 }
 
 export function BranchableChat({
@@ -71,6 +73,7 @@ export function BranchableChat({
   onOpenSubtree,
   onCollapse,
   onSend,
+  onRetry,
 }: BranchableChatProps) {
   const thread = state.threads[threadId];
   if (!thread) return null;
@@ -265,6 +268,7 @@ export function BranchableChat({
       renderAssistantBody={renderAssistantBody}
       renderAfterMessage={renderAfterMessage}
       onSend={onSend}
+      onRetry={onRetry}
     />
   );
 }

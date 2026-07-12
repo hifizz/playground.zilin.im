@@ -29,12 +29,16 @@ export interface Fork {
   depth: number;
 }
 
+/** assistant 回复的生成状态；缺省视为 done（种子数据与 user 消息不携带） */
+export type MessageStatus = "pending" | "streaming" | "done" | "error";
+
 export interface Message {
   id: string;
   role: Role;
   text: string;
   forks: Fork[];
   artifactIds?: string[];
+  status?: MessageStatus;
 }
 
 export interface Thread {

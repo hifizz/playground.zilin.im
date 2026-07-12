@@ -10,7 +10,7 @@
  * 的内容收敛在通道里，纸面 / padding / 边框仍随列通栏；本层不感知列宽。
  */
 
-import React, { useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import type { Message } from "../core/types";
 
 /** 把 \n 转成 <br/>（assistant 正文按段落渲染时的行内换行） */
@@ -45,6 +45,8 @@ export interface ChatViewProps {
   /** 注入 assistant 消息气泡之后的附加内容（artifact 卡片） */
   renderAfterMessage?: (msg: Message) => React.ReactNode;
   onSend: (text: string) => void;
+  /** 重试一条 error 态的 assistant 回复 */
+  onRetry?: (msgId: string) => void;
 }
 
 export function ChatView({
@@ -57,9 +59,24 @@ export function ChatView({
   renderAssistantBody,
   renderAfterMessage,
   onSend,
+  onRetry,
 }: ChatViewProps) {
   const listRef = useRef<HTMLDivElement | null>(null);
   const taRef = useRef<HTMLTextAreaElement | null>(null);
+
+  /* 本会话是否有回复正在生成（composer 禁发；store.send 同时兜底拒绝） */
+  const last = messages[messages.length - 1];
+  const busy = last?.role === "assistant" && (last.status === "pending" || last.status === "streaming");
+
+  /* 流式期间跟底滚动：仅当用户本就贴近底部时（不打断向上翻阅）。
+     每次流式 chunk 都会经 version 快照触发重渲，故效果不需要依赖数组 */
+  useEffect(() => {
+    if (!busy) return;
+    const el = listRef.current;
+    if (!el) return;
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+    if (nearBottom) el.scrollTop = el.scrollHeight;
+  });
 
   const autoGrow = (ta: HTMLTextAreaElement) => {
     ta.style.height = "auto";
@@ -68,7 +85,7 @@ export function ChatView({
 
   const doSend = () => {
     const ta = taRef.current;
-    if (!ta) return;
+    if (!ta || busy) return;
     const v = ta.value.trim();
     if (!v) return;
     ta.value = "";
@@ -82,23 +99,45 @@ export function ChatView({
     });
   };
 
-  const renderMessage = (msg: Message) => (
-    <div key={msg.id} className={`message ${msg.role}`} data-msg-id={msg.id}>
-      <div className="who">{msg.role === "user" ? "你" : "AI"}</div>
-      {msg.role === "user" ? (
-        <div className="bubble" data-role="user">
-          {msg.text}
-        </div>
-      ) : (
-        <>
-          <div className="bubble" data-role="assistant">
-            {(renderAssistantBody ?? defaultAssistantBody)(msg)}
+  const renderMessage = (msg: Message) => {
+    const st = msg.role === "assistant" ? (msg.status ?? "done") : "done";
+    return (
+      <div key={msg.id} className={`message ${msg.role}`} data-msg-id={msg.id}>
+        <div className="who">{msg.role === "user" ? "你" : "AI"}</div>
+        {msg.role === "user" ? (
+          <div className="bubble" data-role="user">
+            {msg.text}
           </div>
-          {renderAfterMessage?.(msg)}
-        </>
-      )}
-    </div>
-  );
+        ) : (
+          <>
+            <div className="bubble" data-role="assistant" data-status={st}>
+              {st === "pending" ? (
+                <span className="typing" role="status" aria-label="正在生成回复">
+                  <i />
+                  <i />
+                  <i />
+                </span>
+              ) : (
+                (renderAssistantBody ?? defaultAssistantBody)(msg)
+              )}
+              {st === "streaming" && <span className="scaret" aria-hidden="true" />}
+            </div>
+            {st === "error" && (
+              <div className="msg-error" role="alert">
+                <span>回复生成失败</span>
+                {onRetry && (
+                  <button className="retry" onClick={() => onRetry(msg.id)}>
+                    重试
+                  </button>
+                )}
+              </div>
+            )}
+            {renderAfterMessage?.(msg)}
+          </>
+        )}
+      </div>
+    );
+  };
 
   return (
     <>
@@ -125,8 +164,8 @@ export function ChatView({
                 }
               }}
             />
-            <button className="send" onClick={doSend}>
-              发送
+            <button className="send" onClick={doSend} disabled={busy}>
+              {busy ? "生成中…" : "发送"}
             </button>
           </div>
         </div>
