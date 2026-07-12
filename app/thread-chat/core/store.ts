@@ -18,6 +18,8 @@ export interface ForkInput {
   anchorText: string;
   /** 新分支的首条 assistant 回复（写死内容由调用方提供，core 不认识 demo 数据） */
   introText: string;
+  /** 用户带着问题开分支（可选）：作为新分支的首条 user 消息，introText 即对它的首答 */
+  firstQuestion?: string;
   /** 命中话题时随分支一起产出的 artifact */
   artifactSeed?: ArtifactSeed | null;
 }
@@ -88,13 +90,17 @@ export function createThreadStore(seed: ThreadTreeState) {
 
       const artifactId = input.artifactSeed ? registerSilently(id, input.artifactSeed) : null;
 
-      const intro: Message = {
+      const messages: Message[] = [];
+      if (input.firstQuestion) {
+        messages.push({ id: "m" + state.seq++, role: "user", text: input.firstQuestion, forks: [] });
+      }
+      messages.push({
         id: "m" + state.seq++,
         role: "assistant",
         text: input.introText,
         forks: [],
         artifactIds: artifactId ? [artifactId] : undefined,
-      };
+      });
       state.threads[id] = {
         id,
         parentId: input.sourceThreadId,
@@ -104,7 +110,7 @@ export function createThreadStore(seed: ThreadTreeState) {
         forkFromMsgId: input.sourceMsgId,
         footnote: state.footnoteCounter,
         children: [],
-        messages: [intro],
+        messages,
         lastActive: 0,
       };
       parent.children.push(id);

@@ -131,13 +131,15 @@ export function ThreadChatDemo() {
     }
   }
 
-  /* ---------- 开分支：store.fork + 放置 + artifact 自动弹出（hint 来自气泡：⌘ / 列条点选） ---------- */
-  function handleFork(s: SelectionInfo, hint?: PlacementHint) {
+  /* ---------- 开分支：store.fork + 放置 + artifact 自动弹出（hint 来自气泡：⌘ / 列条点选；
+       question = 气泡输入框里的可选首问，成为分支首条 user 消息） ---------- */
+  function handleFork(s: SelectionInfo, hint?: PlacementHint, question?: string) {
     const r = store.fork({
       sourceThreadId: s.threadId,
       sourceMsgId: s.msgId,
       anchorText: s.text,
       introText: cannedIntro(s.text),
+      firstQuestion: question,
       artifactSeed: artifactSeedFor(s.text),
     });
     if (!r) return;
