@@ -19,7 +19,7 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Columns3, Highlighter, Network, PanelRightOpen, Waypoints } from "lucide-react";
+import { Columns3, Highlighter, Network, PanelRightOpen, RotateCcw, Waypoints } from "lucide-react";
 import "./thread-chat.css";
 import { artifactSeedFor, seedStore } from "./data";
 import { createMockProvider } from "./mock-provider";
@@ -49,6 +49,9 @@ type ViewMode = "columns" | "canvas";
 
 const MAIN_SUBTITLE = "一段关于 Agent 记忆系统的对话";
 
+/** localStorage 持久化槽位（§10.6）：ThreadTreeState 纯 JSON，带版本号防 schema 漂移 */
+const PERSIST_KEY = "tc-thread-state-v1";
+
 interface ToastState {
   msg: string;
   undo?: () => void;
@@ -70,6 +73,41 @@ export function ThreadChatDemo() {
   const [store] = useState(() => createThreadStore(seedStore(), createMockProvider()));
   useThreadStore(store);
   const state = store.getState();
+
+  /* ---------- 持久化（§10.6）：挂载后恢复（首帧渲染种子避免 hydration 不一致，
+       随后原地 hydrate），此后每次变更防抖 400ms 存入 localStorage ---------- */
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(PERSIST_KEY);
+      if (raw) {
+        const parsed: unknown = JSON.parse(raw);
+        if (
+          typeof parsed === "object" &&
+          parsed !== null &&
+          (parsed as { v?: number }).v === 1 &&
+          (parsed as { state?: { threads?: { main?: unknown } } }).state?.threads?.main
+        )
+          store.hydrate((parsed as { state: Parameters<typeof store.hydrate>[0] }).state);
+      }
+    } catch {
+      /* 存档损坏：忽略，用种子 */
+    }
+    let timer: number | null = null;
+    const unsub = store.subscribe(() => {
+      if (timer !== null) clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        try {
+          localStorage.setItem(PERSIST_KEY, JSON.stringify({ v: 1, state: store.getState() }));
+        } catch {
+          /* 配额满等写入失败：静默（demo 数据可再生） */
+        }
+      }, 400);
+    });
+    return () => {
+      unsub();
+      if (timer !== null) clearTimeout(timer);
+    };
+  }, [store]);
 
   /* ---------- 自适应列数（SSR 阶段 winW=null，顶栏显示「列数」占位） ---------- */
   const winW = useWindowWidth();
@@ -140,6 +178,8 @@ export function ThreadChatDemo() {
       sourceThreadId: s.threadId,
       sourceMsgId: s.msgId,
       anchorText: s.text,
+      anchorPrefix: s.prefix,
+      anchorSuffix: s.suffix,
       firstQuestion: question,
       artifactSeed: artifactSeedFor(s.text),
     });
@@ -331,6 +371,21 @@ export function ThreadChatDemo() {
           <PanelRightOpen size={13} />
           Artifact
           <span className="cnt">{state.artifactOrder.length}</span>
+        </button>
+        <button
+          className="tbtn"
+          title="清除本地保存的会话树，回到演示种子"
+          onClick={() => {
+            try {
+              localStorage.removeItem(PERSIST_KEY);
+            } catch {
+              /* 不可用则直接刷新 */
+            }
+            location.reload();
+          }}
+        >
+          <RotateCcw size={13} />
+          重置
         </button>
         <span className="demo-pill">mock 流式回复</span>
       </div>

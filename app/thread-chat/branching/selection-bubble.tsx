@@ -38,6 +38,9 @@ export interface SelectionInfo {
   y: number;
   /** 划选结束（mouseup）那一刻是否按着 ⌘/Ctrl：作为修饰键跟踪的初值 */
   meta?: boolean;
+  /** 划选处前后 ≤32 字的原文上下文（TextQuoteSelector 式，供锚点鲁棒定位） */
+  prefix?: string;
+  suffix?: string;
 }
 
 export interface SelectionBubbleProps {
@@ -119,11 +122,33 @@ export function SelectionBubble({
           onSelChange(null);
           return;
         }
-        const rect = s.getRangeAt(0).getBoundingClientRect();
+        // 同文多次出现的消歧：数 DOM 里选区之前有几次 txt（脚注上标的数字不影响计数），
+        // 换算成 msg.text 中的第 N 次出现，截取前后 ≤32 字作 TextQuoteSelector 上下文
+        const range = s.getRangeAt(0);
+        let occ = 0;
+        try {
+          const pre = document.createRange();
+          pre.selectNodeContents(host);
+          pre.setEnd(range.startContainer, range.startOffset);
+          const preText = pre.toString();
+          for (let k = preText.indexOf(txt); k !== -1; k = preText.indexOf(txt, k + 1)) occ++;
+        } catch {
+          occ = 0; // 选区起点不在气泡内等异常：退回首次出现
+        }
+        let start = -1;
+        for (let k = 0, from = 0; k <= occ; k++) {
+          start = msg.text.indexOf(txt, from);
+          if (start === -1) break;
+          from = start + 1;
+        }
+        if (start === -1) start = msg.text.indexOf(txt);
+        const prefix = msg.text.slice(Math.max(0, start - 32), start);
+        const suffix = msg.text.slice(start + txt.length, start + txt.length + 32);
+        const rect = range.getBoundingClientRect();
         const left = Math.max(10, Math.min(rect.left, window.innerWidth - 244));
         let top = rect.bottom + 9;
         if (top > window.innerHeight - (190 + extraH)) top = Math.max(10, rect.top - (172 + extraH));
-        onSelChange({ text: txt, threadId, msgId, x: left, y: top, meta });
+        onSelChange({ text: txt, threadId, msgId, x: left, y: top, meta, prefix, suffix });
       }, 10);
     };
     const onMouseDown = (e: MouseEvent) => {

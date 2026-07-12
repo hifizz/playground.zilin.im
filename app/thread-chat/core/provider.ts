@@ -25,4 +25,7 @@ export interface ReplyRequest {
 export interface ReplyProvider {
   /** 流式生成一条回复；chunk 为增量文本；signal 供未来取消用（demo 期未接） */
   reply(req: ReplyRequest, onChunk: (chunk: string) => void, signal?: AbortSignal): Promise<void>;
+  /** 分支首答完成后生成 4–8 字标题（README §10.5）；返回 null = 保持现有标题。
+      可选：不实现则标题维持「锚点截断」的默认值 */
+  generateTitle?(req: ReplyRequest): Promise<string | null>;
 }

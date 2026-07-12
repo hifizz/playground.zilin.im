@@ -18,6 +18,9 @@ export interface ForkInput {
   sourceMsgId: string;
   /** 被划选的原文（同时决定新会话标题与脚注锚点） */
   anchorText: string;
+  /** 划选处前后 ≤32 字的原文上下文（TextQuoteSelector 式鲁棒定位用，可缺省） */
+  anchorPrefix?: string;
+  anchorSuffix?: string;
   /** 用户带着问题开分支（可选）：作为新分支的首条 user 消息；留空 = 引导回复开场 */
   firstQuestion?: string;
   /** 命中话题时随分支一起产出的 artifact */
@@ -58,25 +61,41 @@ export function createThreadStore(seed: ThreadTreeState, provider: ReplyProvider
     });
   };
 
-  /** 为一条 pending 的 assistant 消息向 provider 要流式回复（fire-and-forget） */
+  /** 为一条 pending 的 assistant 消息向 provider 要流式回复（fire-and-forget）。
+      分支首答完成后顺带异步生成标题（§10.5）：provider 返回非空则更新，各视图随 version 跟随 */
   const streamReply = async (threadId: string, msgId: string) => {
     const t = state.threads[threadId];
     const msg = t?.messages.find((m) => m.id === msgId);
     if (!t || !msg) return;
+    const req = () => ({
+      threadId,
+      anchorText: t.anchorText,
+      inherited: collectInherited(state, t),
+      messages: t.messages,
+    });
     try {
-      await provider.reply(
-        { threadId, anchorText: t.anchorText, inherited: collectInherited(state, t), messages: t.messages },
-        (chunk) => {
-          msg.status = "streaming";
-          msg.text += chunk;
-          scheduleNotify();
-        },
-      );
+      await provider.reply(req(), (chunk) => {
+        msg.status = "streaming";
+        msg.text += chunk;
+        scheduleNotify();
+      });
       msg.status = "done";
     } catch {
       msg.status = "error";
     }
     scheduleNotify();
+    const isFirstReply = t.parentId !== null && t.messages.find((m) => m.role === "assistant") === msg;
+    if (msg.status === "done" && isFirstReply && provider.generateTitle) {
+      try {
+        const title = (await provider.generateTitle(req()))?.trim();
+        if (title && title !== t.title) {
+          t.title = title;
+          scheduleNotify();
+        }
+      } catch {
+        /* 标题生成失败无碍：保持锚点截断的默认标题 */
+      }
+    }
   };
 
   /** 活跃计数 + 最近访问（供 LRU 放置与 ⌘K「最近访问」chips 使用），不发通知 */
@@ -153,7 +172,14 @@ export function createThreadStore(seed: ThreadTreeState, provider: ReplyProvider
         lastActive: 0,
       };
       parent.children.push(id);
-      srcMsg.forks.push({ text: input.anchorText, num: state.footnoteCounter, threadId: id, depth });
+      srcMsg.forks.push({
+        text: input.anchorText,
+        num: state.footnoteCounter,
+        threadId: id,
+        depth,
+        prefix: input.anchorPrefix,
+        suffix: input.anchorSuffix,
+      });
 
       notify();
       void streamReply(id, pending.id);
@@ -200,6 +226,25 @@ export function createThreadStore(seed: ThreadTreeState, provider: ReplyProvider
       const id = registerSilently(sourceThreadId, seed_);
       notify();
       return id;
+    },
+
+    /** 用持久层加载的树原地替换当前树（§10.6）。恢复时把上次存盘时仍在生成中的
+        消息归一：有残文视为 done，空文视为 error（可点重试）——流本身不可恢复 */
+    hydrate(loaded: ThreadTreeState) {
+      Object.values(loaded.threads).forEach((t) => {
+        t.messages.forEach((m) => {
+          if (m.status === "pending" || m.status === "streaming")
+            m.status = m.text ? "done" : "error";
+        });
+      });
+      state.threads = loaded.threads;
+      state.artifacts = loaded.artifacts;
+      state.artifactOrder = loaded.artifactOrder;
+      state.recents = loaded.recents;
+      state.footnoteCounter = loaded.footnoteCounter;
+      state.seq = loaded.seq;
+      state.tick = loaded.tick;
+      notify();
     },
   };
 }

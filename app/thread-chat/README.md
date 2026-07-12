@@ -197,7 +197,7 @@ Fork    { text, num, threadId, depth }   // 挂在消息上的「划选锚点→
 ThreadTreeState { threads, artifacts, artifactOrder, recents, footnoteCounter, seq, tick }
 ```
 
-注意：`ThreadTreeState` 是纯 JSON（无 Map/类实例）——持久化/传输零成本。锚点渲染当前按 `text.indexOf(fork.text)` 顺延匹配定位（见 `branchable-chat.tsx` 的 `computeRanges`），富文本下的鲁棒定位是接入真实模型前必须解决的（§10.4）。
+注意：`ThreadTreeState` 是纯 JSON（无 Map/类实例）——持久化/传输零成本（localStorage 持久化已接，见 §10.6）。锚点定位走 TextQuoteSelector 思路：`Fork.prefix/suffix` 存划选处前后 ≤32 字上下文，`computeRanges`（`branchable-chat.tsx`）按贴合度在多候选中挑最优；无上下文的锚点退回 `indexOf` 顺延（§10.4）。
 
 ### 7.4 关键机制
 
@@ -215,7 +215,7 @@ ThreadTreeState { threads, artifacts, artifactOrder, recents, footnoteCounter, s
 - **Lint**：eslint react-hooks v6（React Compiler 系规则）**零豁免**通过。守住的写法：mutation 进 core 的非 React 代码（P9）；渲染期不读写 ref；「渲染期间调整派生状态」代替 effect-setState（thread-columns 的裁列是范例）。
 - **验证基线**（每次改动后都应全绿）：`npx tsc --noEmit`、`npx eslint app/thread-chat`、`npm run build`、四套 E2E（§9）。
 
-## 9. 测试：E2E 套件（`/e2e/thread-chat/`，185 断言）
+## 9. 测试：E2E 套件（`/e2e/thread-chat/`，195 断言）
 
 纯 Node + playwright-core 脚本（无测试框架依赖），运行方式见 `e2e/thread-chat/README.md`：
 
@@ -227,6 +227,7 @@ ThreadTreeState { threads, artifacts, artifactOrder, recents, footnoteCounter, s
 | verify5.js | 34 | 放置控制：⌘ 插入与邻右替换/LRU/列条目标迁移与文案三态/override/fold+⌘ |
 | verify6.js | 22 | 气泡输入框：留空/带问两路径消息形状、文案三态、Shift+Enter、Esc、⌘Enter keepSource |
 | verify7.js | 16 | 流式内核：fork 首答/追问流式采样、busy 禁发与重复提交拒绝、error/重试链 |
+| verify8.js | 10 | 模型就绪化：同文第二次出现的锚定、异步分支标题、刷新恢复与重置 |
 
 约定：verify2/3/4 是回归契约——**新功能不许改它们**（放置控制、画布都是在不动旧套件的前提下加新套件验收的）。改了行为语义才允许改对应套件，并在 commit message 里说明。
 
@@ -242,9 +243,18 @@ ThreadTreeState { threads, artifacts, artifactOrder, recents, footnoteCounter, s
    **接真实模型 = 写一个走 API 路由的 provider 实现，store 与视图层零改动**。
 2. **上下文构造 = P3 的直接兑现**：发请求时用 `collectInherited(state, thread)` + 本分支消息拼 messages 数组；分叉点之前的父线内容天然进入，之后的天然隔离。system prompt 中注入 `anchorText`（「本分支的讨论焦点是用户划选的这段话：…」）。注意调研文档的「上下文腐烂」提醒：树很深时对继承段做截断/摘要策略。
 3. **`data.ts` 退役**：`CANNED/REPLIES/ARTIFACT_SEEDS/cannedIntro/cannedReply` 全部删除；`seedStore()` 换成空主线或从持久层加载。顶栏「回复写死」pill 移除。
-4. **划选锚点鲁棒定位（约束五，工程第一硬骨头）**：真实模型输出是 Markdown，渲染后 DOM 文本与源文本 offset 错位。方案方向：存「文本片段 + 前后各 N 字上下文」做模糊定位（W3C Web Annotation 的 TextQuoteSelector 思路），替换现在的 `indexOf` 顺延；`computeRanges` 是唯一需要动的地方。
-5. **分支自动标题**：现在取锚点前 13 字；真实版可在首答完成后让模型出 4–8 字标题（异步更新 `thread.title`，各视图自动跟随）。
-6. **持久化**：`ThreadTreeState` 纯 JSON——序列化到后端/localStorage 均可；恢复时 `createThreadStore(loadedState)` 即可。多会话（多棵树）需要在壳层之上加会话列表路由，store 按会话实例化。
+4. ~~**划选锚点鲁棒定位**~~ **TextQuoteSelector 已落地**（verify8）：划选时捕获前后
+   ≤32 字上下文（`Fork.prefix/suffix`，出现序号经 DOM 消歧），`computeRanges` 按
+   上下文贴合度在多候选中挑最优、无上下文退回顺延匹配——同文多次出现不再错锚。
+   **仍待做**：真实模型输出 Markdown 后，划选反查（selection-bubble 的
+   `msg.text.indexOf(txt)` 校验）与渲染需适配富文本 DOM ↔ 源文本的映射。
+5. ~~**分支自动标题**~~ **异步标题链路已落地**（verify8）：首答完成后 store 调
+   `provider.generateTitle`，非空则更新 `thread.title`（各视图随 version 跟随）。
+   mock 版命中 canned 话题名；真实版换成模型出 4–8 字题，链路不变。
+6. ~~**持久化**~~ **localStorage 版已落地**（verify8）：变更防抖 400ms 存
+   `tc-thread-state-v1`（带版本号），挂载后 `store.hydrate` 原地恢复（存盘时仍在
+   生成中的消息归一为 done/error），顶栏「重置」清档回种子。**仍待做**：后端
+   持久化与多会话（多棵树）的会话列表路由。
 7. **Artifact**：把「锚点命中话题→种子」换成模型工具调用产出（`registerArtifact` 接口已预留）。
 
 ## 11. 未决问题与后续方向

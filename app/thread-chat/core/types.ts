@@ -21,12 +21,16 @@ export interface Artifact {
 /** 尚未落库的 artifact 内容（种子），落库时由 store 补全 id / 来源会话 */
 export type ArtifactSeed = Omit<Artifact, "id" | "sourceThreadId">;
 
-/** 挂在消息原文上的分支锚点：一段被划选的文字 + 对应脚注号 + 目标会话 */
+/** 挂在消息原文上的分支锚点：一段被划选的文字 + 对应脚注号 + 目标会话。
+    prefix/suffix 为划选处前后各 ≤32 字的原文上下文（W3C TextQuoteSelector 思路），
+    用于同文多次出现时的鲁棒定位；缺省时退回顺延匹配 */
 export interface Fork {
   text: string;
   num: number;
   threadId: string;
   depth: number;
+  prefix?: string;
+  suffix?: string;
 }
 
 /** assistant 回复的生成状态；缺省视为 done（种子数据与 user 消息不携带） */

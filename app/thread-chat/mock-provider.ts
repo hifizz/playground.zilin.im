@@ -12,7 +12,7 @@
  */
 
 import type { ReplyProvider, ReplyRequest } from "./core/provider";
-import { cannedIntro, cannedReply } from "./data";
+import { CANNED, cannedIntro, cannedReply } from "./data";
 
 const TICKS = 12;
 const TICK_MS = 22;
@@ -37,6 +37,15 @@ export function createMockProvider(): ReplyProvider {
         if (fail && i >= step * 3) throw new Error("mock stream failure");
         onChunk(text.slice(i, i + step));
       }
+    },
+
+    /** mock 版分支标题（§10.5 的演示）：锚点命中 canned 话题时以话题名为题，
+        否则返回 null 保持「锚点截断」默认标题。真实版换成模型出 4–8 字题 */
+    async generateTitle(req) {
+      await sleep(120);
+      const anchor = req.anchorText ?? "";
+      for (const k in CANNED) if (anchor.includes(k)) return k;
+      return null;
     },
   };
 }

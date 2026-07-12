@@ -24,15 +24,50 @@ interface AnchorRange {
   fork: Fork;
 }
 
-/** 把消息上的 forks 换算成互不重叠的原文区间（同文重复出现时向后顺延） */
+/** 两段文字从「贴合端」起连续相同的字符数（prefix 比对其尾部、suffix 比对其头部） */
+function commonSuffixLen(actual: string, expected: string): number {
+  let n = 0;
+  while (
+    n < actual.length &&
+    n < expected.length &&
+    actual[actual.length - 1 - n] === expected[expected.length - 1 - n]
+  )
+    n++;
+  return n;
+}
+function commonPrefixLen(actual: string, expected: string): number {
+  let n = 0;
+  while (n < actual.length && n < expected.length && actual[n] === expected[n]) n++;
+  return n;
+}
+
+/** 把消息上的 forks 换算成互不重叠的原文区间。
+    带 prefix/suffix 的锚点（TextQuoteSelector 思路，§10.4）在同文多次出现时按
+    上下文贴合度挑最优候选；无上下文的旧锚点退回「重复出现向后顺延」。 */
 function computeRanges(msg: Message): AnchorRange[] {
   const t = msg.text;
   const ranges: AnchorRange[] = [];
   msg.forks.forEach((f) => {
-    let i = t.indexOf(f.text);
-    while (i !== -1 && ranges.some((r) => !(i + f.text.length <= r.start || i >= r.end)))
-      i = t.indexOf(f.text, i + 1);
-    if (i !== -1) ranges.push({ start: i, end: i + f.text.length, fork: f });
+    const cands: number[] = [];
+    for (let i = t.indexOf(f.text); i !== -1; i = t.indexOf(f.text, i + 1)) cands.push(i);
+    const free = cands.filter(
+      (c) => !ranges.some((r) => !(c + f.text.length <= r.start || c >= r.end)),
+    );
+    if (!free.length) return;
+    let best = free[0];
+    if (free.length > 1 && (f.prefix !== undefined || f.suffix !== undefined)) {
+      let bestScore = -1;
+      free.forEach((c) => {
+        const score =
+          commonSuffixLen(t.slice(Math.max(0, c - 32), c), f.prefix ?? "") +
+          commonPrefixLen(t.slice(c + f.text.length, c + f.text.length + 32), f.suffix ?? "");
+        if (score > bestScore) {
+          bestScore = score;
+          best = c;
+        }
+      });
+    }
+    ranges.push({ start: best, end: best + f.text.length, fork: f });
   });
   ranges.sort((a, b) => a.start - b.start);
   return ranges;

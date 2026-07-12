@@ -1,6 +1,6 @@
 # Thread Chat E2E 套件
 
-纯 Node + [playwright-core](https://www.npmjs.com/package/playwright-core) 断言脚本（无测试框架依赖），共 185 条断言，覆盖矩阵见 `app/thread-chat/README.md` §9。
+纯 Node + [playwright-core](https://www.npmjs.com/package/playwright-core) 断言脚本（无测试框架依赖），共 195 条断言，覆盖矩阵见 `app/thread-chat/README.md` §9。
 
 ## 运行
 
@@ -18,6 +18,7 @@ node e2e/thread-chat/verify4.js   # 画布模式 · 31 断言
 node e2e/thread-chat/verify5.js   # 放置控制 · 34 断言
 node e2e/thread-chat/verify6.js   # 气泡输入框 · 22 断言
 node e2e/thread-chat/verify7.js   # 流式内核 · 16 断言
+node e2e/thread-chat/verify8.js   # 模型就绪化（锚定/标题/持久化） · 10 断言
 ```
 
 - **Chromium 路径**：默认 `/opt/pw-browsers/chromium`，本机运行请设 `CHROMIUM_PATH=/path/to/chrome`（任何 Chromium 系浏览器可执行文件均可）。
