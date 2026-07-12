@@ -144,6 +144,7 @@ export function BranchableChat({
           <span
             key={`a${ri}-${s0}`}
             className={`anchored fc-${dc(r.fork.depth)}`}
+            data-fork={r.fork.threadId}
             title={forkTitle}
             onClick={openFork}
           >

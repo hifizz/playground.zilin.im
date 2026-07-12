@@ -1,13 +1,15 @@
-/* Thread Chat demo 端到端验证 v6：气泡输入框（fork 首条消息策略 Phase A）。
+/* Thread Chat demo 端到端验证 v6：气泡输入框（fork 首条消息策略 Phase A）——列路径。
    覆盖：
    · 气泡结构：划选后气泡含可选输入框（placeholder / 弹出即聚焦）；
    · 留空提交 = 现状路径：点按钮开分支，新列首条为 assistant（无 user 消息）；
-   · 带问提交（Enter）：输入问题回车 → 新列第 1 条为该 user 消息、第 2 条为
-     assistant，标题仍取锚点，脚注 / 锚点高亮照常落原文；
+   · 带问提交（点按钮）：输入问题后点「带着问题开分支」→ 新列第 1 条为该 user
+     消息、第 2 条为 assistant，标题仍取锚点，脚注 / 锚点高亮照常落原文；
    · 按钮文案三态：空 =「开启分支讨论」，有输入 =「带着问题开分支」，⌘ 优先；
    · Shift+Enter 换行不提交；输入中 Esc 关气泡且无消息入树；
    · ⌘Enter 带问 keepSource：列满时替换来源邻右列、来源列保留（对齐 verify5 语义）；
    · 全程无 console error。
+   注：Phase B（气泡轻对话）起，「纯 Enter 带问」的语义改为开气泡内轻对话，
+   由 verify9 覆盖；本套件覆盖的列路径（按钮 / ⌘Enter / override）语义不变。
    截图：v6-01 气泡含输入框 / v6-02 带问开出的分支列 / v6-03 ⌘Enter 后列局面。 */
 const { chromium } = require("playwright-core");
 const DIR = __dirname;
@@ -127,12 +129,12 @@ const btnLabel = (page) => page.locator(".sel-bubble button").innerText();
     assert("留空分支无 user 消息", msgs.every((m) => m.role === "assistant"));
   }
 
-  /* ---- C) 带问提交（Enter）：user 首问 + assistant 首答 ---- */
+  /* ---- C) 带问提交（点按钮 = 列路径）：user 首问 + assistant 首答 ---- */
   const QUESTION = "它和图记忆相比该怎么选？";
   await selectText(page, "图记忆");
   await page.locator(".sel-bubble .ask textarea").fill(QUESTION);
   assert("有输入时按钮文案 = 带着问题开分支", (await btnLabel(page)) === "带着问题开分支");
-  await page.keyboard.press("Enter");
+  await page.click(".sel-bubble button");
   await page.waitForTimeout(500);
   await page.keyboard.press("Escape"); // 图记忆分支带 Artifact，收起抽屉
   await page.waitForTimeout(300);

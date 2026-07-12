@@ -27,6 +27,7 @@ import { createThreadStore } from "./core/store";
 import { useThreadStore } from "./core/use-thread-store";
 import { threadTitle, type TreeRow } from "./core/selectors";
 import { BranchableChat } from "./branching/branchable-chat";
+import { BubbleThread } from "./branching/bubble-thread";
 import { SelectionBubble, type SelectionInfo } from "./branching/selection-bubble";
 import { type PlacementHint, type PlacementMode } from "./orchestration/placement";
 import {
@@ -130,6 +131,8 @@ export function ThreadChatDemo() {
   /* ---------- 其余 UI 状态 ---------- */
   const [hintOn, setHintOn] = useState(true);
   const [sel, setSel] = useState<SelectionInfo | null>(null);
+  /** 气泡轻对话视口（P10：thread 显示在气泡还是列是视口事实，归壳层持有） */
+  const [bubble, setBubble] = useState<{ threadId: string; sourceId: string; collapsed: boolean } | null>(null);
   const [switcher, setSwitcher] = useState<(SwitcherMode & { n: number }) | null>(null);
   const swSeq = useRef(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -149,8 +152,10 @@ export function ThreadChatDemo() {
   /* ---------- 统一意图入口：打开某会话（脚注 / ⌘K / 子树 / 定位来源 / 画布双击都走这里）
        hint：可选放置提示（⌘ keepSource「保留来源列，开在其右」/ targetId 显式让位列） ---------- */
   function openBranchUI(id: string, sourceId?: string | null, hint?: PlacementHint) {
-    // 意图收敛：打开会话 = 去列里读它——画布模式下先切回列视图再放置
+    // 意图收敛：打开会话 = 去列里读它——画布模式下先切回列视图再放置；
+    // 目标正显示在气泡轻视口时收掉气泡（换视口不换数据）
     setViewMode("columns");
+    if (bubble?.threadId === id) setBubble(null);
     if (id === "main") {
       cols.flashThread("main");
       return;
@@ -207,6 +212,29 @@ export function ThreadChatDemo() {
     }
   }
 
+  /* ---------- 气泡轻对话：首次提交即 fork 入树（脚注同步落原文）但不占列槽；
+       升格 = openBranchUI 换视口，pendingText 作为下一问在列里发出（无损） ---------- */
+  function handleStartBubble(s: SelectionInfo, question: string) {
+    const r = store.fork({
+      sourceThreadId: s.threadId,
+      sourceMsgId: s.msgId,
+      anchorText: s.text,
+      anchorPrefix: s.prefix,
+      anchorSuffix: s.suffix,
+      firstQuestion: question,
+      artifactSeed: artifactSeedFor(s.text),
+    });
+    if (!r) return;
+    setBubble({ threadId: r.threadId, sourceId: s.threadId, collapsed: false });
+  }
+  function upgradeBubble(pendingText?: string, keepSource?: boolean) {
+    if (!bubble) return;
+    const { threadId, sourceId } = bubble;
+    setBubble(null);
+    openBranchUI(threadId, sourceId, keepSource ? { keepSource: true } : undefined);
+    if (pendingText) store.send(threadId, pendingText);
+  }
+
   /* ---------- 列满策略切换（fold → replace 时展开全部细条并裁掉超限列） ---------- */
   function changeMode(m: PlacementMode) {
     if (m === mode) return;
@@ -258,13 +286,15 @@ export function ThreadChatDemo() {
       }
       if (e.key === "Escape") {
         if (sel) setSel(null);
+        else if (bubble && !bubble.collapsed) setBubble({ ...bubble, collapsed: true });
+        else if (bubble) setBubble(null);
         else if (switcher) setSwitcher(null);
         else if (drawerOpen) setDrawerOpen(false);
       }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [sel, switcher, drawerOpen, toggleGlobalSwitcher]);
+  }, [sel, bubble, switcher, drawerOpen, toggleGlobalSwitcher]);
 
   /* ---------- 主线 hint 卡片 ---------- */
   const hintNode = hintOn ? (
@@ -437,10 +467,24 @@ export function ThreadChatDemo() {
           sel={sel}
           onSelChange={setSel}
           onFork={handleFork}
+          onStartBubble={handleStartBubble}
           slots={cols.slots}
           mode={mode}
           maxExpanded={maxExpanded}
           lastActiveOf={(id) => state.threads[id]?.lastActive ?? 0}
+        />
+      )}
+
+      {/* 气泡轻对话视口（列模式专属：锚定在原文 .anchored 上；徽标态贴右缘） */}
+      {viewMode === "columns" && bubble && (
+        <BubbleThread
+          state={state}
+          threadId={bubble.threadId}
+          collapsed={bubble.collapsed}
+          onCollapsedChange={(c) => setBubble((b) => (b ? { ...b, collapsed: c } : b))}
+          onSend={(text) => store.send(bubble.threadId, text)}
+          onRetry={(msgId) => store.retryReply(bubble.threadId, msgId)}
+          onUpgrade={upgradeBubble}
         />
       )}
 

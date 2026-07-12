@@ -16,7 +16,10 @@
  * 可选输入框（fork 首条消息策略「默认代拟 + 可选带问」）：
  * · 留空提交 = 现状：分支以引导回复开场（接真实模型后为代拟首问）；
  * · 输入后提交 = 用户问题成为分支首条 user 消息（store.fork 的 firstQuestion）；
- * · Enter 提交 / Shift+Enter 换行 / ⌘Enter 提交且保留本列（与 ⌘ 点击同语义）。
+ * · 键位语义（Phase B）：纯 Enter 带问 = 开「气泡内轻对话」（第三种视口，
+ *   onStartBubble）；⌘Enter / 点按钮 / 列条 override = 直接开完整分支列；
+ *   Shift+Enter 换行。轻 vs 全量的分界：有明确问题的快速追问走气泡，
+ *   显式选择放置目标或按钮确认则直接上列。
  */
 
 import React, { useEffect, useRef, useState } from "react";
@@ -47,8 +50,10 @@ export interface SelectionBubbleProps {
   state: ThreadTreeState;
   sel: SelectionInfo | null;
   onSelChange: (s: SelectionInfo | null) => void;
-  /** 提交开分支：上层负责真正 fork + 放置；hint 见 placement.ts；question = 输入框里的首问（可选） */
+  /** 提交开分支（列路径）：上层负责真正 fork + 放置；hint 见 placement.ts；question = 输入框里的首问（可选） */
   onFork: (s: SelectionInfo, hint?: PlacementHint, question?: string) => void;
+  /** 纯 Enter 带问：开气泡内轻对话（fork 入树但不占列槽），未传则退回 onFork */
+  onStartBubble?: (s: SelectionInfo, question: string) => void;
   /* —— 迷你列条的放置上下文（与提交走同一套 placement 规则）—— */
   slots: Slot[];
   mode: PlacementMode;
@@ -61,6 +66,7 @@ export function SelectionBubble({
   sel,
   onSelChange,
   onFork,
+  onStartBubble,
   slots,
   mode,
   maxExpanded,
@@ -305,7 +311,16 @@ export function SelectionBubble({
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
-              submit(e.metaKey || e.ctrlKey);
+              const meta = e.metaKey || e.ctrlKey;
+              const q = question.trim();
+              // 纯 Enter 带问 = 轻对话；⌘Enter / override 点选 = 直接开列
+              if (q && !meta && !ov && onStartBubble) {
+                window.getSelection()?.removeAllRanges();
+                onSelChange(null);
+                onStartBubble(sel, q);
+                return;
+              }
+              submit(meta);
             }
           }}
         />
