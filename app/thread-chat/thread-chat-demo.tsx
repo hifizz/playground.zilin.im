@@ -127,6 +127,9 @@ export function ThreadChatDemo() {
       与上面的 store 同一模式：useState(初始化函数) 造出的长寿可变对象（type-only import，
       不把画布模块拖进首屏 bundle） */
   const [canvasViewState] = useState<CanvasViewState>(() => ({ pins: new Map() }));
+  /** 画布内 fork 出的新会话：画布收到后居中并展开（n 递增去重） */
+  const [canvasFocus, setCanvasFocus] = useState<{ id: string; n: number } | null>(null);
+  const canvasFocusSeq = useRef(0);
 
   /* ---------- 其余 UI 状态 ---------- */
   const [hintOn, setHintOn] = useState(true);
@@ -177,7 +180,8 @@ export function ThreadChatDemo() {
   }
 
   /* ---------- 开分支：store.fork + 放置 + artifact 自动弹出（hint 来自气泡：⌘ / 列条点选；
-       question = 气泡输入框里的可选首问，成为分支首条 user 消息） ---------- */
+       question = 气泡输入框里的可选首问，成为分支首条 user 消息）。
+       画布模式（Phase 2 画布内划选）：不占列槽——新节点入树后画布居中并展开它 ---------- */
   function handleFork(s: SelectionInfo, hint?: PlacementHint, question?: string) {
     const r = store.fork({
       sourceThreadId: s.threadId,
@@ -189,6 +193,15 @@ export function ThreadChatDemo() {
       artifactSeed: artifactSeedFor(s.text),
     });
     if (!r) return;
+    if (viewMode === "canvas") {
+      setCanvasFocus({ id: r.threadId, n: ++canvasFocusSeq.current });
+      if (r.artifactId) {
+        setActiveArt(r.artifactId);
+        setDrawerOpen(true);
+      }
+      showToast(`已开启分支 · ${r.title}${r.artifactId ? "（Artifact 已在右侧打开）" : ""}`);
+      return;
+    }
     const eff = cols.openThread(r.threadId, s.threadId, hint);
     if (r.artifactId) {
       setActiveArt(r.artifactId);
@@ -456,24 +469,25 @@ export function ThreadChatDemo() {
           mainSubtitle={MAIN_SUBTITLE}
           viewState={canvasViewState}
           onOpenThread={(id) => openBranchUI(id, null)}
+          focusNode={canvasFocus}
         />
       )}
 
-      {/* Phase 1 画布只读：划选开分支仅列模式提供。列槽上下文喂给气泡的迷你列条，
-          预览与提交共用 placement 同一套规则 */}
-      {viewMode === "columns" && (
-        <SelectionBubble
-          state={state}
-          sel={sel}
-          onSelChange={setSel}
-          onFork={handleFork}
-          onStartBubble={handleStartBubble}
-          slots={cols.slots}
-          mode={mode}
-          maxExpanded={maxExpanded}
-          lastActiveOf={(id) => state.threads[id]?.lastActive ?? 0}
-        />
-      )}
+      {/* 划选气泡两种模式都挂载（Phase 2 画布内划选走展开节点的消息列表，共用
+          同一 DOM 契约）。列槽上下文只在列模式喂给迷你列条（画布 fork 不占列槽）；
+          轻对话（onStartBubble）仅列模式提供——画布里带问 Enter 落到 handleFork，
+          直接长成带首问的新节点 */}
+      <SelectionBubble
+        state={state}
+        sel={sel}
+        onSelChange={setSel}
+        onFork={handleFork}
+        onStartBubble={viewMode === "columns" ? handleStartBubble : undefined}
+        slots={viewMode === "columns" ? cols.slots : []}
+        mode={mode}
+        maxExpanded={maxExpanded}
+        lastActiveOf={(id) => state.threads[id]?.lastActive ?? 0}
+      />
 
       {/* 气泡轻对话视口（列模式专属：锚定在原文 .anchored 上；徽标态贴右缘） */}
       {viewMode === "columns" && bubble && (
