@@ -29,6 +29,7 @@ import { threadTitle, type TreeRow } from "./core/selectors";
 import { BranchableChat } from "./branching/branchable-chat";
 import { BubbleThread } from "./branching/bubble-thread";
 import { SelectionBubble, type SelectionInfo } from "./branching/selection-bubble";
+import { ThreadSheet } from "./branching/thread-sheet";
 import { type PlacementHint, type PlacementMode } from "./orchestration/placement";
 import {
   COL_MIN_W,
@@ -121,8 +122,18 @@ export function ThreadChatDemo() {
   const [mode, setMode] = useState<PlacementMode>("replace");
   const cols = useColumnSlots({ store, maxExpanded, mode });
 
-  /* ---------- 视图形态：列（深读）| 画布（纵览全树） ---------- */
+  /* ---------- 视图形态：列（深读）| 画布（纵览全树） ----------
+       移动端（<720px）分栏不成立：首次识别到窄屏时默认切画布（fitView 一屏纵览、
+       pan/zoom 是天然手势），此后用户仍可手动切列。渲染期间的派生状态调整写法 */
   const [viewMode, setViewMode] = useState<ViewMode>("columns");
+  const isMobile = winW !== null && winW < 720;
+  const [mobileDefaulted, setMobileDefaulted] = useState(false);
+  if (isMobile && !mobileDefaulted) {
+    setMobileDefaulted(true);
+    setViewMode("canvas");
+  }
+  /** 移动端 bottom sheet 视口（画布节点单击唤起；full = 拉满 ≈ 移动端的「升格」） */
+  const [sheet, setSheet] = useState<{ threadId: string; full: boolean } | null>(null);
   /** 画布视图状态宿主（节点 pin 表）：跨「列 ⇄ 画布」切换存活，属视口状态不进 core store。
       与上面的 store 同一模式：useState(初始化函数) 造出的长寿可变对象（type-only import，
       不把画布模块拖进首屏 bundle） */
@@ -301,13 +312,14 @@ export function ThreadChatDemo() {
         if (sel) setSel(null);
         else if (bubble && !bubble.collapsed) setBubble({ ...bubble, collapsed: true });
         else if (bubble) setBubble(null);
+        else if (sheet) setSheet(null);
         else if (switcher) setSwitcher(null);
         else if (drawerOpen) setDrawerOpen(false);
       }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [sel, bubble, switcher, drawerOpen, toggleGlobalSwitcher]);
+  }, [sel, bubble, sheet, switcher, drawerOpen, toggleGlobalSwitcher]);
 
   /* ---------- 主线 hint 卡片 ---------- */
   const hintNode = hintOn ? (
@@ -470,6 +482,20 @@ export function ThreadChatDemo() {
           viewState={canvasViewState}
           onOpenThread={(id) => openBranchUI(id, null)}
           focusNode={canvasFocus}
+          onOpenSheet={isMobile ? (id) => setSheet({ threadId: id, full: false }) : undefined}
+        />
+      )}
+
+      {/* 移动端 bottom sheet：画布节点单击唤起的会话视口（半屏 ⇄ 拉满） */}
+      {sheet && (
+        <ThreadSheet
+          state={state}
+          threadId={sheet.threadId}
+          full={sheet.full}
+          onFullChange={(full) => setSheet((s) => (s ? { ...s, full } : s))}
+          onClose={() => setSheet(null)}
+          onSend={(text) => store.send(sheet.threadId, text)}
+          onRetry={(msgId) => store.retryReply(sheet.threadId, msgId)}
         />
       )}
 

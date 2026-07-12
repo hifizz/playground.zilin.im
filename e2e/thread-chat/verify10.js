@@ -68,7 +68,7 @@ const selectInCanvas = async (page, needle) => {
   await page.locator(".topbar .seg button.mode", { hasText: "画布" }).click();
   await page.waitForSelector(".react-flow__node", { timeout: 8000 });
   await page.waitForTimeout(600);
-  await page.locator('.react-flow__node:has-text("主线")').click();
+  await page.locator('.react-flow__node[data-id="main"]').click();
   await page.waitForTimeout(300);
   assert("单击节点：外挂对话面板出现", (await page.locator(".canvas-expand").count()) === 1);
   assert(
@@ -122,7 +122,7 @@ const selectInCanvas = async (page, needle) => {
     "新节点内追问完成（4 条）",
     (await page.locator(".canvas-expand .msg-list .message").count()) === 4,
   );
-  await page.locator('.react-flow__node:has-text("主线")').dblclick();
+  await page.locator('.react-flow__node[data-id="main"]').dblclick();
   await page.waitForTimeout(600);
   assert("双击节点仍回列模式", (await page.locator(".react-flow").count()) === 0);
   {

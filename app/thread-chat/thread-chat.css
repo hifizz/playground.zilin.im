@@ -373,6 +373,33 @@
 /* 顶栏「视图」seg 的图标按钮 */
 .tc .seg button.mode { display: inline-flex; align-items: center; gap: 5px; }
 
+/* ---------------- 移动端 bottom sheet（thread-sheet：第四种视口） ---------------- */
+.tc .sheet-scrim { position: fixed; inset: 0; z-index: 80; background: rgba(30, 26, 20, 0.28); }
+.tc .sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 82; height: 58dvh; background: var(--paper); border-top: 1px solid var(--rule-strong); border-radius: 16px 16px 0 0; box-shadow: 0 -14px 40px -14px rgba(30, 26, 20, 0.45); display: flex; flex-direction: column; transition: height 0.28s cubic-bezier(0.32, 0.72, 0, 1); }
+.tc .sheet.full { height: calc(100dvh - 52px); }
+.tc .sheet::before { content: ""; position: absolute; top: 7px; left: 50%; transform: translateX(-50%); width: 40px; height: 4px; border-radius: 999px; background: var(--rule-strong); }
+.tc .sheet-head { flex: none; display: flex; align-items: center; gap: 8px; padding: 17px 14px 9px; border-bottom: 1px solid var(--rule); }
+.tc .sheet-head .fn { flex: none; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px; background: var(--fc, var(--d1)); color: #fff; font-family: var(--font-mono); font-size: 10.5px; line-height: 17px; text-align: center; }
+.tc .sheet-head .tt { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-read); font-size: 15.5px; font-weight: 600; color: var(--ink); }
+.tc .sh-act { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border: 1px solid var(--rule-strong); background: #fff; color: var(--ink-soft); border-radius: 8px; cursor: pointer; }
+.tc .sheet-anchor { flex: none; padding: 8px 14px; font-size: 12px; line-height: 1.5; color: var(--ink-soft); background: color-mix(in srgb, var(--fc, var(--d1)) 7%, transparent); border-bottom: 1px solid var(--rule); }
+.tc .sheet-anchor q { font-family: var(--font-read); quotes: "「" "」"; }
+.tc .sheet-msgs { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 9px; }
+.tc .sheet-msgs .bt-msg { font-size: 14px; line-height: 1.62; }
+.tc .sheet-composer { flex: none; display: flex; align-items: flex-end; gap: 8px; padding: 9px 12px calc(10px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--rule); background: #fffdf8; }
+.tc .sheet-composer textarea { flex: 1; border: 1px solid var(--rule-strong); border-radius: 10px; background: #fff; color: var(--ink); resize: none; padding: 8px 11px; font-family: var(--font-ui); font-size: 14px; line-height: 1.5; max-height: 96px; min-height: 36px; }
+.tc .sheet-composer textarea:focus { outline: none; border-color: var(--fc, var(--d1)); }
+.tc .sh-send { flex: none; border: none; cursor: pointer; border-radius: 10px; padding: 9px 15px; font-size: 13.5px; font-weight: 600; color: #fff; background: var(--fc, #3a3733); }
+.tc .sh-send:disabled { opacity: 0.45; cursor: default; }
+
+/* ---------------- 移动端（<720px）：对话走 bottom sheet，桌面外挂面板隐藏 ---------------- */
+@media (max-width: 719px) {
+  .tc .canvas-expand { display: none; }
+  .tc .brand .tag { display: none; }
+  .tc .topbar { gap: 7px; padding: 8px 10px; }
+  .tc .canvas-panel .canvas-tip { display: none; }
+}
+
 /* ---------------- 滚动条 / 动效降级 ---------------- */
 .tc ::-webkit-scrollbar { width: 9px; height: 9px; }
 .tc ::-webkit-scrollbar-thumb { background: var(--rule-strong); border-radius: 6px; }

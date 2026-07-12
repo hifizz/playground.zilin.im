@@ -51,9 +51,18 @@ export interface ThreadCanvasProps {
   onOpenThread: (threadId: string) => void;
   /** 画布内 fork 出的新会话：居中并展开它（n 递增去重，壳层每次 fork 置新值） */
   focusNode?: { id: string; n: number } | null;
+  /** 移动端：单击节点唤起 bottom sheet（传入时不再就地展开外挂面板，CSS 同步隐藏） */
+  onOpenSheet?: (threadId: string) => void;
 }
 
-function CanvasFlow({ store, mainSubtitle, viewState, onOpenThread, focusNode }: ThreadCanvasProps) {
+function CanvasFlow({
+  store,
+  mainSubtitle,
+  viewState,
+  onOpenThread,
+  focusNode,
+  onOpenSheet,
+}: ThreadCanvasProps) {
   const version = useThreadStore(store);
   const { nodes, edges, onNodesChange, resetLayout, selectNode, pinCount } = useCanvasLayout({
     store,
@@ -100,6 +109,11 @@ function CanvasFlow({ store, mainSubtitle, viewState, onOpenThread, focusNode }:
     (_, node) => onOpenThread(node.id),
     [onOpenThread],
   );
+  /* 移动端：单击节点 = 唤起 bottom sheet（桌面为 RF 选中 → 就地展开面板） */
+  const onNodeClick = useCallback<NodeMouseHandler<CanvasCardNode>>(
+    (_, node) => onOpenSheet?.(node.id),
+    [onOpenSheet],
+  );
 
   return (
     /* React Flow 父容器必须有确定宽高：flex:1 + min-height:0 + width:100%（skill 契约 #3） */
@@ -111,6 +125,7 @@ function CanvasFlow({ store, mainSubtitle, viewState, onOpenThread, focusNode }:
         nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
         onNodeDoubleClick={onNodeDoubleClick}
+        onNodeClick={onOpenSheet ? onNodeClick : undefined}
         fitView
         fitViewOptions={fitViewOptions}
         minZoom={0.2}
