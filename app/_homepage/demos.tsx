@@ -36,6 +36,7 @@ import { SmoothTooltipThumb } from "./thumbs/smooth-tooltip";
 import { MobileFullscreenSvhThumb } from "./thumbs/mobile-fullscreen-svh";
 import { FloatingPopupThumb } from "./thumbs/floating-popup";
 import { ThreadChatThumb } from "./thumbs/thread-chat";
+import { HighlightRecoveryThumb } from "./thumbs/highlight-recovery";
 
 export type DemoCategory = "Interaction" | "Text Demo" | "Explored Demo" | "Agent UX/UI";
 
@@ -372,5 +373,14 @@ export const demos: DemoEntry[] = [
     category: "Agent UX/UI",
     tags: ["Branching", "Command Palette", "Drawer"],
     preview: <ThreadChatThumb />,
+  },
+  {
+    title: "Highlight Recovery · 高亮模糊恢复",
+    description:
+      "存文本锚点（引用文本 + 前后上下文 + 字符偏移）而非 DOM 路径：页面重渲染 / 空白重排 / 内容被编辑后，三层降级 position→exact→fuzzy 找回高亮，fuzzy 用近似子串匹配给出相似度。抽象自 chat-aside 插件。",
+    route: "/highlight-recovery",
+    category: "Explored Demo",
+    tags: ["Selection", "Anchor", "Fuzzy Match"],
+    preview: <HighlightRecoveryThumb />,
   },
 ];
