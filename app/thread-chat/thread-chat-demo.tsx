@@ -22,7 +22,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Columns3, Highlighter, Network, PanelRightOpen, RotateCcw, Waypoints } from "lucide-react";
 import "./thread-chat.css";
 import { artifactSeedFor, seedStore } from "./data";
-import { createMockProvider } from "./mock-provider";
+import { createLiveProvider } from "./live-provider";
 import { createThreadStore } from "./core/store";
 import { useThreadStore } from "./core/use-thread-store";
 import { threadTitle, type TreeRow } from "./core/selectors";
@@ -71,10 +71,26 @@ function anchoredPos(btn: HTMLElement, w: number, h: number) {
 
 export function ThreadChatDemo() {
   /* ---------- 会话树：外部可变 store，version 快照驱动重渲；
-       回复经 ReplyProvider 流式生成（demo 期为 mock，接真实模型时只换 provider） ---------- */
-  const [store] = useState(() => createThreadStore(seedStore(), createMockProvider()));
+       回复经 ReplyProvider 流式生成：服务端配了 MINIMAX_API_KEY 则走真实模型
+       （/api/thread-chat/reply 流式代理），否则自动回落 mock ---------- */
+  const [store] = useState(() => createThreadStore(seedStore(), createLiveProvider()));
   useThreadStore(store);
   const state = store.getState();
+
+  /* 顶栏 pill 显示实际回复模式（与 provider 探测同一个 GET 端点） */
+  const [llmModel, setLlmModel] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/thread-chat/reply")
+      .then((r) => (r.ok ? (r.json() as Promise<{ live?: boolean; model?: string }>) : null))
+      .then((j) => {
+        if (alive && j?.live) setLlmModel(j.model ?? "LLM");
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   /* ---------- 持久化（§10.6）：挂载后恢复（首帧渲染种子避免 hydration 不一致，
        随后原地 hydrate），此后每次变更防抖 400ms 存入 localStorage ---------- */
@@ -442,7 +458,9 @@ export function ThreadChatDemo() {
           <RotateCcw size={13} />
           重置
         </button>
-        <span className="demo-pill">mock 流式回复</span>
+        <span className="demo-pill" title={llmModel ? `回复由 ${llmModel} 实时生成` : "未配置模型 key，回复为演示内容"}>
+          {llmModel ? `${llmModel} 流式` : "mock 流式回复"}
+        </span>
       </div>
 
       {viewMode === "columns" ? (

@@ -160,7 +160,13 @@ export function SelectionBubble({
     const onMouseDown = (e: MouseEvent) => {
       if (!(e.target as HTMLElement).closest?.(".sel-bubble")) onSelChange(null);
     };
-    const onScroll = () => onSelChange(null);
+    const onScroll = (e: Event) => {
+      // 气泡内部的滚动（输入长问题时 textarea 自增高/内滚）不算「用户离开」——
+      // capture 监听会先于一切收到它，必须放行，否则打字打到换行气泡就自毁
+      const t = e.target as Partial<HTMLElement> | null;
+      if (t?.closest?.(".sel-bubble")) return;
+      onSelChange(null);
+    };
     document.addEventListener("mouseup", onMouseUp);
     document.addEventListener("mousedown", onMouseDown);
     document.addEventListener("scroll", onScroll, true);
