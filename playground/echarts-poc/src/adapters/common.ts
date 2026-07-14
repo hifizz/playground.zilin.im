@@ -94,3 +94,37 @@ export function paletteFor(names: string[]): string[] {
   let i = 0;
   return names.map((n) => (/其他/.test(n) ? gray : TOKENS.categorical[i++ % (TOKENS.categorical.length - 1)]));
 }
+
+/** '#RRGGBB' 或 'rgb(a)(...)' -> 'rgba(r,g,b,a)'，配色可定制后不能再假设 token 是 hex */
+export function withAlpha(color: string, a: number): string {
+  if (color.startsWith('#')) {
+    const n = parseInt(color.slice(1), 16);
+    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+  }
+  const m = color.match(/rgba?\(([^)]+)\)/);
+  if (m) {
+    const [r, g, b] = m[1].split(',').map((s) => parseFloat(s));
+    return `rgba(${r},${g},${b},${a})`;
+  }
+  return color;
+}
+
+/** WCAG 相对亮度（rgba 按黑底预混），用于决定色块内文字用深墨还是白墨 */
+export function relLuminance(color: string): number {
+  let r = 0, g = 0, b = 0, a = 1;
+  if (color.startsWith('#')) {
+    const n = parseInt(color.slice(1), 16);
+    [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  } else {
+    const m = color.match(/rgba?\(([^)]+)\)/);
+    if (!m) return 0;
+    const parts = m[1].split(',').map((s) => parseFloat(s));
+    [r, g, b] = parts;
+    a = parts[3] ?? 1;
+  }
+  const lin = (v: number) => {
+    const s = (v / 255) * a; // 深底预混近似
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+}

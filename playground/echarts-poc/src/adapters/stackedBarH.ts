@@ -1,7 +1,7 @@
 import type { EChartsOption } from 'echarts';
 import { TOKENS } from '../tokens';
 import type { StackedBarHSpec } from '../types';
-import { SIZES, PAD_X, fmt, headerGraphics, paletteFor } from './common';
+import { SIZES, PAD_X, fmt, headerGraphics, paletteFor, relLuminance } from './common';
 
 /** 估算文本宽度（CJK 全宽、拉丁半宽），用于 graphic 手动排版 */
 function measure(text: string, fontSize: number, bold = false): number {
@@ -10,10 +10,10 @@ function measure(text: string, fontSize: number, bold = false): number {
   return wpx;
 }
 
-/** 浅色段上用深色文字 */
-const DARK_INK = '#2b1608';
+/** 段内文字颜色按段色亮度自动选深墨/白墨（配色可定制，不能写死哪档是浅色） */
+const DARK_INK = 'rgba(16,10,4,0.92)';
 function inkFor(color: string): string {
-  return color === TOKENS.brand3 || color === TOKENS.brand2 ? DARK_INK : 'rgba(255,255,255,0.95)';
+  return relLuminance(color) > 0.45 ? DARK_INK : 'rgba(255,255,255,0.95)';
 }
 
 /**

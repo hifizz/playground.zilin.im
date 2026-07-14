@@ -1,17 +1,12 @@
 import type { EChartsOption } from 'echarts';
 import { TOKENS } from '../tokens';
 import type { ProbabilityRangeSpec } from '../types';
-import { SIZES, PAD_X, fmt, headerGraphics } from './common';
+import { SIZES, PAD_X, fmt, headerGraphics, withAlpha } from './common';
 
 function scenarioColor(name: string): string {
   if (/牛|乐观/.test(name)) return TOKENS.bull;
   if (/熊|悲观/.test(name)) return TOKENS.bear;
   return TOKENS.brand1;
-}
-
-function rgba(hex: string, a: number): string {
-  const n = parseInt(hex.slice(1), 16);
-  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
 }
 
 const signed = (p: number) => `${p >= 0 ? '+' : ''}${fmt(p)}%`;
@@ -121,7 +116,7 @@ export function probabilityRangeAdapter(spec: ProbabilityRangeSpec): EChartsOpti
               {
                 type: 'rect',
                 shape: { x: x1, y: y - bh / 2, width: x2 - x1, height: bh, r: bh / 2 },
-                style: { fill: rgba(colors[i], 0.3) },
+                style: { fill: withAlpha(colors[i], 0.3) },
               },
               { type: 'text', style: { ...textStyle, text: fmt(s.low), x: x1 - 10, y, textAlign: 'right' } },
               { type: 'text', style: { ...textStyle, text: fmt(s.high), x: x2 + 10, y, textAlign: 'left' } },

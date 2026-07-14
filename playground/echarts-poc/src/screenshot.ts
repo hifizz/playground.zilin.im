@@ -4,7 +4,9 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { TOKENS } from './tokens';
 
-const OUT_DIR = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '../output');
+const ROOT = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
+const argIdx = process.argv.indexOf('--out');
+const OUT_DIR = path.resolve(ROOT, argIdx >= 0 ? process.argv[argIdx + 1] : (process.env.OUT ?? 'output'));
 const SCALE = 2; // 2x 截图，文字更接近真实长图导出质量
 
 function pageHtml(body: string, bg: string = TOKENS.bg): string {
@@ -54,9 +56,13 @@ async function main() {
     })
     .join('');
   const sheetW = GAP * 3 + CELL_W * 2;
+  let paletteLabel = '';
+  try {
+    paletteLabel = ` · palette: ${JSON.parse(fs.readFileSync(path.join(OUT_DIR, 'meta.json'), 'utf8')).palette}`;
+  } catch {}
   const html = pageHtml(
     `<div class="sheet">
-       <div class="head">NOVARK · ECharts SSR POC — 深色橙主题 6 图（880px 宽 / SVG 渲染 / 2x 截图）</div>
+       <div class="head">NOVARK · ECharts SSR POC — 深色主题 6 图（880px 宽 / SVG 渲染 / 2x 截图）${paletteLabel}</div>
        <div class="grid">${cells}</div>
      </div>
      <style>

@@ -1,7 +1,7 @@
 import type { EChartsOption } from 'echarts';
 import { TOKENS } from '../tokens';
 import type { HorizontalBarSpec } from '../types';
-import { SIZES, headerGraphics, fmt } from './common';
+import { SIZES, headerGraphics, fmt, withAlpha } from './common';
 
 const MUTED_BAR = 'rgba(255,255,255,0.15)';
 
@@ -38,7 +38,7 @@ export function horizontalBarAdapter(spec: HorizontalBarSpec): EChartsOption {
               height: 50,
               r: 12,
             },
-            style: { fill: 'rgba(255,107,26,0.07)' },
+            style: { fill: withAlpha(TOKENS.brand1, 0.07) },
           },
         ]
       : [];
@@ -103,7 +103,7 @@ export function horizontalBarAdapter(spec: HorizontalBarSpec): EChartsOption {
             ? {
                 color: TOKENS.brand1,
                 borderRadius: [0, 8, 8, 0],
-                shadowColor: 'rgba(255,107,26,0.45)',
+                shadowColor: withAlpha(TOKENS.brand1, 0.45),
                 shadowBlur: 12,
               }
             : { color: MUTED_BAR, borderRadius: [0, 8, 8, 0] },

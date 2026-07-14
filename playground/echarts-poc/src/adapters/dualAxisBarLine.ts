@@ -3,13 +3,6 @@ import { TOKENS } from '../tokens';
 import type { DualAxisBarLineSpec } from '../types';
 import { SIZES, PAD_X, fmt, headerGraphics } from './common';
 
-const BAR_COLORS = [TOKENS.brand1, '#C97B4A'];
-// 利润率不是多空语义，不用绿/红；浅橙实线 + 中性灰虚线，和橙柱同族不抢戏
-const LINE_STYLES = [
-  { color: TOKENS.brand3, labelColor: TOKENS.brand3, dashed: false },
-  { color: 'rgba(255,255,255,0.60)', labelColor: 'rgba(255,255,255,0.66)', dashed: true },
-];
-
 const GRID_TOP = 148;
 const GRID_BOTTOM = 56;
 const LABEL_H = 14; // 11px 字号标签的占位高度
@@ -24,6 +17,15 @@ const LABEL_H = 14; // 11px 字号标签的占位高度
 export function dualAxisBarLineAdapter(spec: DualAxisBarLineSpec): EChartsOption {
   const { w, h } = SIZES.dual_axis_bar_line;
   const { periods, bars, lines } = spec.data;
+
+  // 在函数体内取当前 TOKENS（配色可在运行时切换，模块顶层缓存会失效）
+  // 第二根柱用调色板第 5 档（主色的深/暗变体）
+  const barColors = [TOKENS.brand1, TOKENS.categorical[4]];
+  // 利润率不是多空语义，不用绿/红；浅色主族实线 + 中性灰虚线，和柱同族不抢戏
+  const lineStyles = [
+    { color: TOKENS.brand3, labelColor: TOKENS.brand3, dashed: false },
+    { color: 'rgba(255,255,255,0.60)', labelColor: 'rgba(255,255,255,0.66)', dashed: true },
+  ];
 
   const maxBar = Math.max(...bars.flatMap((b) => b.values));
   const leftMax = Math.ceil((maxBar * 1.05) / 100) * 100;
@@ -97,7 +99,7 @@ export function dualAxisBarLineAdapter(spec: DualAxisBarLineSpec): EChartsOption
         barWidth: 20,
         barGap: '30%',
         z: 2,
-        itemStyle: { color: BAR_COLORS[i % BAR_COLORS.length], borderRadius: [5, 5, 0, 0] as any },
+        itemStyle: { color: barColors[i % barColors.length], borderRadius: [5, 5, 0, 0] as any },
         label: {
           show: true,
           position: 'top' as const,
@@ -114,7 +116,7 @@ export function dualAxisBarLineAdapter(spec: DualAxisBarLineSpec): EChartsOption
         data: b.values,
       })),
       ...lines.map((l, i) => {
-        const st = LINE_STYLES[i % LINE_STYLES.length];
+        const st = lineStyles[i % lineStyles.length];
         return {
           name: l.name,
           type: 'line' as const,
