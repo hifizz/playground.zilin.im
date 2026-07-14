@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Highlighter, RotateCcw, Sparkles } from "lucide-react";
+import { ArrowLeft, Check, Pencil, RotateCw, Sparkles, Trash2, X } from "lucide-react";
 import {
   clearHighlights,
   describeRange,
@@ -16,239 +16,86 @@ import {
 
 /**
  * ============================================================================
- * Highlight Recovery · 研究页
+ * Highlight Recovery · 研究页（浅色 · 阅读高亮）
  * ============================================================================
- * 「保存一段网页高亮，等页面重渲染 / 空白重排 / 内容被编辑之后，还能把它找回来。」
+ * 讲一个日常故事：你在读一篇笔记，把重要的句子划出来。之后这篇笔记被编辑、
+ * 被重新排版、你刷新了页面——你的高亮还在，而且贴在正确的文字上。
  *
- * 算法见 ./anchor-core.ts（纯字符串三层降级：position → exact → fuzzy）与
- * ./anchor.ts（Range ↔ 偏移的 DOM 胶水）。抽象自 chat-aside 浏览器插件的
- * Mark & Note 高亮恢复。
- *
- * 玩法：在下方文档里划词 → 存为高亮 → 点各种「页面漂移」按钮打乱文档 →
- * 点「恢复高亮」看每条锚点用哪一层命中（position / exact / fuzzy / 丢失）。
+ * 秘诀：高亮存的是「你划了哪句话」（引用文本 + 前后上下文 + 字符偏移），
+ * 不是「它在 DOM 的第几个节点」。恢复时三层降级 position → exact → fuzzy。
+ * 算法见 ./anchor-core.ts 与 ./anchor.ts，抽象自 chat-aside 插件。
  * ============================================================================
  */
 
 /* -------------------------------------------------------------------------- */
-/* 文档模型                                                                     */
+/* 文档                                                                        */
 /* -------------------------------------------------------------------------- */
 
-interface Message {
-  id: string;
-  role: "user" | "assistant";
-  text: string;
-}
-
-const ORIGINAL: Message[] = [
-  {
-    id: "m1",
-    role: "user",
-    text: "How does retrieval augmented generation actually keep an LLM factual?",
-  },
-  {
-    id: "m2",
-    role: "assistant",
-    text:
-      "Retrieval augmented generation grounds the model in real documents: before answering, it fetches relevant passages and feeds them into the prompt as context.\n" +
-      "So instead of relying on frozen weights, the model quotes fresh source material — which is exactly why the citations line up with reality.",
-  },
-  {
-    id: "m3",
-    role: "user",
-    text: "And if the page text shifts around later, how do you find a saved highlight again?",
-  },
-  {
-    id: "m4",
-    role: "assistant",
-    text:
-      "You store a text anchor, not a DOM path. Fuzzy matching survives minor edits to the source text: first try the exact quote with `prefix`/`suffix` context, then fall back to approximate substring search when a few words changed.\n" +
-      "Because the anchor is plain text plus offsets, it keeps working even after the whole component re-renders.",
-  },
+const ORIGINAL_NOTE = [
+  "我们读得越来越多，却记得越来越少。信息像水一样流过，留下的痕迹很浅。",
+  "一个朴素但有效的办法是主动标记：读到打动你的句子，就把它划出来。划线这个动作本身，就是在告诉大脑「这里重要」。",
+  "但光划线不够。真正让记忆变牢的，是隔一段时间再回来看一眼。所以你需要一个能把这些高亮长期存下来、随时找回来的地方。",
+  "难点在于网页会变：文章可能被编辑、被重新排版，甚至整段重写。如果高亮记的是「第几个标签第几个字」，页面一变就全乱了。更稳的做法，是记住你划了哪句话，而不是它在页面里的位置。",
 ];
 
-/** 演示用的种子高亮短语（保证「编辑」变换会命中它们 → 触发 fuzzy）。 */
-const SEED_PHRASES = [
-  "Retrieval augmented generation grounds the model in real documents",
-  "Fuzzy matching survives minor edits to the source text",
+/** 一进页面就带的两条示例高亮，让「编辑后跟随」立刻可玩。 */
+const SEED_PHRASES = ["读到打动你的句子，就把它划出来", "隔一段时间再回来看一眼"];
+
+/** 一键「换种说法」——模拟文章被编辑/重写，让高亮走 fuzzy 恢复。 */
+const REWRITTEN_NOTE = [
+  "现代人读得越来越多，可真正记住的越来越少。信息像流水一样淌过，留下的痕迹其实很浅。",
+  "一个简单却管用的习惯是主动做标记：读到打动你的句子，就顺手把它划出来。划线这个动作本身，就是在提醒大脑「注意，这里很重要」。",
+  "不过只靠划线还不够。真正让记忆扎根的，是隔一段时间再回来看一眼。因此你需要一个地方，能把这些高亮长期保存、随时找回来。",
+  "麻烦的是网页总在变：文章会被编辑、会重新排版，有时甚至整段推倒重写。要是高亮记的是「第几个标签第几个字」，页面一变就全错位了。更稳妥的办法，是记住你到底划了哪句话，而不是它当时待在页面的哪个位置。",
 ];
 
 /* -------------------------------------------------------------------------- */
-/* 高亮配色                                                                     */
+/* 荧光笔配色（浅色底，像真的马克笔）                                            */
 /* -------------------------------------------------------------------------- */
 
-const COLORS = [
-  "rgba(251, 191, 36, 0.38)", // amber
-  "rgba(56, 189, 248, 0.38)", // sky
-  "rgba(167, 139, 250, 0.40)", // violet
-  "rgba(52, 211, 153, 0.38)", // emerald
-  "rgba(251, 113, 133, 0.38)", // rose
+const MARKERS = [
+  { key: "yellow", label: "黄", paint: "rgba(253, 224, 71, 0.55)", dot: "#facc15" },
+  { key: "green", label: "绿", paint: "rgba(134, 239, 172, 0.6)", dot: "#4ade80" },
+  { key: "pink", label: "粉", paint: "rgba(249, 168, 212, 0.55)", dot: "#f472b6" },
+  { key: "blue", label: "蓝", paint: "rgba(147, 197, 253, 0.6)", dot: "#60a5fa" },
 ];
 
-interface SavedHighlight {
+interface Highlight {
   id: string;
   anchor: TextAnchor;
   color: string;
 }
 
-/** 一条高亮上次恢复的结果，供状态列表展示。 */
-type LocateStatus = { strategy: LocateStrategy; score: number } | "lost";
-
-const STRATEGY_META: Record<
-  LocateStrategy | "lost",
-  { label: string; className: string; desc: string }
-> = {
-  position: {
-    label: "position",
-    className: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30",
-    desc: "偏移直击，页面未变",
-  },
-  exact: {
-    label: "exact",
-    className: "bg-sky-500/15 text-sky-300 ring-sky-500/30",
-    desc: "精确引用 + 上下文消歧",
-  },
-  fuzzy: {
-    label: "fuzzy",
-    className: "bg-amber-500/15 text-amber-300 ring-amber-500/30",
-    desc: "近似匹配，文本被改过",
-  },
-  lost: {
-    label: "lost",
-    className: "bg-rose-500/15 text-rose-300 ring-rose-500/30",
-    desc: "相似度过低，判定丢失",
-  },
-};
+type Status = { strategy: LocateStrategy; score: number } | "lost";
 
 /* -------------------------------------------------------------------------- */
-/* 文档变换（模拟真实世界的文本漂移）                                            */
+/* 文本 → 安全 HTML（换行 → <br>，textContent 与原文一致以保证偏移坐标稳定）      */
 /* -------------------------------------------------------------------------- */
 
-type Mutation = {
-  key: string;
-  label: string;
-  hint: string;
-  apply: (docs: Message[]) => Message[];
-};
-
-const MUTATIONS: Mutation[] = [
-  {
-    key: "remount",
-    label: "重新渲染",
-    hint: "文本不变、DOM 重建 → position 命中",
-    apply: (docs) => docs.map((m) => ({ ...m })),
-  },
-  {
-    key: "reflow",
-    label: "空白重排",
-    hint: "折叠/增删空白，偏移错位 → exact 命中",
-    apply: (docs) =>
-      docs.map((m) => ({
-        ...m,
-        text: m.text.replace(/\. /g, ".  ").replace(/, /g, ",\n"),
-      })),
-  },
-  {
-    key: "prepend",
-    label: "顶部插段",
-    hint: "前面插入新内容，全局偏移平移 → exact 命中",
-    apply: (docs) => [
-      {
-        id: "injected",
-        role: "assistant" as const,
-        text: "(A brand new summary paragraph was inserted at the very top of the thread.)",
-      },
-      ...docs,
-    ],
-  },
-  {
-    key: "edit",
-    label: "改写正文",
-    hint: "在高亮内部换词/增词/改标点 → 精确搜不到 → fuzzy 命中",
-    apply: (docs) =>
-      docs.map((m) => ({
-        ...m,
-        text: m.text
-          .replace(
-            "grounds the model in real documents",
-            "anchors the model to real, cited source documents",
-          )
-          .replace(
-            "Fuzzy matching survives minor edits to the source text",
-            "Fuzzy matching still survives small edits to the source text",
-          )
-          .replace("fetches relevant passages", "pulls in the relevant passages"),
-      })),
-  },
-  {
-    key: "gut",
-    label: "大幅删改",
-    hint: "删掉整句，超出相似度阈值 → 判定丢失",
-    apply: (docs) =>
-      docs.map((m) =>
-        m.id === "m2"
-          ? {
-              ...m,
-              text: "RAG basically means the model reads some documents before it answers. That's the whole idea.",
-            }
-          : m,
-      ),
-  },
-];
-
-/* -------------------------------------------------------------------------- */
-/* 内联渲染：把纯文本安全转成 HTML（backtick → <code>，换行 → <br>）             */
-/* textContent 与原文一致，保证偏移坐标系稳定。                                  */
-/* -------------------------------------------------------------------------- */
-
-function renderInline(text: string): string {
-  const escape = (s: string) =>
-    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+function toHtml(text: string): string {
   return text
-    .split("\n")
-    .map((line) =>
-      line
-        .split(/(`[^`]+`)/g)
-        .map((part) =>
-          part.startsWith("`") && part.endsWith("`")
-            ? `<code class="rounded bg-white/10 px-1 py-0.5 text-[0.85em] text-sky-200">${escape(
-                part.slice(1, -1),
-              )}</code>`
-            : escape(part),
-        )
-        .join(""),
-    )
-    .join("<br>");
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\n/g, "<br>");
 }
 
-/**
- * 文档主体。用 React.memo + 只依赖 docs：状态/高亮/浮标变化时不重渲染，
- * 手动插入的高亮 <span> 才不会被 React 重设 innerHTML 抹掉；docs 变化时才重建，
- * 之后由 paint effect 重绘。
- */
-const Transcript = React.memo(function Transcript({
-  docs,
+/** 笔记正文。React.memo + 只依赖 note/mountKey：其它状态变化不重渲染，手绘高亮 span 不被抹掉。 */
+const NoteBody = React.memo(function NoteBody({
+  paragraphs,
   innerRef,
 }: {
-  docs: Message[];
+  paragraphs: string[];
   innerRef: React.Ref<HTMLDivElement>;
 }) {
   return (
-    <div
-      ref={innerRef}
-      className="select-text space-y-4 rounded-xl border border-white/10 bg-white/[0.02] p-5 text-[15px] leading-7"
-    >
-      {docs.map((m) => (
-        <div key={m.id} className="flex flex-col gap-1">
-          <span className="text-[11px] font-medium text-slate-500">
-            {m.role === "user" ? "You" : "Assistant"}
-          </span>
-          <div
-            className={`rounded-lg px-3.5 py-2.5 ${
-              m.role === "user" ? "bg-sky-500/[0.07] text-slate-200" : "bg-white/[0.03] text-slate-300"
-            }`}
-            dangerouslySetInnerHTML={{ __html: renderInline(m.text) }}
-          />
-        </div>
+    <div ref={innerRef} className="hlr-note space-y-4">
+      {paragraphs.map((p, i) => (
+        <p
+          key={i}
+          className="text-[15px] leading-[1.9] text-neutral-700 dark:text-neutral-300"
+          dangerouslySetInnerHTML={{ __html: toHtml(p) }}
+        />
       ))}
     </div>
   );
@@ -262,60 +109,76 @@ let idSeq = 0;
 const nextId = () => `hl-${++idSeq}`;
 
 export default function HighlightRecoveryPage() {
-  const docRef = useRef<HTMLDivElement>(null);
-  const [docs, setDocs] = useState<Message[]>(ORIGINAL);
-  const [highlights, setHighlights] = useState<SavedHighlight[]>([]);
-  const [statuses, setStatuses] = useState<Record<string, LocateStatus>>({});
+  const noteRef = useRef<HTMLDivElement>(null);
+  const [paragraphs, setParagraphs] = useState<string[]>(ORIGINAL_NOTE);
+  const [highlights, setHighlights] = useState<Highlight[]>([]);
+  const [statuses, setStatuses] = useState<Record<string, Status>>({});
   const [renderVersion, setRenderVersion] = useState(0);
-  const [lastMutation, setLastMutation] = useState<string | null>(null);
+  const [mountKey, setMountKey] = useState(0);
   const [pending, setPending] = useState<{ rect: DOMRect; anchor: TextAnchor } | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [reloading, setReloading] = useState(false);
+  const [flash, setFlash] = useState<string | null>(null); // 描述本轮变化，触发提示条
 
-  // 用 ref 镜像最新 highlights，让重绘副作用不必把 highlights 列进依赖（否则会自触发死循环）。
-  const highlightsRef = useRef(highlights);
-  highlightsRef.current = highlights;
+  const flashSpansRef = useRef(false); // 本次重绘后是否给高亮做一次「亮一下」动画
 
-  // 首帧种子高亮
+  /* -- 提交后重绘：清掉旧高亮，按锚点重新定位并绘制 ------------------------- */
   useEffect(() => {
-    const root = docRef.current;
+    if (editing) return; // 编辑态下正文是 textarea，不绘制
+    const root = noteRef.current;
+    if (!root) return;
+    clearHighlights(root);
+    const next: Record<string, Status> = {};
+    const paintedIds: string[] = [];
+    for (const hl of highlights) {
+      // 阈值放宽到 0.55：中文单字信息密度高，几个字的改动就压掉不少相似度，
+      // 对「阅读高亮」这种容忍编辑的场景，宁可近似恢复也别轻易判丢。
+      const located = locateAnchor(root, hl.anchor, { fuzzyThreshold: 0.55 });
+      if (located) {
+        paintRange(located.range, hl.id, hl.color);
+        next[hl.id] = { strategy: located.strategy, score: located.score };
+        paintedIds.push(hl.id);
+      } else {
+        next[hl.id] = "lost";
+      }
+    }
+    // 状态由「提交后读 DOM 重新定位」派生，只能在 effect 里回写；不构成级联循环
+    // （setStatuses 不改 highlights/paragraphs 等依赖）。
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setStatuses(next);
+
+    if (flashSpansRef.current) {
+      flashSpansRef.current = false;
+      pulse(root, paintedIds);
+    }
+  }, [renderVersion, paragraphs, mountKey, editing, highlights]);
+
+  /* -- 首帧种子高亮 ------------------------------------------------------- */
+  useEffect(() => {
+    const root = noteRef.current;
     if (!root) return;
     const text = getRootText(root);
-    const seeds: SavedHighlight[] = [];
+    const seeds: Highlight[] = [];
     SEED_PHRASES.forEach((phrase, i) => {
       const idx = text.indexOf(phrase);
       if (idx === -1) return;
       const range = rangeFromOffsets(root, idx, idx + phrase.length);
       if (!range) return;
       const anchor = describeRange(root, range);
-      if (!anchor) return;
-      seeds.push({ id: nextId(), anchor, color: COLORS[i % COLORS.length] });
+      if (anchor) seeds.push({ id: nextId(), anchor, color: MARKERS[i % MARKERS.length].paint });
     });
+    // 种子高亮需先挂载测量 DOM 再回写，属于合理的提交后初始化。
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setHighlights(seeds);
     setRenderVersion((v) => v + 1);
   }, []);
 
-  // 文档或高亮集合变化 → 提交后重绘（副作用放在 effect 里，不放进 setState updater）。
-  useEffect(() => {
-    const root = docRef.current;
-    if (!root) return;
-    clearHighlights(root);
-    const next: Record<string, LocateStatus> = {};
-    for (const hl of highlightsRef.current) {
-      const located = locateAnchor(root, hl.anchor);
-      if (located) {
-        paintRange(located.range, hl.id, hl.color);
-        next[hl.id] = { strategy: located.strategy, score: located.score };
-      } else {
-        next[hl.id] = "lost";
-      }
-    }
-    setStatuses(next);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [renderVersion, docs]);
-
-  // 选区监听：出现「＋ 高亮」浮标
+  /* -- 选区 → 荧光笔浮标 -------------------------------------------------- */
   useEffect(() => {
     const onSelect = () => {
-      const root = docRef.current;
+      if (editing) return;
+      const root = noteRef.current;
       const sel = window.getSelection();
       if (!root || !sel || sel.isCollapsed || sel.rangeCount === 0) {
         setPending(null);
@@ -331,211 +194,363 @@ export default function HighlightRecoveryPage() {
         setPending(null);
         return;
       }
-      const rect = range.getBoundingClientRect();
-      setPending({ rect, anchor });
+      setPending({ rect: range.getBoundingClientRect(), anchor });
     };
     document.addEventListener("selectionchange", onSelect);
     return () => document.removeEventListener("selectionchange", onSelect);
+  }, [editing]);
+
+  const addHighlight = useCallback(
+    (color: string) => {
+      if (!pending) return;
+      setHighlights((prev) => [...prev, { id: nextId(), anchor: pending.anchor, color }]);
+      setRenderVersion((v) => v + 1);
+      window.getSelection()?.removeAllRanges();
+      setPending(null);
+    },
+    [pending],
+  );
+
+  const removeHighlight = useCallback((id: string) => {
+    const root = noteRef.current;
+    if (root) clearHighlights(root, id);
+    setHighlights((prev) => prev.filter((h) => h.id !== id));
+    setStatuses((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+    setRenderVersion((v) => v + 1);
   }, []);
 
-  const addPending = useCallback(() => {
-    if (!pending) return;
-    setHighlights((prev) => [
-      ...prev,
-      { id: nextId(), anchor: pending.anchor, color: COLORS[prev.length % COLORS.length] },
-    ]);
-    setRenderVersion((v) => v + 1);
-    window.getSelection()?.removeAllRanges();
-    setPending(null);
-  }, [pending]);
+  const focusHighlight = useCallback((id: string) => {
+    const root = noteRef.current;
+    if (!root) return;
+    const span = root.querySelector(`span[data-hlr-mark="${cssEscape(id)}"]`) as HTMLElement | null;
+    if (!span) return;
+    span.scrollIntoView({ behavior: "smooth", block: "center" });
+    pulse(root, [id]);
+  }, []);
 
-  const runMutation = useCallback((m: Mutation) => {
-    setDocs((prev) => m.apply(prev));
-    setLastMutation(m.key);
+  /* -- 三个核心动作 ------------------------------------------------------ */
+
+  // 1) 刷新页面：清空高亮 + 重挂正文（模拟真实 reload），随后自动恢复并亮一下。
+  const reloadPage = useCallback(() => {
+    const root = noteRef.current;
+    if (root) clearHighlights(root);
+    setReloading(true);
+    flashSpansRef.current = true;
+    setMountKey((k) => k + 1);
+    setFlash("刷新后，高亮自动回到了原来的句子上。");
+    window.setTimeout(() => setReloading(false), 420);
+  }, []);
+
+  // 2) 编辑：进入 textarea 编辑态。
+  const startEdit = useCallback(() => {
+    setDraft(paragraphs.join("\n\n"));
+    setPending(null);
+    setEditing(true);
+  }, [paragraphs]);
+
+  const saveEdit = useCallback(() => {
+    const next = draft
+      .split(/\n{2,}/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    setParagraphs(next.length ? next : [""]);
+    setEditing(false);
+    flashSpansRef.current = true;
+    setRenderVersion((v) => v + 1);
+    setFlash("内容改了，高亮跟着走——精确对不上的用近似匹配找回。");
+  }, [draft]);
+
+  // 一键「换种说法」：把整篇替换成同义改写版，演示大范围编辑后的 fuzzy 恢复。
+  const rewriteNote = useCallback(() => {
+    setParagraphs(REWRITTEN_NOTE);
+    flashSpansRef.current = true;
+    setRenderVersion((v) => v + 1);
+    setFlash("整篇被改写成另一种说法，高亮靠近似匹配贴了回去。");
   }, []);
 
   const reset = useCallback(() => {
-    setDocs(ORIGINAL.map((m) => ({ ...m })));
-    setLastMutation(null);
-  }, []);
-
-  const removeHighlight = useCallback((id: string) => {
-    const root = docRef.current;
-    if (root) clearHighlights(root, id);
-    setHighlights((prev) => prev.filter((h) => h.id !== id));
+    setParagraphs(ORIGINAL_NOTE);
+    setEditing(false);
     setRenderVersion((v) => v + 1);
+    setFlash(null);
   }, []);
 
-  const summary = useMemo(() => {
-    const counts = { position: 0, exact: 0, fuzzy: 0, lost: 0 };
-    highlights.forEach((h) => {
-      const st = statuses[h.id];
-      if (st === "lost") counts.lost++;
-      else if (st) counts[st.strategy]++;
-    });
-    return counts;
-  }, [highlights, statuses]);
+  const recovered = useMemo(
+    () => highlights.filter((h) => statuses[h.id] && statuses[h.id] !== "lost").length,
+    [highlights, statuses],
+  );
 
   return (
-    <div className="min-h-screen bg-[#0a0e17] text-slate-200">
+    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
+      <style>{FLASH_CSS}</style>
+
       {/* 顶栏 */}
-      <header className="sticky top-0 z-20 border-b border-white/5 bg-[#0a0e17]/80 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-3">
+      <header className="border-b border-neutral-200 bg-white/70 backdrop-blur dark:border-neutral-800 dark:bg-neutral-950/70">
+        <div className="mx-auto flex max-w-4xl items-center justify-between px-5 py-3">
           <Link
             href="/"
-            className="flex items-center gap-2 text-sm text-slate-400 transition hover:text-slate-200"
+            className="flex items-center gap-1.5 text-sm text-neutral-500 transition hover:text-neutral-800 dark:hover:text-neutral-200"
           >
             <ArrowLeft size={16} /> 返回
           </Link>
-          <div className="flex items-center gap-2 text-sm font-medium text-slate-300">
-            <Highlighter size={16} className="text-amber-300" /> Highlight Recovery
-          </div>
+          <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+            高亮的模糊恢复
+          </span>
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-5 py-8">
-        {/* 说明 */}
+      <main className="mx-auto max-w-4xl px-5 py-10">
         <div className="mb-8">
-          <h1 className="mb-2 text-2xl font-semibold text-slate-100">网页高亮的模糊恢复</h1>
-          <p className="max-w-2xl text-sm leading-relaxed text-slate-400">
-            存的是<strong className="text-slate-200">文本锚点</strong>（引用文本 + 前后上下文 +
-            字符偏移），而不是 DOM 路径。恢复时三层降级：
-            <Badge s="position" /> 偏移直击 → <Badge s="exact" /> 精确引用 + 上下文消歧 →{" "}
-            <Badge s="fuzzy" /> 近似子串匹配。在下方划词存高亮，再点各种「页面漂移」，看它怎么被找回来。
+          <h1 className="mb-2 text-2xl font-semibold text-neutral-900 dark:text-neutral-100">
+            划出来的重点，怎么在页面变了之后还找得回？
+          </h1>
+          <p className="max-w-2xl text-sm leading-relaxed text-neutral-500 dark:text-neutral-400">
+            选中下面的句子把它划成高亮。然后<span className="font-medium text-neutral-700 dark:text-neutral-300">编辑这篇笔记</span>、或
+            <span className="font-medium text-neutral-700 dark:text-neutral-300">刷新页面</span>——你会看到高亮依然贴在正确的文字上。
+            因为它存的是「你划了哪句话」，不是它在 DOM 里的位置。
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_300px]">
-          {/* 文档 */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_260px]">
+          {/* 笔记卡片 */}
           <section>
+            {/* 工具条 */}
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              {MUTATIONS.map((m) => (
-                <button
-                  key={m.key}
-                  onClick={() => runMutation(m)}
-                  title={m.hint}
-                  className={`rounded-md border px-3 py-1.5 text-xs font-medium transition ${
-                    lastMutation === m.key
-                      ? "border-amber-400/40 bg-amber-400/10 text-amber-200"
-                      : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-white/20 hover:bg-white/[0.06]"
-                  }`}
-                >
-                  {m.label}
-                </button>
-              ))}
-              <button
-                onClick={reset}
-                className="ml-auto flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:border-white/20 hover:bg-white/[0.06]"
-              >
-                <RotateCcw size={13} /> 重置
-              </button>
+              {!editing ? (
+                <>
+                  <ToolbarButton onClick={startEdit} icon={<Pencil size={14} />}>
+                    编辑这篇笔记
+                  </ToolbarButton>
+                  <ToolbarButton onClick={reloadPage} icon={<RotateCw size={14} />}>
+                    刷新页面
+                  </ToolbarButton>
+                  <ToolbarButton onClick={rewriteNote} icon={<Sparkles size={14} />}>
+                    换种说法
+                  </ToolbarButton>
+                  <button
+                    onClick={reset}
+                    className="ml-auto text-xs text-neutral-400 transition hover:text-neutral-600 dark:hover:text-neutral-300"
+                  >
+                    重置
+                  </button>
+                </>
+              ) : (
+                <>
+                  <ToolbarButton onClick={saveEdit} icon={<Check size={14} />} primary>
+                    完成编辑
+                  </ToolbarButton>
+                  <ToolbarButton onClick={() => setEditing(false)} icon={<X size={14} />}>
+                    取消
+                  </ToolbarButton>
+                  <span className="text-xs text-neutral-400">改几个字试试，高亮会自己跟过去</span>
+                </>
+              )}
             </div>
 
-            {lastMutation && (
-              <p className="mb-3 flex items-center gap-1.5 text-xs text-amber-300/80">
-                <Sparkles size={12} />
-                {MUTATIONS.find((m) => m.key === lastMutation)?.hint}
-                <span className="text-slate-500">— 点右侧「恢复高亮」重新定位</span>
+            <div
+              className={`rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm transition-opacity duration-200 dark:border-neutral-800 dark:bg-neutral-900 ${
+                reloading ? "opacity-0" : "opacity-100"
+              }`}
+            >
+              <div className="mb-4 flex items-center gap-2 border-b border-neutral-100 pb-3 dark:border-neutral-800">
+                <span className="text-[13px] font-medium text-neutral-400">笔记</span>
+                <span className="text-[15px] font-semibold text-neutral-800 dark:text-neutral-100">
+                  如何记住你读过的东西
+                </span>
+              </div>
+
+              {editing ? (
+                <textarea
+                  autoFocus
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  className="h-72 w-full resize-none rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-[15px] leading-[1.9] text-neutral-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-300"
+                />
+              ) : (
+                <NoteBody key={mountKey} paragraphs={paragraphs} innerRef={noteRef} />
+              )}
+            </div>
+
+            {flash && !editing && (
+              <p className="mt-3 flex items-center gap-1.5 text-xs text-blue-500 dark:text-blue-400">
+                <Sparkles size={12} /> {flash}
               </p>
             )}
-
-            <Transcript docs={docs} innerRef={docRef} />
           </section>
 
-          {/* 侧栏：恢复 + 状态 */}
-          <aside className="space-y-4">
-            <button
-              onClick={() => setRenderVersion((v) => v + 1)}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-amber-400 px-4 py-2.5 text-sm font-semibold text-amber-950 transition hover:bg-amber-300"
-            >
-              <Highlighter size={16} /> 恢复高亮
-            </button>
-
-            <div className="grid grid-cols-4 gap-1.5 text-center">
-              {(["position", "exact", "fuzzy", "lost"] as const).map((s) => (
-                <div key={s} className="rounded-md border border-white/5 bg-white/[0.02] py-1.5">
-                  <div className="text-base font-semibold text-slate-100">{summary[s]}</div>
-                  <div className="text-[10px] text-slate-500">{STRATEGY_META[s].label}</div>
-                </div>
-              ))}
+          {/* 右栏：你的标记 */}
+          <aside>
+            <div className="mb-2 flex items-baseline justify-between">
+              <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                你的标记
+              </span>
+              {highlights.length > 0 && (
+                <span className="text-xs text-neutral-400">
+                  {recovered}/{highlights.length} 已恢复
+                </span>
+              )}
             </div>
 
             <div className="space-y-2">
               {highlights.length === 0 && (
-                <p className="rounded-lg border border-dashed border-white/10 px-3 py-6 text-center text-xs text-slate-500">
-                  在左侧文档里划词以创建高亮
+                <p className="rounded-xl border border-dashed border-neutral-200 px-3 py-8 text-center text-xs leading-relaxed text-neutral-400 dark:border-neutral-800">
+                  选中左边的句子
+                  <br />
+                  用荧光笔把它划出来
                 </p>
               )}
-              {highlights.map((hl) => {
-                const st = statuses[hl.id];
-                const meta =
-                  st === "lost" ? STRATEGY_META.lost : st ? STRATEGY_META[st.strategy] : null;
-                return (
-                  <div
-                    key={hl.id}
-                    className="group rounded-lg border border-white/10 bg-white/[0.02] p-2.5"
-                  >
-                    <div className="mb-1.5 flex items-center gap-2">
-                      <span
-                        className="h-3 w-3 shrink-0 rounded-sm"
-                        style={{ background: hl.color }}
-                      />
-                      {meta ? (
-                        <span
-                          className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${meta.className}`}
-                        >
-                          {meta.label}
-                          {st && st !== "lost" ? ` · ${(st.score * 100).toFixed(0)}%` : ""}
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-slate-500">未恢复</span>
-                      )}
-                      <button
-                        onClick={() => removeHighlight(hl.id)}
-                        className="ml-auto text-[10px] text-slate-600 opacity-0 transition hover:text-rose-300 group-hover:opacity-100"
-                      >
-                        删除
-                      </button>
-                    </div>
-                    <p className="line-clamp-2 text-xs leading-snug text-slate-400">
-                      “{hl.anchor.quote.exact}”
-                    </p>
-                    {meta && <p className="mt-1 text-[10px] text-slate-600">{meta.desc}</p>}
-                  </div>
-                );
-              })}
+              {highlights.map((hl) => (
+                <MarkRow
+                  key={hl.id}
+                  hl={hl}
+                  status={statuses[hl.id]}
+                  onFocus={() => focusHighlight(hl.id)}
+                  onRemove={() => removeHighlight(hl.id)}
+                />
+              ))}
             </div>
           </aside>
         </div>
       </main>
 
-      {/* 选区浮标 */}
-      {pending && (
-        <button
-          onMouseDown={(e) => {
-            e.preventDefault();
-            addPending();
-          }}
-          className="fixed z-30 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-amber-400 px-3 py-1.5 text-xs font-semibold text-amber-950 shadow-lg shadow-amber-500/30 transition hover:bg-amber-300"
-          style={{
-            left: pending.rect.left + pending.rect.width / 2,
-            top: pending.rect.top - 40,
-          }}
+      {/* 荧光笔浮标 */}
+      {pending && !editing && (
+        <div
+          className="fixed z-30 flex -translate-x-1/2 items-center gap-1 rounded-full border border-neutral-200 bg-white px-2 py-1.5 shadow-lg dark:border-neutral-700 dark:bg-neutral-800"
+          style={{ left: pending.rect.left + pending.rect.width / 2, top: pending.rect.top - 46 }}
+          onMouseDown={(e) => e.preventDefault()}
         >
-          <Highlighter size={13} /> 存为高亮
-        </button>
+          {MARKERS.map((m) => (
+            <button
+              key={m.key}
+              title={`${m.label}色高亮`}
+              onClick={() => addHighlight(m.paint)}
+              className="h-6 w-6 rounded-full border border-black/5 transition hover:scale-110"
+              style={{ background: m.dot }}
+            />
+          ))}
+        </div>
       )}
     </div>
   );
 }
 
-function Badge({ s }: { s: LocateStrategy }) {
-  const meta = STRATEGY_META[s];
+/* -------------------------------------------------------------------------- */
+/* 子组件与工具                                                                */
+/* -------------------------------------------------------------------------- */
+
+function ToolbarButton({
+  onClick,
+  icon,
+  children,
+  primary,
+}: {
+  onClick: () => void;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  primary?: boolean;
+}) {
   return (
-    <span
-      className={`mx-0.5 inline-block rounded px-1.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${meta.className}`}
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+        primary
+          ? "bg-blue-600 text-white hover:bg-blue-500"
+          : "border border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800"
+      }`}
     >
-      {meta.label}
-    </span>
+      {icon}
+      {children}
+    </button>
   );
 }
+
+function MarkRow({
+  hl,
+  status,
+  onFocus,
+  onRemove,
+}: {
+  hl: Highlight;
+  status?: Status;
+  onFocus: () => void;
+  onRemove: () => void;
+}) {
+  const info = describeStatus(status);
+  return (
+    <div className="group rounded-xl border border-neutral-200 bg-white p-2.5 transition hover:border-neutral-300 dark:border-neutral-800 dark:bg-neutral-900">
+      <button onClick={onFocus} className="block w-full text-left">
+        <span
+          className="mr-1.5 inline-block align-middle"
+          style={{
+            background: hl.color,
+            padding: "1px 4px",
+            borderRadius: 3,
+            boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.03)",
+          }}
+        >
+          <span className="line-clamp-2 align-middle text-xs leading-snug text-neutral-700 dark:text-neutral-200">
+            {hl.anchor.quote.exact}
+          </span>
+        </span>
+      </button>
+      <div className="mt-1.5 flex items-center gap-1.5">
+        <span className={`h-1.5 w-1.5 rounded-full ${info.dot}`} />
+        <span className={`text-[11px] ${info.text}`}>{info.label}</span>
+        <button
+          onClick={onRemove}
+          title="删除"
+          className="ml-auto text-neutral-300 opacity-0 transition hover:text-red-400 group-hover:opacity-100"
+        >
+          <Trash2 size={13} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function describeStatus(status?: Status): { label: string; dot: string; text: string } {
+  if (!status) return { label: "待恢复", dot: "bg-neutral-300", text: "text-neutral-400" };
+  if (status === "lost")
+    return { label: "内容改动过大，未找回", dot: "bg-red-400", text: "text-red-500" };
+  if (status.strategy === "fuzzy")
+    return {
+      label: `内容有改动，近似恢复 · ${Math.round(status.score * 100)}%`,
+      dot: "bg-amber-400",
+      text: "text-amber-600 dark:text-amber-500",
+    };
+  return { label: "已恢复", dot: "bg-emerald-400", text: "text-emerald-600 dark:text-emerald-500" };
+}
+
+function pulse(root: Element, ids: string[]) {
+  ids.forEach((id) => {
+    root.querySelectorAll(`span[data-hlr-mark="${cssEscape(id)}"]`).forEach((el) => {
+      const span = el as HTMLElement;
+      span.classList.remove("hlr-flash");
+      void span.offsetWidth; // 重启动画
+      span.classList.add("hlr-flash");
+      span.addEventListener("animationend", () => span.classList.remove("hlr-flash"), {
+        once: true,
+      });
+    });
+  });
+}
+
+function cssEscape(value: string): string {
+  if (typeof CSS !== "undefined" && typeof CSS.escape === "function") return CSS.escape(value);
+  return value.replace(/"/g, '\\"');
+}
+
+const FLASH_CSS = `
+.hlr-note ::selection { background: rgba(253, 224, 71, 0.4); }
+@keyframes hlrPulse {
+  0% { filter: none; }
+  25% { filter: brightness(1.15) saturate(1.5); }
+  100% { filter: none; }
+}
+.hlr-flash { animation: hlrPulse 900ms ease-out; border-radius: 3px; }
+`;

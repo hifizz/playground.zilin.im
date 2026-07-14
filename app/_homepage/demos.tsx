@@ -377,7 +377,7 @@ export const demos: DemoEntry[] = [
   {
     title: "Highlight Recovery · 高亮模糊恢复",
     description:
-      "存文本锚点（引用文本 + 前后上下文 + 字符偏移）而非 DOM 路径：页面重渲染 / 空白重排 / 内容被编辑后，三层降级 position→exact→fuzzy 找回高亮，fuzzy 用近似子串匹配给出相似度。抽象自 chat-aside 插件。",
+      "荧光笔划出重点，再编辑正文 / 刷新页面，高亮依然贴在正确的文字上。存的是文本锚点（引用文本 + 前后上下文 + 字符偏移）而非 DOM 路径，三层降级 position→exact→fuzzy 找回；改动过则近似匹配并给相似度。抽象自 chat-aside 插件。",
     route: "/highlight-recovery",
     category: "Explored Demo",
     tags: ["Selection", "Anchor", "Fuzzy Match"],
