@@ -1,0 +1,125 @@
+<svg width="880" height="600" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" baseProfile="full" viewBox="0 0 880 600">
+<rect width="880" height="600" x="0" y="0" fill="#0d0d0f"></rect>
+<path d="M50.5 40A2.5 2.5 0 0 1 53 42.5L53 59.5A2.5 2.5 0 0 1 50.5 62A2.5 2.5 0 0 1 48 59.5L48 42.5A2.5 2.5 0 0 1 50.5 40" fill="#FF6B1A" class="zr4-cls-20"></path>
+<text dominant-baseline="central" text-anchor="start" style="font-size:21px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;font-weight:700;" xml:space="preserve" y="10.5" transform="translate(65 41)" fill="rgb(255,255,255)" fill-opacity="0.92">年度财务表 FY2021-FY2025</text>
+<text dominant-baseline="central" text-anchor="start" style="font-size:11.5px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;" xml:space="preserve" y="5.75" transform="translate(711.825 50)" fill="rgb(255,255,255)" fill-opacity="0.38">左轴：亿元 · 右轴：%</text>
+<path d="M58 544.5L814 544.5" fill="none" pointer-events="visible" stroke="rgb(255,255,255)" stroke-opacity="0.08" class="zr4-cls-21"></path>
+<path d="M58 445.5L814 445.5" fill="none" pointer-events="visible" stroke="rgb(255,255,255)" stroke-opacity="0.08" class="zr4-cls-21"></path>
+<path d="M58 346.5L814 346.5" fill="none" pointer-events="visible" stroke="rgb(255,255,255)" stroke-opacity="0.08" class="zr4-cls-21"></path>
+<path d="M58 247.5L814 247.5" fill="none" pointer-events="visible" stroke="rgb(255,255,255)" stroke-opacity="0.08" class="zr4-cls-21"></path>
+<path d="M58 148.5L814 148.5" fill="none" pointer-events="visible" stroke="rgb(255,255,255)" stroke-opacity="0.08" class="zr4-cls-21"></path>
+<text dominant-baseline="central" text-anchor="start" style="font-size:11px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;" transform="translate(822 544)" fill="rgb(255,255,255)" fill-opacity="0.38">0%</text>
+<text dominant-baseline="central" text-anchor="start" style="font-size:11px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;" transform="translate(822 445)" fill="rgb(255,255,255)" fill-opacity="0.38">20%</text>
+<text dominant-baseline="central" text-anchor="start" style="font-size:11px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;" transform="translate(822 346)" fill="rgb(255,255,255)" fill-opacity="0.38">40%</text>
+<text dominant-baseline="central" text-anchor="start" style="font-size:11px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;" transform="translate(822 247)" fill="rgb(255,255,255)" fill-opacity="0.38">60%</text>
+<text dominant-baseline="central" text-anchor="start" style="font-size:11px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;" transform="translate(822 148)" fill="rgb(255,255,255)" fill-opacity="0.38">80%</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:12.5px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;" y="6.25" transform="translate(133.6 556)" fill="rgb(255,255,255)" fill-opacity="0.62">FY2021</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:12.5px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;" y="6.25" transform="translate(284.8 556)" fill="rgb(255,255,255)" fill-opacity="0.62">FY2022</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:12.5px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;" y="6.25" transform="translate(436 556)" fill="rgb(255,255,255)" fill-opacity="0.62">FY2023</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:12.5px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;" y="6.25" transform="translate(587.2 556)" fill="rgb(255,255,255)" fill-opacity="0.62">FY2024</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:12.5px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;" y="6.25" transform="translate(738.4 556)" fill="rgb(255,255,255)" fill-opacity="0.62">FY2025</text>
+<path d="M115.6 499.5L125.6 499.5A5 5 0 0 1 130.6 504.5L130.6 544L110.6 544L110.6 504.5A5 5 0 0 1 115.6 499.5" fill="#FF6B1A" ecmeta_series_index="0" ecmeta_data_index="0" ecmeta_ssr_type="chart" class="zr4-cls-20"></path>
+<path d="M266.8 498.3L276.8 498.3A5 5 0 0 1 281.8 503.3L281.8 544L261.8 544L261.8 503.3A5 5 0 0 1 266.8 498.3" fill="#FF6B1A" ecmeta_series_index="0" ecmeta_data_index="1" ecmeta_ssr_type="chart" class="zr4-cls-20"></path>
+<path d="M418 481.6L428 481.6A5 5 0 0 1 433 486.6L433 544L413 544L413 486.6A5 5 0 0 1 418 481.6" fill="#FF6B1A" ecmeta_series_index="0" ecmeta_data_index="2" ecmeta_ssr_type="chart" class="zr4-cls-20"></path>
+<path d="M569.2 414.9L579.2 414.9A5 5 0 0 1 584.2 419.9L584.2 544L564.2 544L564.2 419.9A5 5 0 0 1 569.2 414.9" fill="#FF6B1A" ecmeta_series_index="0" ecmeta_data_index="3" ecmeta_ssr_type="chart" class="zr4-cls-20"></path>
+<path d="M720.4 176.5L730.4 176.5A5 5 0 0 1 735.4 181.5L735.4 544L715.4 544L715.4 181.5A5 5 0 0 1 720.4 176.5" fill="#FF6B1A" ecmeta_series_index="0" ecmeta_data_index="4" ecmeta_ssr_type="chart" class="zr4-cls-20"></path>
+<path d="M141.6 535.6L151.6 535.6A5 5 0 0 1 156.6 540.6L156.6 544L136.6 544L136.6 540.6A5 5 0 0 1 141.6 535.6" fill="#C97B4A" ecmeta_series_index="1" ecmeta_data_index="0" ecmeta_ssr_type="chart" class="zr4-cls-22"></path>
+<path d="M292.6 539.2L303 539.2A4.8 4.8 0 0 1 307.8 544L287.8 544A4.8 4.8 0 0 1 292.6 539.2" fill="#C97B4A" ecmeta_series_index="1" ecmeta_data_index="1" ecmeta_ssr_type="chart" class="zr4-cls-22"></path>
+<path d="M444 533.1L454 533.1A5 5 0 0 1 459 538.1L459 544L439 544L439 538.1A5 5 0 0 1 444 533.1" fill="#C97B4A" ecmeta_series_index="1" ecmeta_data_index="2" ecmeta_ssr_type="chart" class="zr4-cls-22"></path>
+<path d="M595.2 513.3L605.2 513.3A5 5 0 0 1 610.2 518.3L610.2 544L590.2 544L590.2 518.3A5 5 0 0 1 595.2 513.3" fill="#C97B4A" ecmeta_series_index="1" ecmeta_data_index="3" ecmeta_ssr_type="chart" class="zr4-cls-22"></path>
+<path d="M746.4 414.9L756.4 414.9A5 5 0 0 1 761.4 419.9L761.4 544L741.4 544L741.4 419.9A5 5 0 0 1 746.4 414.9" fill="#C97B4A" ecmeta_series_index="1" ecmeta_data_index="4" ecmeta_ssr_type="chart" class="zr4-cls-22"></path>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;font-weight:600;" y="-5.5" transform="translate(120.6 493.549)" fill="rgb(255,255,255)" fill-opacity="0.92" stroke="#0d0d0f" stroke-width="2.5" paint-order="stroke" stroke-miterlimit="2">44.9</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;font-weight:600;" y="-5.5" transform="translate(271.8 492.262)" fill="rgb(255,255,255)" fill-opacity="0.92" stroke="#0d0d0f" stroke-width="2.5" paint-order="stroke" stroke-miterlimit="2">46.2</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;font-weight:600;" y="-5.5" transform="translate(423 475.63)" fill="rgb(255,255,255)" fill-opacity="0.92" stroke="#0d0d0f" stroke-width="2.5" paint-order="stroke" stroke-miterlimit="2">63</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;font-weight:600;" y="-5.5" transform="translate(574.2 408.904)" fill="rgb(255,255,255)" fill-opacity="0.92" stroke="#0d0d0f" stroke-width="2.5" paint-order="stroke" stroke-miterlimit="2">130.4</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;font-weight:600;" y="-5.5" transform="translate(725.4 170.512)" fill="rgb(255,255,255)" fill-opacity="0.92" stroke="#0d0d0f" stroke-width="2.5" paint-order="stroke" stroke-miterlimit="2">371.2</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;font-weight:400;" y="-5.5" transform="translate(146.6 529.585)" fill="rgb(255,255,255)" fill-opacity="0.62" stroke="#0d0d0f" stroke-width="2.5" paint-order="stroke" stroke-miterlimit="2">8.5</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;font-weight:400;" y="-5.5" transform="translate(297.8 533.248)" fill="rgb(255,255,255)" fill-opacity="0.62" stroke="#0d0d0f" stroke-width="2.5" paint-order="stroke" stroke-miterlimit="2">4.8</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;font-weight:400;" y="-5.5" transform="translate(449 527.11)" fill="rgb(255,255,255)" fill-opacity="0.62" stroke="#0d0d0f" stroke-width="2.5" paint-order="stroke" stroke-miterlimit="2">11</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;font-weight:400;" y="-5.5" transform="translate(600.2 507.31)" fill="rgb(255,255,255)" fill-opacity="0.62" stroke="#0d0d0f" stroke-width="2.5" paint-order="stroke" stroke-miterlimit="2">31</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:11px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;font-weight:400;" y="-5.5" transform="translate(751.4 408.904)" fill="rgb(255,255,255)" fill-opacity="0.62" stroke="#0d0d0f" stroke-width="2.5" paint-order="stroke" stroke-miterlimit="2">130.4</text>
+<path d="M-5 -5l394 0l0 22l-394 0Z" transform="translate(443 83)" fill="rgb(0,0,0)" fill-opacity="0" stroke="#ccc" stroke-width="0" class="zr4-cls-21"></path>
+<path d="M2 0L12 0A2 2 0 0 1 14 2L14 6A2 2 0 0 1 12 8L2 8A2 2 0 0 1 0 6L0 2A2 2 0 0 1 2 0" transform="translate(443 85)" fill="#FF6B1A" ecmeta_series_index="0" ecmeta_data_index="0" ecmeta_ssr_type="legend" ecmeta_silent="true" class="zr4-cls-21"></path>
+<text dominant-baseline="central" text-anchor="start" style="font-size:12px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;" x="19" y="4" transform="translate(443 85)" fill="rgb(255,255,255)" fill-opacity="0.62">收入（亿元）</text>
+<path d="M0 -2l91 0l0 12l-91 0Z" transform="translate(443 85)" fill="none" pointer-events="visible" ecmeta_series_index="0" ecmeta_data_index="0" ecmeta_ssr_type="legend" class="zr4-cls-23"></path>
+<path d="M2 0L12 0A2 2 0 0 1 14 2L14 6A2 2 0 0 1 12 8L2 8A2 2 0 0 1 0 6L0 2A2 2 0 0 1 2 0" transform="translate(552 85)" fill="#C97B4A" ecmeta_series_index="1" ecmeta_data_index="1" ecmeta_ssr_type="legend" ecmeta_silent="true" class="zr4-cls-21"></path>
+<text dominant-baseline="central" text-anchor="start" style="font-size:12px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;" x="19" y="4" transform="translate(552 85)" fill="rgb(255,255,255)" fill-opacity="0.62">归母净利润（亿元）</text>
+<path d="M0 -2l127 0l0 12l-127 0Z" transform="translate(552 85)" fill="none" pointer-events="visible" ecmeta_series_index="1" ecmeta_data_index="1" ecmeta_ssr_type="legend" class="zr4-cls-23"></path>
+<path d="M0 4L14 4" transform="translate(698 85)" fill="#000" stroke="#FFD9B8" stroke-width="2" stroke-linecap="butt" stroke-miterlimit="10" class="zr4-cls-21"></path>
+<path d="M10.2 4A3.2 3.2 0 1 1 10.2 3.7A3.2 3.2 0 0 1 10.2 4" transform="translate(698 85)" fill="#FFD9B8" stroke="#0d0d0f" stroke-width="2" stroke-linecap="butt" stroke-miterlimit="10" class="zr4-cls-21"></path>
+<text dominant-baseline="central" text-anchor="start" style="font-size:12px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;" x="19" y="4" transform="translate(698 85)" fill="rgb(255,255,255)" fill-opacity="0.62">毛利率</text>
+<path d="M-1 -2l56 0l0 12l-56 0Z" transform="translate(698 85)" fill="none" pointer-events="visible" ecmeta_series_index="2" ecmeta_data_index="2" ecmeta_ssr_type="legend" class="zr4-cls-23"></path>
+<path d="M0 4L14 4" transform="translate(772 85)" fill="#000" stroke="rgb(255,255,255)" stroke-width="2" stroke-opacity="0.6" stroke-dasharray="6,5" stroke-linecap="butt" stroke-miterlimit="10" class="zr4-cls-21"></path>
+<path d="M10.2 4A3.2 3.2 0 1 1 10.2 3.7A3.2 3.2 0 0 1 10.2 4" transform="translate(772 85)" fill="rgb(255,255,255)" fill-opacity="0.6" stroke="#0d0d0f" stroke-width="2" stroke-linecap="butt" stroke-miterlimit="10" class="zr4-cls-21"></path>
+<text dominant-baseline="central" text-anchor="start" style="font-size:12px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;" x="19" y="4" transform="translate(772 85)" fill="rgb(255,255,255)" fill-opacity="0.62">净利率</text>
+<path d="M-1 -2l56 0l0 12l-56 0Z" transform="translate(772 85)" fill="none" pointer-events="visible" ecmeta_series_index="3" ecmeta_data_index="3" ecmeta_ssr_type="legend" class="zr4-cls-23"></path>
+<g clip-path="url(#zr4-c0)">
+<path d="M133.6 240.1L284.8 259.4L436 240.6L587.2 213.3L738.4 187.1" fill="none" pointer-events="visible" stroke="#FFD9B8" stroke-width="2.5" stroke-linejoin="bevel" class="zr4-cls-25"></path>
+</g>
+<g clip-path="url(#zr4-c1)">
+<path d="M133.6 450.4L284.8 492.5L436 457.4L587.2 426.2L738.4 369.8" fill="none" pointer-events="visible" stroke="rgb(255,255,255)" stroke-width="2.5" stroke-opacity="0.6" stroke-dasharray="6,5" stroke-linejoin="bevel" class="zr4-cls-25"></path>
+</g>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(3.5,0,0,3.5,133.6,240.07)" fill="#FFD9B8" stroke="#0d0d0f" stroke-width="0.5714285714285714" ecmeta_series_index="2" ecmeta_data_index="0" ecmeta_ssr_type="chart" class="zr4-cls-26"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(3.5,0,0,3.5,284.8,259.375)" fill="#FFD9B8" stroke="#0d0d0f" stroke-width="0.5714285714285714" ecmeta_series_index="2" ecmeta_data_index="1" ecmeta_ssr_type="chart" class="zr4-cls-26"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(3.5,0,0,3.5,436,240.565)" fill="#FFD9B8" stroke="#0d0d0f" stroke-width="0.5714285714285714" ecmeta_series_index="2" ecmeta_data_index="2" ecmeta_ssr_type="chart" class="zr4-cls-26"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(3.5,0,0,3.5,587.2,213.34)" fill="#FFD9B8" stroke="#0d0d0f" stroke-width="0.5714285714285714" ecmeta_series_index="2" ecmeta_data_index="3" ecmeta_ssr_type="chart" class="zr4-cls-26"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(3.5,0,0,3.5,738.4,187.105)" fill="#FFD9B8" stroke="#0d0d0f" stroke-width="0.5714285714285714" ecmeta_series_index="2" ecmeta_data_index="4" ecmeta_ssr_type="chart" class="zr4-cls-26"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(3.5,0,0,3.5,133.6,450.445)" fill="rgb(255,255,255)" fill-opacity="0.6" stroke="#0d0d0f" stroke-width="0.5714285714285714" ecmeta_series_index="3" ecmeta_data_index="0" ecmeta_ssr_type="chart" class="zr4-cls-27"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(3.5,0,0,3.5,284.8,492.52)" fill="rgb(255,255,255)" fill-opacity="0.6" stroke="#0d0d0f" stroke-width="0.5714285714285714" ecmeta_series_index="3" ecmeta_data_index="1" ecmeta_ssr_type="chart" class="zr4-cls-27"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(3.5,0,0,3.5,436,457.375)" fill="rgb(255,255,255)" fill-opacity="0.6" stroke="#0d0d0f" stroke-width="0.5714285714285714" ecmeta_series_index="3" ecmeta_data_index="2" ecmeta_ssr_type="chart" class="zr4-cls-27"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(3.5,0,0,3.5,587.2,426.19)" fill="rgb(255,255,255)" fill-opacity="0.6" stroke="#0d0d0f" stroke-width="0.5714285714285714" ecmeta_series_index="3" ecmeta_data_index="3" ecmeta_ssr_type="chart" class="zr4-cls-27"></path>
+<path d="M1 0A1 1 0 1 1 1 -0.1A1 1 0 0 1 1 0" transform="matrix(3.5,0,0,3.5,738.4,369.76)" fill="rgb(255,255,255)" fill-opacity="0.6" stroke="#0d0d0f" stroke-width="0.5714285714285714" ecmeta_series_index="3" ecmeta_data_index="4" ecmeta_ssr_type="chart" class="zr4-cls-27"></path>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:10.5px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;font-weight:600;" y="-5.25" transform="translate(133.6 227.57)" fill="#FFD9B8" stroke="#0d0d0f" stroke-width="3" paint-order="stroke" stroke-miterlimit="2">61.4%</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:10.5px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;font-weight:600;" y="-5.25" transform="translate(284.8 246.875)" fill="#FFD9B8" stroke="#0d0d0f" stroke-width="3" paint-order="stroke" stroke-miterlimit="2">57.5%</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:10.5px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;font-weight:600;" y="-5.25" transform="translate(436 228.065)" fill="#FFD9B8" stroke="#0d0d0f" stroke-width="3" paint-order="stroke" stroke-miterlimit="2">61.3%</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:10.5px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;font-weight:600;" y="-5.25" transform="translate(587.2 200.84)" fill="#FFD9B8" stroke="#0d0d0f" stroke-width="3" paint-order="stroke" stroke-miterlimit="2">66.8%</text>
+<text dominant-baseline="central" text-anchor="start" style="font-size:10.5px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;font-weight:600;" transform="translate(754.9 187.105)" fill="#FFD9B8" stroke="#0d0d0f" stroke-width="3" paint-order="stroke" stroke-miterlimit="2">72.1%</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:10.5px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;font-weight:600;" y="-5.25" transform="translate(133.6 437.945)" fill="rgb(255,255,255)" fill-opacity="0.66" stroke="#0d0d0f" stroke-width="3" paint-order="stroke" stroke-miterlimit="2">18.9%</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:10.5px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;font-weight:600;" y="5.25" transform="translate(284.8 505.02)" fill="rgb(255,255,255)" fill-opacity="0.66" stroke="#0d0d0f" stroke-width="3" paint-order="stroke" stroke-miterlimit="2">10.4%</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:10.5px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;font-weight:600;" y="-5.25" transform="translate(436 444.875)" fill="rgb(255,255,255)" fill-opacity="0.66" stroke="#0d0d0f" stroke-width="3" paint-order="stroke" stroke-miterlimit="2">17.5%</text>
+<text dominant-baseline="central" text-anchor="middle" style="font-size:10.5px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;font-weight:600;" y="5.25" transform="translate(587.2 438.69)" fill="rgb(255,255,255)" fill-opacity="0.66" stroke="#0d0d0f" stroke-width="3" paint-order="stroke" stroke-miterlimit="2">23.8%</text>
+<text dominant-baseline="central" text-anchor="start" style="font-size:10.5px;font-family:'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', -apple-system, sans-serif;font-weight:600;" transform="translate(754.9 369.76)" fill="rgb(255,255,255)" fill-opacity="0.66" stroke="#0d0d0f" stroke-width="3" paint-order="stroke" stroke-miterlimit="2">35.2%</text>
+<defs >
+<clipPath id="zr4-c0">
+<path d="M56 146.8l760 0l0 398.5l-760 0Z" fill="#000" class="zr4-cls-24"></path>
+</clipPath>
+<clipPath id="zr4-c1">
+<path d="M56 146.8l760 0l0 398.5l-760 0Z" fill="#000" class="zr4-cls-24"></path>
+</clipPath>
+</defs>
+<style ><![CDATA[
+.zr4-cls-20:hover {
+cursor:pointer;
+fill:rgba(255,117,28,1);
+}
+.zr4-cls-21:hover {
+pointer-events:none;
+}
+.zr4-cls-22:hover {
+cursor:pointer;
+fill:rgba(221,135,81,1);
+}
+.zr4-cls-23:hover {
+cursor:pointer;
+fill:rgba(0,0,0,0);
+}
+.zr4-cls-24:hover {
+cursor:pointer;
+fill:rgba(0,0,0,1);
+}
+.zr4-cls-25:hover {
+cursor:pointer;
+}
+.zr4-cls-26:hover {
+cursor:pointer;
+fill:rgba(255,238,202,1);
+}
+.zr4-cls-27:hover {
+cursor:pointer;
+fill:rgba(255,255,255,0.6);
+}
+
+]]>
+
+</style>
+</svg>

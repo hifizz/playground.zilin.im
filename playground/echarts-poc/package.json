@@ -1,0 +1,21 @@
+{
+  "name": "echarts-novark-poc",
+  "version": "0.1.0",
+  "private": true,
+  "description": "POC: ChartSpec -> ECharts SSR -> NOVARK dark-orange SVG/PNG",
+  "type": "module",
+  "scripts": {
+    "render": "tsx src/render.ts",
+    "shot": "tsx src/screenshot.ts",
+    "all": "tsx src/render.ts && tsx src/screenshot.ts"
+  },
+  "dependencies": {
+    "echarts": "^5.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "playwright": "^1.49.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}
