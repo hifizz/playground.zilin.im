@@ -8,6 +8,8 @@
  */
 
 import type { ArtifactSeed, Message, ThreadTreeState } from "./types";
+import type { ReplyProvider } from "./provider";
+import { collectInherited } from "./selectors";
 
 export interface ForkInput {
   /** 在哪个会话里划选的 */
@@ -16,8 +18,11 @@ export interface ForkInput {
   sourceMsgId: string;
   /** 被划选的原文（同时决定新会话标题与脚注锚点） */
   anchorText: string;
-  /** 新分支的首条 assistant 回复（写死内容由调用方提供，core 不认识 demo 数据） */
-  introText: string;
+  /** 划选处前后 ≤32 字的原文上下文（TextQuoteSelector 式鲁棒定位用，可缺省） */
+  anchorPrefix?: string;
+  anchorSuffix?: string;
+  /** 用户带着问题开分支（可选）：作为新分支的首条 user 消息；留空 = 引导回复开场 */
+  firstQuestion?: string;
   /** 命中话题时随分支一起产出的 artifact */
   artifactSeed?: ArtifactSeed | null;
 }
@@ -30,7 +35,7 @@ export interface ForkResult {
 
 export type ThreadStore = ReturnType<typeof createThreadStore>;
 
-export function createThreadStore(seed: ThreadTreeState) {
+export function createThreadStore(seed: ThreadTreeState, provider: ReplyProvider) {
   const state = seed;
   let version = 0;
   const listeners = new Set<() => void>();
@@ -38,6 +43,59 @@ export function createThreadStore(seed: ThreadTreeState) {
   const notify = () => {
     version++;
     listeners.forEach((fn) => fn());
+  };
+
+  /* 流式 chunk 的高频通知按帧合并（README §10.1 的 rAF 节流）；
+     结构性变更（fork / 发消息 / touch）仍走直接 notify，保证同步反馈 */
+  let notifyQueued = false;
+  const scheduleNotify = () => {
+    if (notifyQueued) return;
+    notifyQueued = true;
+    const raf: (cb: () => void) => void =
+      typeof requestAnimationFrame === "function"
+        ? (cb) => requestAnimationFrame(() => cb())
+        : (cb) => void setTimeout(cb, 16);
+    raf(() => {
+      notifyQueued = false;
+      notify();
+    });
+  };
+
+  /** 为一条 pending 的 assistant 消息向 provider 要流式回复（fire-and-forget）。
+      分支首答完成后顺带异步生成标题（§10.5）：provider 返回非空则更新，各视图随 version 跟随 */
+  const streamReply = async (threadId: string, msgId: string) => {
+    const t = state.threads[threadId];
+    const msg = t?.messages.find((m) => m.id === msgId);
+    if (!t || !msg) return;
+    const req = () => ({
+      threadId,
+      anchorText: t.anchorText,
+      inherited: collectInherited(state, t),
+      messages: t.messages,
+    });
+    try {
+      await provider.reply(req(), (chunk) => {
+        msg.status = "streaming";
+        msg.text += chunk;
+        scheduleNotify();
+      });
+      msg.status = "done";
+    } catch {
+      msg.status = "error";
+    }
+    scheduleNotify();
+    const isFirstReply = t.parentId !== null && t.messages.find((m) => m.role === "assistant") === msg;
+    if (msg.status === "done" && isFirstReply && provider.generateTitle) {
+      try {
+        const title = (await provider.generateTitle(req()))?.trim();
+        if (title && title !== t.title) {
+          t.title = title;
+          scheduleNotify();
+        }
+      } catch {
+        /* 标题生成失败无碍：保持锚点截断的默认标题 */
+      }
+    }
   };
 
   /** 活跃计数 + 最近访问（供 LRU 放置与 ⌘K「最近访问」chips 使用），不发通知 */
@@ -88,13 +146,19 @@ export function createThreadStore(seed: ThreadTreeState) {
 
       const artifactId = input.artifactSeed ? registerSilently(id, input.artifactSeed) : null;
 
-      const intro: Message = {
+      const messages: Message[] = [];
+      if (input.firstQuestion) {
+        messages.push({ id: "m" + state.seq++, role: "user", text: input.firstQuestion, forks: [] });
+      }
+      const pending: Message = {
         id: "m" + state.seq++,
         role: "assistant",
-        text: input.introText,
+        text: "",
         forks: [],
         artifactIds: artifactId ? [artifactId] : undefined,
+        status: "pending",
       };
+      messages.push(pending);
       state.threads[id] = {
         id,
         parentId: input.sourceThreadId,
@@ -104,24 +168,56 @@ export function createThreadStore(seed: ThreadTreeState) {
         forkFromMsgId: input.sourceMsgId,
         footnote: state.footnoteCounter,
         children: [],
-        messages: [intro],
+        messages,
         lastActive: 0,
       };
       parent.children.push(id);
-      srcMsg.forks.push({ text: input.anchorText, num: state.footnoteCounter, threadId: id, depth });
+      srcMsg.forks.push({
+        text: input.anchorText,
+        num: state.footnoteCounter,
+        threadId: id,
+        depth,
+        prefix: input.anchorPrefix,
+        suffix: input.anchorSuffix,
+      });
 
       notify();
+      void streamReply(id, pending.id);
       return { threadId: id, artifactId, title };
     },
 
-    /** 在某会话里发一条用户消息，并立刻附上（调用方给的）assistant 回复 */
-    send(threadId: string, userText: string, replyText: string): boolean {
+    /** 在某会话里发一条用户消息，并占位一条 pending 回复交给 provider 流式生成；
+        该会话已有回复在生成中时拒绝（返回 false，composer 应处于禁用态） */
+    send(threadId: string, userText: string): boolean {
       const t = state.threads[threadId];
       if (!t) return false;
+      const last = t.messages[t.messages.length - 1];
+      if (last?.role === "assistant" && (last.status === "pending" || last.status === "streaming"))
+        return false;
       t.messages.push({ id: "m" + state.seq++, role: "user", text: userText, forks: [] });
-      t.messages.push({ id: "m" + state.seq++, role: "assistant", text: replyText, forks: [] });
+      const pending: Message = {
+        id: "m" + state.seq++,
+        role: "assistant",
+        text: "",
+        forks: [],
+        status: "pending",
+      };
+      t.messages.push(pending);
       touchSilently(threadId);
       notify();
+      void streamReply(threadId, pending.id);
+      return true;
+    },
+
+    /** 重试一条 error 态的回复：清空残文重新走一遍 provider */
+    retryReply(threadId: string, msgId: string): boolean {
+      const t = state.threads[threadId];
+      const msg = t?.messages.find((m) => m.id === msgId);
+      if (!t || !msg || msg.role !== "assistant" || msg.status !== "error") return false;
+      msg.text = "";
+      msg.status = "pending";
+      notify();
+      void streamReply(threadId, msgId);
       return true;
     },
 
@@ -130,6 +226,25 @@ export function createThreadStore(seed: ThreadTreeState) {
       const id = registerSilently(sourceThreadId, seed_);
       notify();
       return id;
+    },
+
+    /** 用持久层加载的树原地替换当前树（§10.6）。恢复时把上次存盘时仍在生成中的
+        消息归一：有残文视为 done，空文视为 error（可点重试）——流本身不可恢复 */
+    hydrate(loaded: ThreadTreeState) {
+      Object.values(loaded.threads).forEach((t) => {
+        t.messages.forEach((m) => {
+          if (m.status === "pending" || m.status === "streaming")
+            m.status = m.text ? "done" : "error";
+        });
+      });
+      state.threads = loaded.threads;
+      state.artifacts = loaded.artifacts;
+      state.artifactOrder = loaded.artifactOrder;
+      state.recents = loaded.recents;
+      state.footnoteCounter = loaded.footnoteCounter;
+      state.seq = loaded.seq;
+      state.tick = loaded.tick;
+      notify();
     },
   };
 }
