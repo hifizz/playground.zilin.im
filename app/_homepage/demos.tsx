@@ -37,6 +37,8 @@ import { MobileFullscreenSvhThumb } from "./thumbs/mobile-fullscreen-svh";
 import { FloatingPopupThumb } from "./thumbs/floating-popup";
 import { ThreadChatThumb } from "./thumbs/thread-chat";
 import { HighlightRecoveryThumb } from "./thumbs/highlight-recovery";
+import { MacosConversationThumb } from "./thumbs/macos-conversation";
+import { DotAnimationThumb } from "./thumbs/dot-animation";
 
 export type DemoCategory = "Interaction" | "Text Demo" | "Explored Demo" | "Agent UX/UI";
 
@@ -52,6 +54,22 @@ export type DemoEntry = {
 export const ALL_CATEGORIES = ["All", "Interaction", "Explored Demo", "Agent UX/UI"] as const;
 
 export const demos: DemoEntry[] = [
+  {
+    title: "Dot Grid Loader",
+    description: "可配置网格、方向、起点、速度与拖尾的螺旋点阵加载动画。",
+    route: "/dot-animation",
+    category: "Interaction",
+    tags: ["CSS Animation", "Loader"],
+    preview: <DotAnimationThumb />,
+  },
+  {
+    title: "macOS Conversation Viewer",
+    description: "毛玻璃双栏对话查看器：支持关键词筛选与切换会话内容。",
+    route: "/macos-conversation",
+    category: "Agent UX/UI",
+    tags: ["Glass", "Search", "Agent"],
+    preview: <MacosConversationThumb />,
+  },
   {
     title: "Dynamic Island",
     description: "iOS Dynamic Island — 12 interaction states with Framer Motion spring physics.",
