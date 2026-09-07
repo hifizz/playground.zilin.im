@@ -1,3 +1,4 @@
+import { PromptComposerThumb } from "./thumbs/prompt-composer";
 import { DynamicIslandThumb } from "./thumbs/dynamic-island";
 import { NotificationStackThumb } from "./thumbs/notification-stack";
 import { ShareDialogThumb } from "./thumbs/share-dialog";
@@ -54,6 +55,14 @@ export type DemoEntry = {
 export const ALL_CATEGORIES = ["All", "Interaction", "Explored Demo", "Agent UX/UI"] as const;
 
 export const demos: DemoEntry[] = [
+  {
+    title: "Prompt Composer",
+    description: "Beautiful UI Prompt Bar：@ 数据源、/ 命令、模型选择、模拟语音与彩虹扫光。",
+    route: "/prompt-composer",
+    category: "Agent UX/UI",
+    tags: ["Composer", "Beautiful UI", "glimm"],
+    preview: <PromptComposerThumb />,
+  },
   {
     title: "Dot Grid Loader",
     description: "可配置网格、方向、起点、速度与拖尾的螺旋点阵加载动画。",
