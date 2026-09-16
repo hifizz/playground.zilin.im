@@ -37,6 +37,7 @@ import { MobileFullscreenSvhThumb } from "./thumbs/mobile-fullscreen-svh";
 import { FloatingPopupThumb } from "./thumbs/floating-popup";
 import { ThreadChatThumb } from "./thumbs/thread-chat";
 import { HighlightRecoveryThumb } from "./thumbs/highlight-recovery";
+import { ReasoningEffortThumb } from "./thumbs/reasoning-effort";
 
 export type DemoCategory = "Interaction" | "Text Demo" | "Explored Demo" | "Agent UX/UI";
 
@@ -382,5 +383,14 @@ export const demos: DemoEntry[] = [
     category: "Explored Demo",
     tags: ["Selection", "Anchor", "Fuzzy Match"],
     preview: <HighlightRecoveryThumb />,
+  },
+  {
+    title: "Reasoning Effort Panel",
+    description:
+      "最近很火的推理强度面板：composer pill 弹出 Low→Max 四档 + Extended thinking 开关；档位真实驱动模拟 agent 的思考步数 / 耗时 / token 消耗，含设置页分段控件变体。",
+    route: "/reasoning-effort",
+    category: "Agent UX/UI",
+    tags: ["Agent", "Popover", "Framer Motion"],
+    preview: <ReasoningEffortThumb />,
   },
 ];
