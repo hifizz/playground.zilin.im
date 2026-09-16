@@ -37,6 +37,7 @@ import { MobileFullscreenSvhThumb } from "./thumbs/mobile-fullscreen-svh";
 import { FloatingPopupThumb } from "./thumbs/floating-popup";
 import { ThreadChatThumb } from "./thumbs/thread-chat";
 import { HighlightRecoveryThumb } from "./thumbs/highlight-recovery";
+import { ReasoningEffortThumb } from "./thumbs/reasoning-effort";
 
 export type DemoCategory = "Interaction" | "Text Demo" | "Explored Demo" | "Agent UX/UI";
 
@@ -382,5 +383,14 @@ export const demos: DemoEntry[] = [
     category: "Explored Demo",
     tags: ["Selection", "Anchor", "Fuzzy Match"],
     preview: <HighlightRecoveryThumb />,
+  },
+  {
+    title: "Reasoning Effort 调节面板",
+    description:
+      "GPT-5 / Claude 式思考强度控件：主开关 + Low–Max 四档映射 token 预算，挂进模拟 composer 按档位播放不同长度的 thinking trace 与回答详略。",
+    route: "/reasoning-effort",
+    category: "Agent UX/UI",
+    tags: ["Framer Motion", "Popover", "Agent"],
+    preview: <ReasoningEffortThumb />,
   },
 ];
