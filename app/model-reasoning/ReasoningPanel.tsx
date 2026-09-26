@@ -32,18 +32,18 @@ export function ReasoningPanel({ value, onChange, disabled = false }: {
   return (
     <section aria-label="模型推理设置" className="rounded-3xl border border-white/10 bg-[#191c20] shadow-2xl shadow-black/20">
       <div className="flex items-center justify-between border-b border-white/8 px-6 py-5">
-        <span className="flex items-center gap-2.5 text-sm font-medium"><Cpu size={17} className="text-[#b6d7b5]" /> 模型设置</span>
+        <span className="flex items-center gap-2.5 text-sm font-medium"><Cpu size={17} className="text-[#fb923c]" /> 模型设置</span>
         <span className="font-mono text-[10px] tracking-widest text-zinc-500">MODEL CONFIG</span>
       </div>
       <div className="space-y-7 p-6 sm:p-8">
         <div>
           <label htmlFor={`${id}-model`} className="mb-3 block text-xs text-zinc-400">Model <span className="ml-1 text-zinc-500">/ 选择模型</span></label>
           <div className="relative">
-            <model.icon aria-hidden size={20} className="pointer-events-none absolute left-4 top-4 text-[#b6d7b5]" />
+            <model.icon aria-hidden size={20} className="pointer-events-none absolute left-4 top-4 text-[#fb923c]" />
             <select id={`${id}-model`} value={value.model} disabled={disabled} onChange={(event) => {
               const next = models.find((item) => item.id === event.target.value)!;
               onChange({ ...value, model: next.id, effort: next.levels.includes(value.effort) ? value.effort : next.levels[next.levels.length - 1] });
-            }} className="w-full appearance-none rounded-xl border border-white/10 bg-[#22262b] py-3.5 pl-12 pr-10 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#b6d7b5] disabled:opacity-50">
+            }} className="w-full appearance-none rounded-xl border border-white/10 bg-[#22262b] py-3.5 pl-12 pr-10 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#fb923c] disabled:opacity-50">
               {models.map((item) => <option key={item.id} value={item.id}>{item.name} · 演示模型</option>)}
             </select>
             <ChevronDown aria-hidden size={16} className="pointer-events-none absolute right-4 top-4 text-zinc-400" />
@@ -53,7 +53,7 @@ export function ReasoningPanel({ value, onChange, disabled = false }: {
 
         <div className="flex items-center justify-between gap-4">
           <div><h2 id={`${id}-reasoning`} className="text-sm font-medium">Reasoning</h2><p className="mt-1.5 text-xs text-zinc-400">给模型一点思考的空间</p></div>
-          <button type="button" role="switch" aria-checked={value.reasoning} aria-labelledby={`${id}-reasoning`} disabled={disabled} onClick={() => onChange({ ...value, reasoning: !value.reasoning })} className={`h-7 w-12 shrink-0 rounded-full p-1 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-4 focus-visible:ring-offset-[#191c20] disabled:opacity-50 ${value.reasoning ? "bg-[#b6d7b5]" : "bg-zinc-600"}`}>
+          <button type="button" role="switch" aria-checked={value.reasoning} aria-labelledby={`${id}-reasoning`} disabled={disabled} onClick={() => onChange({ ...value, reasoning: !value.reasoning })} className={`h-7 w-12 shrink-0 rounded-full p-1 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-4 focus-visible:ring-offset-[#191c20] disabled:opacity-50 ${value.reasoning ? "bg-[#fb923c]" : "bg-zinc-600"}`}>
             <span className={`block size-5 rounded-full bg-[#191c20] transition-transform motion-reduce:transition-none ${value.reasoning ? "translate-x-5" : "translate-x-0"}`} />
           </button>
         </div>
@@ -62,20 +62,20 @@ export function ReasoningPanel({ value, onChange, disabled = false }: {
           <legend className="mb-4 text-xs text-zinc-400">Reasoning effort <span className="ml-1 text-zinc-500">/ 推理投入</span></legend>
           <div className="grid grid-cols-4 gap-1 rounded-xl bg-[#111316] p-1.5">
             {efforts.map((item) => (
-              <label key={item.id} className={`relative rounded-lg text-center text-xs transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[#b6d7b5] ${!model.levels.includes(item.id) ? "cursor-not-allowed opacity-30" : "cursor-pointer"} ${value.effort === item.id ? "bg-[#b6d7b5] font-semibold text-[#172418] shadow-sm" : "text-zinc-400 hover:bg-white/5"}`}>
+              <label key={item.id} className={`relative rounded-lg text-center text-xs transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[#fb923c] ${!model.levels.includes(item.id) ? "cursor-not-allowed opacity-30" : "cursor-pointer"} ${value.effort === item.id ? "bg-[#fb923c] font-semibold text-[#2b180d] shadow-sm" : "text-zinc-400 hover:bg-white/5"}`}>
                 <input type="radio" name={`${id}-effort`} value={item.id} checked={value.effort === item.id} disabled={!model.levels.includes(item.id)} onChange={() => onChange({ ...value, effort: item.id })} className="sr-only" />
                 <span className="block py-3">{item.label}</span>
               </label>
             ))}
           </div>
           <div aria-hidden className="mt-6 flex h-16 items-end justify-between gap-1">
-            {Array.from({ length: 36 }, (_, i) => <span key={i} className={`flex-1 rounded-t-sm transition-all duration-500 motion-reduce:transition-none ${i < (level + 1) * 9 && value.reasoning ? "bg-[#b6d7b5]" : "bg-white/8"}`} style={{ height: `${18 + Math.pow(i / 35, 1.5) * 82}%`, opacity: i < (level + 1) * 9 && value.reasoning ? 0.35 + (i / 35) * 0.65 : 1 }} />)}
+            {Array.from({ length: 36 }, (_, i) => <span key={i} className={`flex-1 rounded-t-sm transition-all duration-500 motion-reduce:transition-none ${i < (level + 1) * 9 && value.reasoning ? "bg-[#fb923c]" : "bg-white/8"}`} style={{ height: `${18 + Math.pow(i / 35, 1.5) * 82}%`, opacity: i < (level + 1) * 9 && value.reasoning ? 0.35 + (i / 35) * 0.65 : 1 }} />)}
           </div>
           <div className="mt-2 flex justify-between font-mono text-[9px] uppercase tracking-widest text-zinc-500"><span>Faster</span><span>Deeper</span></div>
         </fieldset>
 
-        <div id={`${id}-hint`} aria-live="polite" className="min-h-24 rounded-xl border border-[#b6d7b5]/10 bg-[#b6d7b5]/5 p-4">
-          <div className="flex items-center gap-2 text-sm text-[#c8dfc7]"><Check size={15} />{value.reasoning ? effort.title : "直接回答"}</div>
+        <div id={`${id}-hint`} aria-live="polite" className="min-h-24 rounded-xl border border-[#fb923c]/10 bg-[#fb923c]/5 p-4">
+          <div className="flex items-center gap-2 text-sm text-[#fed7aa]"><Check size={15} />{value.reasoning ? effort.title : "直接回答"}</div>
           <p className="mt-2 text-xs leading-6 text-zinc-400">{value.reasoning ? effort.description : "已关闭推理，保留当前档位，重新开启即可继续使用。"}</p>
         </div>
         <div className="grid grid-cols-2 gap-4 border-t border-white/8 pt-5 text-xs">
