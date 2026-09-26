@@ -37,6 +37,7 @@ import { MobileFullscreenSvhThumb } from "./thumbs/mobile-fullscreen-svh";
 import { FloatingPopupThumb } from "./thumbs/floating-popup";
 import { ThreadChatThumb } from "./thumbs/thread-chat";
 import { HighlightRecoveryThumb } from "./thumbs/highlight-recovery";
+import { SpringDialogThumb } from "./thumbs/spring-dialog";
 
 export type DemoCategory = "Interaction" | "Text Demo" | "Explored Demo" | "Agent UX/UI";
 
@@ -382,5 +383,14 @@ export const demos: DemoEntry[] = [
     category: "Explored Demo",
     tags: ["Selection", "Anchor", "Fuzzy Match"],
     preview: <HighlightRecoveryThumb />,
+  },
+  {
+    title: "Q弹 Dialog",
+    description:
+      "果冻感弹簧 Dialog：scaleX / scaleY 两组相位错开的 spring 产生挤压拉伸，可拖动甩出后松手弹回中心，刚度 / 阻尼实时可调。",
+    route: "/spring-dialog",
+    category: "Interaction",
+    tags: ["Framer Motion", "Spring"],
+    preview: <SpringDialogThumb />,
   },
 ];
