@@ -1,3 +1,4 @@
+import { ModelReasoningThumb } from "./thumbs/model-reasoning";
 import { DynamicIslandThumb } from "./thumbs/dynamic-island";
 import { NotificationStackThumb } from "./thumbs/notification-stack";
 import { ShareDialogThumb } from "./thumbs/share-dialog";
@@ -382,5 +383,13 @@ export const demos: DemoEntry[] = [
     category: "Explored Demo",
     tags: ["Selection", "Anchor", "Fuzzy Match"],
     preview: <HighlightRecoveryThumb />,
+  },
+  {
+    title: "Model Reasoning · 推理调节面板",
+    description: "模型切换、Reasoning 开关与 Effort 档位联动，实时配置预览和可取消的本地模拟运行。",
+    route: "/model-reasoning",
+    category: "Agent UX/UI",
+    tags: ["Reasoning", "Model", "Agent"],
+    preview: <ModelReasoningThumb />,
   },
 ];
