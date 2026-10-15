@@ -1,0 +1,127 @@
+/*
+ * Metrix dashboard 的设计 token 与少量无法用 Tailwind 工具类表达的样式。
+ * 颜色 token 通过 app/globals.css 里的 `@theme inline`（--color-mx-*）暴露为工具类。
+ */
+:root {
+  --mx-background: #2f2e2d;
+  --mx-foreground: #e5e5e5;
+  --mx-sidebar: #252423;
+  --mx-card: #2f2e2d;
+  --mx-shell: #252423;
+  --mx-muted: #393837;
+  --mx-muted-2: #444341;
+  --mx-muted-3: #3e3d3c;
+  --mx-mute: #808080;
+  --mx-subtle: #666666;
+  --mx-soft: #999999;
+  --mx-primary: #f97316;
+  --mx-success: #059669;
+  --mx-warning: #f59e0b;
+  --mx-neutral: #b3b3b3;
+  --mx-border: #ffffff1a;
+  --mx-ring: #f973168c;
+}
+
+.mx-root {
+  color-scheme: dark;
+  background: var(--mx-background);
+  color: var(--mx-foreground);
+  font-family: var(--font-mx-inter), ui-sans-serif, system-ui, sans-serif;
+  font-optical-sizing: none;
+  font-variation-settings: "opsz" 14;
+  line-height: 1.5;
+  text-rendering: optimizelegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 防止过度滚动时露出 shadcn 默认的白色 body */
+body:has(.mx-root) {
+  background: #2f2e2d;
+}
+
+@layer base {
+  .mx-root button {
+    cursor: pointer;
+  }
+  .mx-root :focus-visible {
+    outline: 2px solid var(--mx-ring);
+    outline-offset: 2px;
+  }
+  .mx-root ::selection {
+    background: #f9731659;
+  }
+}
+
+/* 0.6px 发丝边框：整个页面「细腻」的来源 */
+.mx-hairline {
+  border: 0.6px solid var(--mx-border);
+}
+
+/* 内描边：用 ::after 画，不占布局、不被子元素背景盖住。宿主需自带 relative。 */
+.mx-stroke-inside::after {
+  content: "";
+  border: 0.6px solid var(--mx-stroke, var(--mx-border));
+  border-radius: inherit;
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  transition: border-color 0.3s;
+}
+
+/* 蚀刻分割线：上深下浅两条 0.6px 线叠出凹槽 */
+.mx-divider-etched {
+  height: 0;
+  position: relative;
+}
+.mx-divider-etched::after {
+  content: "";
+  background: var(--divider, #151514);
+  inset-inline: 0;
+  height: 0.6px;
+  position: absolute;
+  top: 0;
+  box-shadow: 0 0.6px #ffffff1a;
+}
+
+/* 原站的 font-display：同一字体、光学尺寸轴调到 32 */
+.mx-font-display {
+  font-variation-settings: "opsz" 32;
+}
+
+/* CTA 按钮：底部压暗的橙色渐变 */
+.mx-bg-cta {
+  background-image:
+    linear-gradient(#0000 0%, #0000001f 100%),
+    linear-gradient(90deg, #f97316 0% 100%);
+}
+
+/* 像素图的单个格子：颜色变化走 420ms 缓出，按 --d 做波浪式延迟 */
+.mx-pc {
+  transition:
+    background-color 420ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 180ms ease,
+    filter 180ms ease;
+  transition-delay: var(--d, 0ms), 0ms, 0ms;
+}
+
+@keyframes mx-fade-up {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mx-root *,
+  .mx-root ::before,
+  .mx-root ::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
