@@ -182,14 +182,12 @@ export default function PromptBar({
   const [engaged, setEngaged] = useState(false);
   const [modelBox, setModelBox] = useState<{ top: number; height: number } | null>(null);
   const [modelHovered, setModelHovered] = useState<number | null>(null);
-  const [modelMenuLeft, setModelMenuLeft] = useState(0);
-  const [modelMenuBottom, setModelMenuBottom] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
-  const composerAnchorRef = useRef<HTMLDivElement>(null);
+  const modelTriggerRef = useRef<HTMLButtonElement>(null);
+  const modelPopoverRef = useRef<HTMLDivElement>(null);
   const controlsRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const measureRef = useRef<HTMLSpanElement>(null);
-  const modelRef = useRef<HTMLButtonElement>(null);
   const rowRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const modelRowRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const glimmRef = useRef<HTMLCanvasElement>(null);
@@ -234,16 +232,6 @@ export default function PromptBar({
     const target = modelRowRefs.current[modelHovered ?? modelIndex];
     if (target) setModelBox({ top: target.offsetTop, height: target.offsetHeight });
   }, [modelOpen, modelHovered, modelIndex]);
-
-  /* The menu is outside the clipped composer, so align it to the model
-   * trigger by measurement instead of pinning it to the far-right edge. */
-  useLayoutEffect(() => {
-    if (!modelOpen || !composerAnchorRef.current || !modelRef.current) return;
-    const anchorRect = composerAnchorRef.current.getBoundingClientRect();
-    const triggerRect = modelRef.current.getBoundingClientRect();
-    setModelMenuLeft(Math.max(0, Math.min(triggerRect.left - anchorRect.left, anchorRect.width - 176)));
-    setModelMenuBottom(anchorRect.bottom - triggerRect.top + 8);
-  }, [modelOpen, wide, model.name]);
 
   useEffect(() => {
     if (!modelOpen) setModelHovered(null);
@@ -348,11 +336,10 @@ export default function PromptBar({
     const input = inputRef.current;
     const controls = controlsRef.current;
     const measure = measureRef.current;
-    const modelButton = modelRef.current;
-    if (!input || !controls || !measure || !modelButton) return;
+    if (!input || !controls || !measure) return;
 
-    const fixedControlsWidth = 28 * 3 + modelButton.offsetWidth;
-    const inlineGaps = 4 * 4;
+    const fixedControlsWidth = 28 * 3;
+    const inlineGaps = 3 * 4;
     const inlineInputWidth = controls.clientWidth - fixedControlsWidth - inlineGaps;
     const needsFullWidth = draft.includes("\n") || measure.offsetWidth + 8 > inlineInputWidth;
     if (needsFullWidth !== expanded) {
@@ -367,11 +354,18 @@ export default function PromptBar({
     input.style.overflowY = contentHeight > maxHeight ? "auto" : "hidden";
   }, [draft, expanded]);
 
-  /* clicking anywhere outside the composer closes the open menus */
+  /* Each model popover owns only its trigger and panel, not the demo stage. */
   useEffect(() => {
     if (!modelOpen && !plusOpen && !menu) return;
     const close = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (
+        !modelTriggerRef.current?.contains(target) &&
+        !modelPopoverRef.current?.contains(target)
+      ) {
+        setModelOpen(false);
+      }
+      if (!rootRef.current?.contains(target)) {
         setDismissed(true);
         setModelOpen(false);
         setPlusOpen(false);
@@ -420,7 +414,7 @@ export default function PromptBar({
       onKeyDownCapture={takeOver}
     >
       {/* composer is the anchor — menus grow up from its top edge */}
-      <div ref={composerAnchorRef} className="relative">
+      <div className="relative">
       {/* ── @ / slash menu ─────────────────────────────── */}
       {menu && (
         <div
@@ -495,50 +489,6 @@ export default function PromptBar({
         </div>
       )}
 
-      {/* ── model menu ─────────────────────────────────── */}
-      {modelOpen && (
-        <div
-          onMouseLeave={() => setModelHovered(null)}
-          className="absolute z-10 w-44 rounded-[10px] bg-[var(--surface)] p-1 shadow-[var(--shadow-raised)]"
-          style={{ left: modelMenuLeft, bottom: modelMenuBottom, animation: "prompt-pop-in 180ms cubic-bezier(0.23,1,0.32,1) both", transformOrigin: "bottom left" }}
-        >
-          {/* single gliding highlight — floats to the hovered / selected row */}
-          <span
-            aria-hidden
-            className="pointer-events-none absolute inset-x-1 rounded-[6px] bg-[var(--hover)]"
-            style={{
-              top: modelBox?.top ?? 0,
-              height: modelBox?.height ?? 0,
-              opacity: modelBox && modelHovered !== null ? 1 : 0,
-              transition:
-                "top 220ms cubic-bezier(0.23,1,0.32,1), height 220ms cubic-bezier(0.23,1,0.32,1), opacity 150ms ease",
-            }}
-          />
-          {MODELS.map((m, i) => (
-            <button
-              key={m.key}
-              type="button"
-              ref={(el) => {
-                modelRowRefs.current[i] = el;
-              }}
-              onMouseDown={(event) => event.preventDefault()}
-              onMouseEnter={() => setModelHovered(i)}
-              onClick={() => {
-                selectModel(m);
-                inputRef.current?.focus();
-              }}
-              className="relative z-10 flex h-7.5 w-full items-center gap-2 rounded-[6px] px-2 text-left"
-            >
-              <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium text-[color:var(--ink)]">{m.name}</span>
-              <span className="shrink-0 text-[11px] text-[color:var(--ink-3)]">{m.tag}</span>
-              <span className={`shrink-0 text-[color:var(--ink)] ${m.key === model.key ? "" : "invisible"}`}>
-                <Icon size={13} strokeWidth={2.5}><path d="M20 6L9 17l-5-5" /></Icon>
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
-
       {/* ── composer ───────────────────────────────────── */}
       <div
         className={`relative isolate flex flex-col overflow-hidden border border-[var(--line)] bg-[var(--surface)] shadow-[var(--shadow-card)] transition-[border-color,border-radius] duration-150 focus-within:border-[var(--line-strong)] ${
@@ -593,11 +543,7 @@ export default function PromptBar({
 
         <div
           ref={controlsRef}
-          className={`grid items-end gap-x-1 gap-y-1.5 ${
-            wide
-              ? "grid-cols-[28px_auto_minmax(0,1fr)_28px_28px]"
-              : "grid-cols-[28px_minmax(0,1fr)_auto_28px_28px]"
-          }`}
+          className="grid grid-cols-[28px_minmax(0,1fr)_28px_28px] items-end gap-x-1 gap-y-1.5"
         >
           <button
             type="button"
@@ -656,26 +602,6 @@ export default function PromptBar({
             }`}
           />
 
-          {/* model picker */}
-          <button
-            ref={modelRef}
-            type="button"
-            aria-expanded={modelOpen}
-            aria-label="Choose model"
-            onClick={() => {
-              setPlusOpen(false);
-              setModelOpen((current) => !current);
-            }}
-            className={`flex h-7 shrink-0 items-center gap-1 px-1.5 text-[12px] font-medium text-[color:var(--ink-2)] transition-colors duration-150 hover:bg-[var(--hover)] hover:text-[color:var(--ink)] ${
-              pill ? "rounded-full" : "rounded-[8px]"
-            } ${wide ? "col-start-2 row-start-2 justify-self-start" : "col-start-3 row-start-1"}`}
-          >
-            {model.name}
-            <span className="text-[color:var(--ink-3)]">
-              <Icon size={11} strokeWidth={2.4}><path d="M6 9l6 6 6-6" /></Icon>
-            </span>
-          </button>
-
           {/* dictation */}
           <button
             type="button"
@@ -684,7 +610,7 @@ export default function PromptBar({
             onClick={() => setListening((current) => !current)}
             className={`flex size-7 shrink-0 items-center justify-center transition-[background-color,color,transform] duration-150 active:scale-[0.94] ${
               pill ? "rounded-full" : "rounded-[8px]"
-            } ${listening ? "bg-[var(--accent-tint)] text-[color:var(--accent-ink)]" : "text-[color:var(--ink-3)] hover:bg-[var(--hover)] hover:text-[color:var(--ink)]"} ${wide ? "col-start-4 row-start-2" : "col-start-4 row-start-1"}`}
+            } ${listening ? "bg-[var(--accent-tint)] text-[color:var(--accent-ink)]" : "text-[color:var(--ink-3)] hover:bg-[var(--hover)] hover:text-[color:var(--ink)]"} ${wide ? "col-start-3 row-start-2" : "col-start-3 row-start-1"}`}
           >
             {listening ? (
               <span className="flex h-3.5 items-center gap-[2.5px]">
@@ -709,7 +635,7 @@ export default function PromptBar({
             onClick={send}
             className={`flex size-7 shrink-0 items-center justify-center transition-[background-color,color,transform] duration-200 enabled:active:scale-[0.94] ${
               pill ? "rounded-full" : "rounded-[8px]"
-            } ${wide ? "col-start-5 row-start-2" : "col-start-5 row-start-1"}`}
+            } ${wide ? "col-start-4 row-start-2" : "col-start-4 row-start-1"}`}
             style={{
               background: canSend ? "var(--ink)" : "var(--line-strong)",
               color: canSend ? "var(--surface)" : "var(--ink-2)",
@@ -719,6 +645,73 @@ export default function PromptBar({
           </button>
         </div>
       </div>
+      </div>
+      <div className={`relative mt-2 flex justify-end ${tall ? "mx-[15px]" : "mx-[7px]"}`}>
+      {/* ── model menu ─────────────────────────────────── */}
+      {modelOpen && (
+        <div
+          ref={modelPopoverRef}
+          onMouseLeave={() => setModelHovered(null)}
+          className="absolute right-0 bottom-full mb-2 z-10 w-44 rounded-[10px] bg-[var(--surface)] p-1 shadow-[var(--shadow-raised)]"
+          style={{ animation: "prompt-pop-in 180ms cubic-bezier(0.23,1,0.32,1) both", transformOrigin: "bottom right" }}
+        >
+          {/* single gliding highlight — floats to the hovered / selected row */}
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-x-1 rounded-[6px] bg-[var(--hover)]"
+            style={{
+              top: modelBox?.top ?? 0,
+              height: modelBox?.height ?? 0,
+              opacity: modelBox && modelHovered !== null ? 1 : 0,
+              transition:
+                "top 220ms cubic-bezier(0.23,1,0.32,1), height 220ms cubic-bezier(0.23,1,0.32,1), opacity 150ms ease",
+            }}
+          />
+          {MODELS.map((m, i) => (
+            <button
+              key={m.key}
+              type="button"
+              ref={(el) => {
+                modelRowRefs.current[i] = el;
+              }}
+              onMouseDown={(event) => event.preventDefault()}
+              onMouseEnter={() => setModelHovered(i)}
+              onClick={() => {
+                selectModel(m);
+                inputRef.current?.focus();
+              }}
+              className="relative z-10 flex h-7.5 w-full items-center gap-2 rounded-[6px] px-2 text-left"
+            >
+              <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium text-[color:var(--ink)]">{m.name}</span>
+              <span className="shrink-0 text-[11px] text-[color:var(--ink-3)]">{m.tag}</span>
+              <span className={`shrink-0 text-[color:var(--ink)] ${m.key === model.key ? "" : "invisible"}`}>
+                <Icon size={13} strokeWidth={2.5}><path d="M20 6L9 17l-5-5" /></Icon>
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
+          {/* model picker */}
+          <button
+            type="button"
+            aria-expanded={modelOpen}
+            aria-label="Choose model"
+            ref={modelTriggerRef}
+            onClick={() => {
+              setPlusOpen(false);
+              setModelOpen((current) => !current);
+            }}
+            className={`flex h-7 shrink-0 items-center gap-1 px-1.5 text-[12px] font-medium text-[color:var(--ink-2)] transition-colors duration-150 hover:bg-[var(--hover)] hover:text-[color:var(--ink)] ${
+              pill ? "rounded-full" : "rounded-[8px]"
+            }`}
+          >
+            {model.name}
+            <span className="text-[color:var(--ink-3)]">
+              <Icon size={11} strokeWidth={2.4}><path d="M6 9l6 6 6-6" /></Icon>
+            </span>
+          </button>
+
       </div>
     </div>
   );
