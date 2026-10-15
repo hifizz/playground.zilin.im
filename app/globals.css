@@ -134,3 +134,21 @@ body {
     @apply font-sans;
   }
 }
+
+/* agent-builder 页面的语义色（变量定义在 app/agent-builder/agent-builder.css） */
+@theme inline {
+  --color-ab-bg: var(--ab-bg);
+  --color-ab-panel: var(--ab-panel);
+  --color-ab-raised: var(--ab-raised);
+  --color-ab-line: var(--ab-line);
+  --color-ab-line2: var(--ab-line-strong);
+  --color-ab-fg: var(--ab-fg);
+  --color-ab-mute: var(--ab-mute);
+  --color-ab-faint: var(--ab-faint);
+  --color-ab-hover: var(--ab-hover);
+  --color-ab-sel: var(--ab-sel);
+  --color-ab-accent: var(--ab-accent);
+  --color-ab-new-bg: var(--ab-new-bg);
+  --color-ab-new-line: var(--ab-new-line);
+  --color-ab-warn: var(--ab-warn);
+}
