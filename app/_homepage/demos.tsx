@@ -1,3 +1,4 @@
+import { DevinComposerThumb } from "./thumbs/devin-composer";
 import { PromptComposerThumb } from "./thumbs/prompt-composer";
 import { DynamicIslandThumb } from "./thumbs/dynamic-island";
 import { NotificationStackThumb } from "./thumbs/notification-stack";
@@ -40,6 +41,9 @@ import { ThreadChatThumb } from "./thumbs/thread-chat";
 import { HighlightRecoveryThumb } from "./thumbs/highlight-recovery";
 import { MacosConversationThumb } from "./thumbs/macos-conversation";
 import { DotAnimationThumb } from "./thumbs/dot-animation";
+import { FloatingMenuThumb } from "./thumbs/floating-menu";
+import { SquircleCornersThumb } from "./thumbs/squircle-corners";
+import { MetrixDashboardThumb } from "./thumbs/metrix-dashboard";
 
 export type DemoCategory = "Interaction" | "Text Demo" | "Explored Demo" | "Agent UX/UI";
 
@@ -55,6 +59,15 @@ export type DemoEntry = {
 export const ALL_CATEGORIES = ["All", "Interaction", "Explored Demo", "Agent UX/UI"] as const;
 
 export const demos: DemoEntry[] = [
+  {
+    title: "Devin Prompt Composer",
+    description:
+      "复刻 Devin Desktop 输入框：附件 / 权限 / 模型 / Agent 选择器 / 语音 / 发送 / 上下文条，每个槽位都是独立组件可逐件替换。",
+    route: "/devin-composer",
+    category: "Agent UX/UI",
+    tags: ["Composer", "Slots", "Agent"],
+    preview: <DevinComposerThumb />,
+  },
   {
     title: "Prompt Composer",
     description: "Beautiful UI Prompt Bar：@ 数据源、/ 命令、模型选择、模拟语音与彩虹扫光。",
@@ -303,6 +316,15 @@ export const demos: DemoEntry[] = [
     preview: <ReavizSaasMetricsThumb />,
   },
   {
+    title: "Metrix Dashboard",
+    description:
+      "复刻 metrix-dashboard：手写 CSS 网格的像素柱图 + 弹簧跟随的竖线/圆点/popover，0.6px 发丝边与 shell/card 两层底色堆出的层次。",
+    route: "/metrix-dashboard",
+    category: "Explored Demo",
+    tags: ["Dashboard", "Framer Motion", "Radix"],
+    preview: <MetrixDashboardThumb />,
+  },
+  {
     title: "Glyph · 流体文本动画库",
     description:
       "自研文本动画小库：Text 字符级流体过渡 / Number 平滑计数 / Slots 老虎机数字轮，零依赖 Web Animations API、合成层满帧。灵感来自 calligraph。",
@@ -409,5 +431,22 @@ export const demos: DemoEntry[] = [
     category: "Explored Demo",
     tags: ["Selection", "Anchor", "Fuzzy Match"],
     preview: <HighlightRecoveryThumb />,
+  },
+  {
+    title: "Floating Menu",
+    description:
+      "悬浮菜单：顶部胶囊以弹簧动画展开为三段式大导航面板（primary / secondary / social），汉堡图标同步变形，点击外部自动收起。",
+    route: "/floating-menu",
+    category: "Interaction",
+    tags: ["Framer Motion", "Menu"],
+    preview: <FloatingMenuThumb />,
+  },
+  {
+    title: "Squircle Corner Shape",
+    description: "CSS corner-shape: squircle 实验性属性演示 — 对比标准圆角与超椭圆曲线在不同尺寸下的视觉效果。",
+    route: "/squircle-corners",
+    category: "Explored Demo",
+    tags: ["CSS", "Experimental"],
+    preview: <SquircleCornersThumb />,
   },
 ];
