@@ -1,36 +1,101 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+<div align="center">
 
-## Getting Started
+<img src="app/favicon.ico" width="56" height="56" alt="playground logo" />
 
-First, run the development server:
+# playground.zilin.im
+
+**Interaction patterns for the AI era.**
+
+A UI/UX lab for designers, developers and founders — 46 hands-on demos exploring what product interaction should feel like in the age of AI agents.
+
+**English** · [简体中文](./README.zh-CN.md)
+
+[![Live](https://img.shields.io/badge/live-playground.zilin.im-6366f1?style=flat-square)](https://playground.zilin.im)
+[![Next.js](https://img.shields.io/badge/Next.js-16-000?style=flat-square&logo=nextdotjs)](https://nextjs.org)
+[![React](https://img.shields.io/badge/React-19-149eca?style=flat-square&logo=react&logoColor=white)](https://react.dev)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-38bdf8?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
+[![License: MIT](https://img.shields.io/badge/license-MIT-22c55e?style=flat-square)](#-license)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+
+</div>
+
+---
+
+## ✨ Highlights
+
+- **46 self-contained demos** — each route is an independent, copy-friendly experiment.
+- **Agent-first UX** — composers, branching chats, onboarding cards, voice widgets, shimmer & scan effects.
+- **Motion & polish** — dynamic island, floating dock, border beams, squircle corners, fluid text.
+- **Data viz playground** — TradingView Lightweight Charts, Reaviz, Recharts, live streaming charts.
+- **GPU shaders** — Paper Shaders gallery and flowing-light effects.
+
+## 🧭 Demo Gallery
+
+| Category | Count | Examples |
+| --- | :-: | --- |
+| **Agent UX/UI** | 9 | [Devin Composer](app/devin-composer) · [Prompt Composer](app/prompt-composer) · [Thread Chat](app/thread-chat) · [Voice Chat Widget](app/voice-chat-widget) · [Onboarding](app/onboarding) · [Scan Border](app/scan-border) |
+| **Interaction** | 15 | [Dynamic Island](app/dynamic-island) · [Floating Dock](app/floating-dock) · [Floating Menu](app/floating-menu) · [Share Dialog](app/share-dialog) · [Border Beam](app/border-beam) · [Glyph](app/glyph) · [Smooth Tooltip](app/smooth-tooltip) |
+| **Explored Demo** | 22 | [LWC Trading Terminal](app/lwc-terminal) · [Reaviz charts](app/reaviz-stock-compare) · [Metrix Dashboard](app/metrix-dashboard) · [Paper Shaders](app/shaders) · [Highlight Recovery](app/highlight-recovery) · [Squircle Corners](app/squircle-corners) · [Floating Popup](app/floating-popup) |
+
+The full, filterable list lives on the [homepage](https://playground.zilin.im) (data source: [`app/_homepage/demos.tsx`](app/_homepage/demos.tsx)).
+
+## 🚀 Quick Start
+
+Requires Node.js 20+ and [pnpm](https://pnpm.io).
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
+pnpm dev      # http://localhost:3080
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+| Command | Description |
+| --- | --- |
+| `pnpm dev` | Start the dev server on port **3080** |
+| `pnpm build` | Production build |
+| `pnpm start` | Serve the production build |
+| `pnpm lint` | ESLint (`eslint-config-next`, core-web-vitals) |
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🗂 Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```text
+app/
+├── page.tsx              # Landing page
+├── _homepage/            # Hero, demo grid, thumbnails, demo registry
+├── _article/             # Shared layout for long-form demo pages (MDX)
+├── <demo-name>/          # One folder per demo (kebab-case route segment)
+└── globals.css           # Global styles & Tailwind tokens
+components/ui/            # Shared shadcn/ui primitives
+shanghai-station-map/     # Standalone Vite sub-project (MapLibre + Protomaps)
+e2e/                      # Playwright specs (e.g. thread-chat)
+public/                   # Static assets
+```
 
-## Learn More
+## ➕ Adding a Demo
 
-To learn more about Next.js, take a look at the following resources:
+1. Create `app/<demo-name>/page.tsx` (add `'use client'` only if hooks or browser APIs are needed).
+2. Add a thumbnail in `app/_homepage/thumbs/`.
+3. Register it in [`app/_homepage/demos.tsx`](app/_homepage/demos.tsx) with title, description, route, category and tags.
+4. Run `pnpm lint` before committing.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🧱 Tech Stack
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Framework** — Next.js 16 (App Router), React 19, TypeScript
+- **Styling** — Tailwind CSS 4, shadcn/ui, Radix UI, Base UI, `tw-animate-css`
+- **Motion** — Framer Motion, CSS animations, Paper Shaders
+- **Charts** — lightweight-charts, Reaviz, Recharts, Liveline
+- **Editor** — Tiptap
+- **Content** — MDX (`@next/mdx`)
 
-## Deploy on Vercel
+## 🤝 Contributing
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Conventional commits (`feat:`, `fix:`, `refactor:`), scoped diffs, and a short test plan in PRs. See [`AGENTS.md`](AGENTS.md) for the full repository guidelines.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📄 License
+
+[MIT](https://opensource.org/licenses/MIT). Source code is provided for learning and reference only. Copyright of derived or third-party demos remains with their original authors and organizations (e.g. [`app/prompt-composer/LICENSE.beautiful-ui`](app/prompt-composer/LICENSE.beautiful-ui)).
+
+---
+
+<div align="center">
+Made with ♥ by <a href="https://github.com/hifizz">@hifizz</a>
+</div>
