@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "../ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
-import { Img } from "../ui/icon";
+import { Img } from "../ui/icons";
 
 const GRANULARITIES = ["Daily", "Weekly", "Monthly", "Yearly"];
 

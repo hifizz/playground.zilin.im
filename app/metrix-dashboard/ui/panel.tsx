@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
-import { Img } from "./icon";
+import { Img } from "./icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
 
 /**

@@ -8,7 +8,7 @@ import { RevenueBars } from "../charts/revenue-bars";
 import { AI_INSIGHT, REVENUE_RANGES, scaleRevenue } from "../data";
 import { AnimatedNumber } from "../ui/animated-number";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuTrigger, MenuDot } from "../ui/dropdown-menu";
-import { Img } from "../ui/icon";
+import { Img } from "../ui/icons";
 import { PanelCard, PanelHeader, PanelShell } from "../ui/panel";
 
 /** 「Get AI insight」折叠条：hover 星星旋转，展开时箭头翻转、正文高度动画 */

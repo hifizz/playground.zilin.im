@@ -8,7 +8,7 @@ import { AnimatedNumber } from "../ui/animated-number";
 import { Button } from "../ui/button";
 import { Checkbox } from "../ui/checkbox";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu";
-import { Img, type IconName } from "../ui/icon";
+import { Img, type IconName } from "../ui/icons";
 import { PanelHeader, PanelShell } from "../ui/panel";
 
 type SortKey = keyof Transaction;

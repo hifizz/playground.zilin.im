@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu";
-import { AVATAR_SRC, Img } from "../ui/icon";
+import { AVATAR_SRC, Img } from "../ui/icons";
 
 /** 侧边栏底部的账号卡片：头像 + 在线点 + 名字/套餐，向上弹出菜单 */
 export function UserMenu() {

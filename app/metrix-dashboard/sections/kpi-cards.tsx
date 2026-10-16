@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { KPIS, type Kpi } from "../data";
 import { AnimatedNumber } from "../ui/animated-number";
-import { Img } from "../ui/icon";
+import { Img } from "../ui/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 const EASE = [0.16, 1, 0.3, 1] as const;

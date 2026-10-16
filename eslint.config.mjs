@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Independent Vite sub-project with its own tsconfig and rules:
+    "shanghai-station-map/**",
   ]),
 ]);
 

@@ -1,4 +1,4 @@
-import type { IconName } from "./ui/icon";
+import type { IconName } from "./ui/icons";
 
 /* ───────────── 侧边栏 ───────────── */
 

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { NAV_GROUPS } from "../data";
-import { Icon, Img } from "../ui/icon";
+import { Icon, Img } from "../ui/icons";
 
 /** 分组导航：选中项的底板用 layoutId 在条目间弹簧滑动 */
 export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { WORKSPACES } from "../data";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, MenuDot } from "../ui/dropdown-menu";
-import { Img } from "../ui/icon";
+import { Img } from "../ui/icons";
 
 /** 侧边栏顶部的工作区切换器：logo + 两行文字 + 上下箭头，点开是工作区列表 */
 export function TeamSwitcher() {
