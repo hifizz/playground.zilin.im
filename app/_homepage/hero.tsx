@@ -35,7 +35,7 @@ export function Hero({ demoCount }: { demoCount: number }) {
             <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
           </span>
           <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-neutral-400">
-            playground · zilin.im
+            zilin.im
           </span>
         </div>
 
@@ -43,7 +43,7 @@ export function Hero({ demoCount }: { demoCount: number }) {
           className="mb-3 text-4xl font-semibold text-neutral-50 sm:text-6xl"
           style={{ letterSpacing: "-0.045em", lineHeight: 0.98 }}
         >
-          Interaction patterns{" "}
+          Zilin&apos;s playground{" "}
           <span className="text-neutral-500">for the AI era.</span>
         </h1>
 
@@ -51,9 +51,9 @@ export function Hero({ demoCount }: { demoCount: number }) {
           className="mb-5 max-w-2xl text-sm leading-relaxed text-neutral-400 sm:text-base"
           style={{ letterSpacing: "-0.011em" }}
         >
-          专为 designer、developer、founder 而做的 UI/UX 实验室。
-          每个 demo 都是可复制、可安装的 shadcn 组件，
-          研究 AI agent 时代的产品交互该长什么样。
+          我是 Zilin(@hifizz),写代码也做设计。这里是我的 UI/UX
+          实验场 —— 研究 AI agent 时代的产品交互该长什么样,
+          每个 demo 都能跑、能复制。
         </p>
 
         <div className="flex flex-wrap items-center gap-2.5">
@@ -79,7 +79,7 @@ export function Hero({ demoCount }: { demoCount: number }) {
             </svg>
           </a>
           <a
-            href="https://github.com/zilin"
+            href="https://github.com/hifizz/playground.zilin.im"
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-1.5 rounded-full border border-neutral-700 px-4 py-2 text-sm font-medium text-neutral-300 transition-colors hover:border-neutral-500 hover:text-neutral-50"
