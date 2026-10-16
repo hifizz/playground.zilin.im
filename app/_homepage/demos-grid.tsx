@@ -13,7 +13,7 @@ export function DemosGrid() {
       : demos.filter((d) => d.category === activeCategory);
 
   return (
-    <section id="demos" className="mx-auto max-w-5xl scroll-mt-4 px-6 pt-6 pb-24 sm:pt-8 md:px-0">
+    <section id="demos" className="mx-auto max-w-5xl scroll-mt-4 px-6 pt-6 pb-24 sm:pl-10 sm:pr-0 sm:pt-8">
       <div className="mb-5 flex gap-1 overflow-x-auto pb-1">
         {ALL_CATEGORIES.map((cat) => (
           <button
