@@ -3,7 +3,7 @@ export function SquircleCornersThumb() {
     <div
       className="w-full h-full flex items-center justify-center p-8"
       style={{
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+        background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)'
       }}
     >
       <div className="grid grid-cols-2 gap-4">
