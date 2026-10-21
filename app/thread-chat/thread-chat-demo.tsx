@@ -19,14 +19,17 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Columns3, Highlighter, Network, PanelRightOpen, Waypoints } from "lucide-react";
+import { Columns3, Highlighter, Network, PanelRightOpen, RotateCcw, Waypoints } from "lucide-react";
 import "./thread-chat.css";
-import { artifactSeedFor, cannedIntro, cannedReply, seedStore } from "./data";
+import { artifactSeedFor, seedStore } from "./data";
+import { createLiveProvider } from "./live-provider";
 import { createThreadStore } from "./core/store";
 import { useThreadStore } from "./core/use-thread-store";
 import { threadTitle, type TreeRow } from "./core/selectors";
 import { BranchableChat } from "./branching/branchable-chat";
+import { BubbleThread } from "./branching/bubble-thread";
 import { SelectionBubble, type SelectionInfo } from "./branching/selection-bubble";
+import { ThreadSheet } from "./branching/thread-sheet";
 import { type PlacementHint, type PlacementMode } from "./orchestration/placement";
 import {
   COL_MIN_W,
@@ -48,6 +51,9 @@ type ViewMode = "columns" | "canvas";
 
 const MAIN_SUBTITLE = "一段关于 Agent 记忆系统的对话";
 
+/** localStorage 持久化槽位（§10.6）：ThreadTreeState 纯 JSON，带版本号防 schema 漂移 */
+const PERSIST_KEY = "tc-thread-state-v1";
+
 interface ToastState {
   msg: string;
   undo?: () => void;
@@ -64,10 +70,62 @@ function anchoredPos(btn: HTMLElement, w: number, h: number) {
 }
 
 export function ThreadChatDemo() {
-  /* ---------- 会话树：外部可变 store，version 快照驱动重渲 ---------- */
-  const [store] = useState(() => createThreadStore(seedStore()));
+  /* ---------- 会话树：外部可变 store，version 快照驱动重渲；
+       回复经 ReplyProvider 流式生成：服务端配了 MINIMAX_API_KEY 则走真实模型
+       （/api/thread-chat/reply 流式代理），否则自动回落 mock ---------- */
+  const [store] = useState(() => createThreadStore(seedStore(), createLiveProvider()));
   useThreadStore(store);
   const state = store.getState();
+
+  /* 顶栏 pill 显示实际回复模式（与 provider 探测同一个 GET 端点） */
+  const [llmModel, setLlmModel] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/thread-chat/reply")
+      .then((r) => (r.ok ? (r.json() as Promise<{ live?: boolean; model?: string }>) : null))
+      .then((j) => {
+        if (alive && j?.live) setLlmModel(j.model ?? "LLM");
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  /* ---------- 持久化（§10.6）：挂载后恢复（首帧渲染种子避免 hydration 不一致，
+       随后原地 hydrate），此后每次变更防抖 400ms 存入 localStorage ---------- */
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(PERSIST_KEY);
+      if (raw) {
+        const parsed: unknown = JSON.parse(raw);
+        if (
+          typeof parsed === "object" &&
+          parsed !== null &&
+          (parsed as { v?: number }).v === 1 &&
+          (parsed as { state?: { threads?: { main?: unknown } } }).state?.threads?.main
+        )
+          store.hydrate((parsed as { state: Parameters<typeof store.hydrate>[0] }).state);
+      }
+    } catch {
+      /* 存档损坏：忽略，用种子 */
+    }
+    let timer: number | null = null;
+    const unsub = store.subscribe(() => {
+      if (timer !== null) clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        try {
+          localStorage.setItem(PERSIST_KEY, JSON.stringify({ v: 1, state: store.getState() }));
+        } catch {
+          /* 配额满等写入失败：静默（demo 数据可再生） */
+        }
+      }, 400);
+    });
+    return () => {
+      unsub();
+      if (timer !== null) clearTimeout(timer);
+    };
+  }, [store]);
 
   /* ---------- 自适应列数（SSR 阶段 winW=null，顶栏显示「列数」占位） ---------- */
   const winW = useWindowWidth();
@@ -80,16 +138,31 @@ export function ThreadChatDemo() {
   const [mode, setMode] = useState<PlacementMode>("replace");
   const cols = useColumnSlots({ store, maxExpanded, mode });
 
-  /* ---------- 视图形态：列（深读）| 画布（纵览全树） ---------- */
+  /* ---------- 视图形态：列（深读）| 画布（纵览全树） ----------
+       移动端（<720px）分栏不成立：首次识别到窄屏时默认切画布（fitView 一屏纵览、
+       pan/zoom 是天然手势），此后用户仍可手动切列。渲染期间的派生状态调整写法 */
   const [viewMode, setViewMode] = useState<ViewMode>("columns");
+  const isMobile = winW !== null && winW < 720;
+  const [mobileDefaulted, setMobileDefaulted] = useState(false);
+  if (isMobile && !mobileDefaulted) {
+    setMobileDefaulted(true);
+    setViewMode("canvas");
+  }
+  /** 移动端 bottom sheet 视口（画布节点单击唤起；full = 拉满 ≈ 移动端的「升格」） */
+  const [sheet, setSheet] = useState<{ threadId: string; full: boolean } | null>(null);
   /** 画布视图状态宿主（节点 pin 表）：跨「列 ⇄ 画布」切换存活，属视口状态不进 core store。
       与上面的 store 同一模式：useState(初始化函数) 造出的长寿可变对象（type-only import，
       不把画布模块拖进首屏 bundle） */
   const [canvasViewState] = useState<CanvasViewState>(() => ({ pins: new Map() }));
+  /** 画布内 fork 出的新会话：画布收到后居中并展开（n 递增去重） */
+  const [canvasFocus, setCanvasFocus] = useState<{ id: string; n: number } | null>(null);
+  const canvasFocusSeq = useRef(0);
 
   /* ---------- 其余 UI 状态 ---------- */
   const [hintOn, setHintOn] = useState(true);
   const [sel, setSel] = useState<SelectionInfo | null>(null);
+  /** 气泡轻对话视口（P10：thread 显示在气泡还是列是视口事实，归壳层持有） */
+  const [bubble, setBubble] = useState<{ threadId: string; sourceId: string; collapsed: boolean } | null>(null);
   const [switcher, setSwitcher] = useState<(SwitcherMode & { n: number }) | null>(null);
   const swSeq = useRef(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -109,8 +182,10 @@ export function ThreadChatDemo() {
   /* ---------- 统一意图入口：打开某会话（脚注 / ⌘K / 子树 / 定位来源 / 画布双击都走这里）
        hint：可选放置提示（⌘ keepSource「保留来源列，开在其右」/ targetId 显式让位列） ---------- */
   function openBranchUI(id: string, sourceId?: string | null, hint?: PlacementHint) {
-    // 意图收敛：打开会话 = 去列里读它——画布模式下先切回列视图再放置
+    // 意图收敛：打开会话 = 去列里读它——画布模式下先切回列视图再放置；
+    // 目标正显示在气泡轻视口时收掉气泡（换视口不换数据）
     setViewMode("columns");
+    if (bubble?.threadId === id) setBubble(null);
     if (id === "main") {
       cols.flashThread("main");
       return;
@@ -131,16 +206,29 @@ export function ThreadChatDemo() {
     }
   }
 
-  /* ---------- 开分支：store.fork + 放置 + artifact 自动弹出（hint 来自气泡：⌘ / 列条点选） ---------- */
-  function handleFork(s: SelectionInfo, hint?: PlacementHint) {
+  /* ---------- 开分支：store.fork + 放置 + artifact 自动弹出（hint 来自气泡：⌘ / 列条点选；
+       question = 气泡输入框里的可选首问，成为分支首条 user 消息）。
+       画布模式（Phase 2 画布内划选）：不占列槽——新节点入树后画布居中并展开它 ---------- */
+  function handleFork(s: SelectionInfo, hint?: PlacementHint, question?: string) {
     const r = store.fork({
       sourceThreadId: s.threadId,
       sourceMsgId: s.msgId,
       anchorText: s.text,
-      introText: cannedIntro(s.text),
+      anchorPrefix: s.prefix,
+      anchorSuffix: s.suffix,
+      firstQuestion: question,
       artifactSeed: artifactSeedFor(s.text),
     });
     if (!r) return;
+    if (viewMode === "canvas") {
+      setCanvasFocus({ id: r.threadId, n: ++canvasFocusSeq.current });
+      if (r.artifactId) {
+        setActiveArt(r.artifactId);
+        setDrawerOpen(true);
+      }
+      showToast(`已开启分支 · ${r.title}${r.artifactId ? "（Artifact 已在右侧打开）" : ""}`);
+      return;
+    }
     const eff = cols.openThread(r.threadId, s.threadId, hint);
     if (r.artifactId) {
       setActiveArt(r.artifactId);
@@ -162,6 +250,29 @@ export function ThreadChatDemo() {
     } else {
       showToast(`已开启分支 · ${r.title}${artNote}`);
     }
+  }
+
+  /* ---------- 气泡轻对话：首次提交即 fork 入树（脚注同步落原文）但不占列槽；
+       升格 = openBranchUI 换视口，pendingText 作为下一问在列里发出（无损） ---------- */
+  function handleStartBubble(s: SelectionInfo, question: string) {
+    const r = store.fork({
+      sourceThreadId: s.threadId,
+      sourceMsgId: s.msgId,
+      anchorText: s.text,
+      anchorPrefix: s.prefix,
+      anchorSuffix: s.suffix,
+      firstQuestion: question,
+      artifactSeed: artifactSeedFor(s.text),
+    });
+    if (!r) return;
+    setBubble({ threadId: r.threadId, sourceId: s.threadId, collapsed: false });
+  }
+  function upgradeBubble(pendingText?: string, keepSource?: boolean) {
+    if (!bubble) return;
+    const { threadId, sourceId } = bubble;
+    setBubble(null);
+    openBranchUI(threadId, sourceId, keepSource ? { keepSource: true } : undefined);
+    if (pendingText) store.send(threadId, pendingText);
   }
 
   /* ---------- 列满策略切换（fold → replace 时展开全部细条并裁掉超限列） ---------- */
@@ -215,13 +326,16 @@ export function ThreadChatDemo() {
       }
       if (e.key === "Escape") {
         if (sel) setSel(null);
+        else if (bubble && !bubble.collapsed) setBubble({ ...bubble, collapsed: true });
+        else if (bubble) setBubble(null);
+        else if (sheet) setSheet(null);
         else if (switcher) setSwitcher(null);
         else if (drawerOpen) setDrawerOpen(false);
       }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [sel, switcher, drawerOpen, toggleGlobalSwitcher]);
+  }, [sel, bubble, sheet, switcher, drawerOpen, toggleGlobalSwitcher]);
 
   /* ---------- 主线 hint 卡片 ---------- */
   const hintNode = hintOn ? (
@@ -329,7 +443,24 @@ export function ThreadChatDemo() {
           Artifact
           <span className="cnt">{state.artifactOrder.length}</span>
         </button>
-        <span className="demo-pill">回复写死</span>
+        <button
+          className="tbtn"
+          title="清除本地保存的会话树，回到演示种子"
+          onClick={() => {
+            try {
+              localStorage.removeItem(PERSIST_KEY);
+            } catch {
+              /* 不可用则直接刷新 */
+            }
+            location.reload();
+          }}
+        >
+          <RotateCcw size={13} />
+          重置
+        </button>
+        <span className="demo-pill" title={llmModel ? `回复由 ${llmModel} 实时生成` : "未配置模型 key，回复为演示内容"}>
+          {llmModel ? `${llmModel} 流式` : "mock 流式回复"}
+        </span>
       </div>
 
       {viewMode === "columns" ? (
@@ -357,7 +488,8 @@ export function ThreadChatDemo() {
               onOpenSwitcher={(btn) => openColumnSwitcher(vpIndex, btn)}
               onOpenSubtree={(btn) => openSubtree(threadId, btn)}
               onCollapse={() => cols.closeColumn(vpIndex)}
-              onSend={(text) => store.send(threadId, text, cannedReply())}
+              onSend={(text) => store.send(threadId, text)}
+              onRetry={(msgId) => store.retryReply(threadId, msgId)}
             />
           )}
         />
@@ -367,21 +499,50 @@ export function ThreadChatDemo() {
           mainSubtitle={MAIN_SUBTITLE}
           viewState={canvasViewState}
           onOpenThread={(id) => openBranchUI(id, null)}
+          focusNode={canvasFocus}
+          onOpenSheet={isMobile ? (id) => setSheet({ threadId: id, full: false }) : undefined}
         />
       )}
 
-      {/* Phase 1 画布只读：划选开分支仅列模式提供。列槽上下文喂给气泡的迷你列条，
-          预览与提交共用 placement 同一套规则 */}
-      {viewMode === "columns" && (
-        <SelectionBubble
+      {/* 移动端 bottom sheet：画布节点单击唤起的会话视口（半屏 ⇄ 拉满） */}
+      {sheet && (
+        <ThreadSheet
           state={state}
-          sel={sel}
-          onSelChange={setSel}
-          onFork={handleFork}
-          slots={cols.slots}
-          mode={mode}
-          maxExpanded={maxExpanded}
-          lastActiveOf={(id) => state.threads[id]?.lastActive ?? 0}
+          threadId={sheet.threadId}
+          full={sheet.full}
+          onFullChange={(full) => setSheet((s) => (s ? { ...s, full } : s))}
+          onClose={() => setSheet(null)}
+          onSend={(text) => store.send(sheet.threadId, text)}
+          onRetry={(msgId) => store.retryReply(sheet.threadId, msgId)}
+        />
+      )}
+
+      {/* 划选气泡两种模式都挂载（Phase 2 画布内划选走展开节点的消息列表，共用
+          同一 DOM 契约）。列槽上下文只在列模式喂给迷你列条（画布 fork 不占列槽）；
+          轻对话（onStartBubble）仅列模式提供——画布里带问 Enter 落到 handleFork，
+          直接长成带首问的新节点 */}
+      <SelectionBubble
+        state={state}
+        sel={sel}
+        onSelChange={setSel}
+        onFork={handleFork}
+        onStartBubble={viewMode === "columns" ? handleStartBubble : undefined}
+        slots={viewMode === "columns" ? cols.slots : []}
+        mode={mode}
+        maxExpanded={maxExpanded}
+        lastActiveOf={(id) => state.threads[id]?.lastActive ?? 0}
+      />
+
+      {/* 气泡轻对话视口（列模式专属：锚定在原文 .anchored 上；徽标态贴右缘） */}
+      {viewMode === "columns" && bubble && (
+        <BubbleThread
+          state={state}
+          threadId={bubble.threadId}
+          collapsed={bubble.collapsed}
+          onCollapsedChange={(c) => setBubble((b) => (b ? { ...b, collapsed: c } : b))}
+          onSend={(text) => store.send(bubble.threadId, text)}
+          onRetry={(msgId) => store.retryReply(bubble.threadId, msgId)}
+          onUpgrade={upgradeBubble}
         />
       )}
 

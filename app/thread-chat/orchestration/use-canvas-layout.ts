@@ -115,6 +115,7 @@ function buildBaseGraph(state: ThreadTreeState, mainSubtitle: string | null): Ba
       artifactCount: artifactCountOf.get(t.id) ?? 0,
       accent: accentOf(t),
       dot: dotColorOf(t),
+      messages: t.messages,
     };
     const size = { width: CARD_W, height: estimateCardHeight(data) };
     nodes.push({
@@ -201,13 +202,15 @@ export function useCanvasLayout({ store, version, mainSubtitle, viewState }: Use
   const base = useMemo(() => buildBaseGraph(snap.state, mainSubtitle ?? null), [snap, mainSubtitle]);
   /* dagre 坐标：只依赖结构 */
   const autoPos = useMemo(() => layoutPositions(base), [base]);
-  /* 受控 nodes：pin 覆盖 dagre，未 pin 节点在树变化时自动重排 */
+  /* 受控 nodes：pin 覆盖 dagre，未 pin 节点在树变化时自动重排；
+     选中节点抬高 zIndex（外挂对话面板要盖过下方节点） */
   const nodes = useMemo<CanvasCardNode[]>(
     () =>
       base.nodes.map((n) => ({
         ...n,
         position: pins.get(n.id) ?? autoPos.get(n.id) ?? n.position,
         selected: n.id === selectedId,
+        zIndex: n.id === selectedId ? 12 : 0,
       })),
     [base, autoPos, pins, selectedId],
   );
@@ -241,5 +244,8 @@ export function useCanvasLayout({ store, version, mainSubtitle, viewState }: Use
     setPins(empty);
   }, [viewState]);
 
-  return { nodes, edges: base.edges, onNodesChange, resetLayout, pinCount: pins.size };
+  /** 程序性选中（= 展开对话面板）：新 fork 的节点用它获得焦点 */
+  const selectNode = useCallback((id: string | null) => setSelectedId(id), []);
+
+  return { nodes, edges: base.edges, onNodesChange, resetLayout, selectNode, pinCount: pins.size };
 }

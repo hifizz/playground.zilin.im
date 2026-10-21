@@ -12,9 +12,17 @@
  * · 点非主线小格 = 显式指定让位列（override，再点同格取消）；
  * · 按住 ⌘/Ctrl = 保留来源列、新列开在其紧邻右侧（气泡实时跟踪修饰键，按钮文案
  *   与列条目标同步切换）。生效目标 = override > 修饰键 > 默认规则。
+ *
+ * 可选输入框（fork 首条消息策略「默认代拟 + 可选带问」）：
+ * · 留空提交 = 现状：分支以引导回复开场（接真实模型后为代拟首问）；
+ * · 输入后提交 = 用户问题成为分支首条 user 消息（store.fork 的 firstQuestion）；
+ * · 键位语义（Phase B）：纯 Enter 带问 = 开「气泡内轻对话」（第三种视口，
+ *   onStartBubble）；⌘Enter / 点按钮 / 列条 override = 直接开完整分支列；
+ *   Shift+Enter 换行。轻 vs 全量的分界：有明确问题的快速追问走气泡，
+ *   显式选择放置目标或按钮确认则直接上列。
  */
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { GitFork } from "lucide-react";
 import type { ThreadTreeState } from "../core/types";
 import { threadTitle } from "../core/selectors";
@@ -33,14 +41,19 @@ export interface SelectionInfo {
   y: number;
   /** 划选结束（mouseup）那一刻是否按着 ⌘/Ctrl：作为修饰键跟踪的初值 */
   meta?: boolean;
+  /** 划选处前后 ≤32 字的原文上下文（TextQuoteSelector 式，供锚点鲁棒定位） */
+  prefix?: string;
+  suffix?: string;
 }
 
 export interface SelectionBubbleProps {
   state: ThreadTreeState;
   sel: SelectionInfo | null;
   onSelChange: (s: SelectionInfo | null) => void;
-  /** 点「开启分支讨论」：上层负责真正 fork + 放置；hint 见 placement.ts */
-  onFork: (s: SelectionInfo, hint?: PlacementHint) => void;
+  /** 提交开分支（列路径）：上层负责真正 fork + 放置；hint 见 placement.ts；question = 输入框里的首问（可选） */
+  onFork: (s: SelectionInfo, hint?: PlacementHint, question?: string) => void;
+  /** 纯 Enter 带问：开气泡内轻对话（fork 入树但不占列槽），未传则退回 onFork */
+  onStartBubble?: (s: SelectionInfo, question: string) => void;
   /* —— 迷你列条的放置上下文（与提交走同一套 placement 规则）—— */
   slots: Slot[];
   mode: PlacementMode;
@@ -53,6 +66,7 @@ export function SelectionBubble({
   sel,
   onSelChange,
   onFork,
+  onStartBubble,
   slots,
   mode,
   maxExpanded,
@@ -62,13 +76,22 @@ export function SelectionBubble({
   const [override, setOverride] = useState<string | null>(null);
   /** ⌘/Ctrl 是否按住（实时跟踪，目标与按钮文案随之切换） */
   const [metaHeld, setMetaHeld] = useState(false);
-  /** 渲染期间的派生状态调整（React 官方写法）：sel 变化 = 新一次划选，重置两态 */
+  /** 可选首问（受控 textarea；留空提交 = 现状引导回复路径） */
+  const [question, setQuestion] = useState("");
+  const taRef = useRef<HTMLTextAreaElement | null>(null);
+  /** 渲染期间的派生状态调整（React 官方写法）：sel 变化 = 新一次划选，重置各态 */
   const [forSel, setForSel] = useState<SelectionInfo | null>(sel);
   if (forSel !== sel) {
     setForSel(sel);
     setOverride(null);
     setMetaHeld(sel?.meta ?? false);
+    setQuestion("");
   }
+
+  /* 气泡弹出即聚焦输入框（preventScroll：定位刚结算完，不能再引发滚动） */
+  useEffect(() => {
+    if (sel) taRef.current?.focus({ preventScroll: true });
+  }, [sel]);
 
   /* 划选监听：mouseup 结算选区并定位气泡；mousedown / 滚动 / resize 隐藏 */
   useEffect(() => {
@@ -105,17 +128,45 @@ export function SelectionBubble({
           onSelChange(null);
           return;
         }
-        const rect = s.getRangeAt(0).getBoundingClientRect();
+        // 同文多次出现的消歧：数 DOM 里选区之前有几次 txt（脚注上标的数字不影响计数），
+        // 换算成 msg.text 中的第 N 次出现，截取前后 ≤32 字作 TextQuoteSelector 上下文
+        const range = s.getRangeAt(0);
+        let occ = 0;
+        try {
+          const pre = document.createRange();
+          pre.selectNodeContents(host);
+          pre.setEnd(range.startContainer, range.startOffset);
+          const preText = pre.toString();
+          for (let k = preText.indexOf(txt); k !== -1; k = preText.indexOf(txt, k + 1)) occ++;
+        } catch {
+          occ = 0; // 选区起点不在气泡内等异常：退回首次出现
+        }
+        let start = -1;
+        for (let k = 0, from = 0; k <= occ; k++) {
+          start = msg.text.indexOf(txt, from);
+          if (start === -1) break;
+          from = start + 1;
+        }
+        if (start === -1) start = msg.text.indexOf(txt);
+        const prefix = msg.text.slice(Math.max(0, start - 32), start);
+        const suffix = msg.text.slice(start + txt.length, start + txt.length + 32);
+        const rect = range.getBoundingClientRect();
         const left = Math.max(10, Math.min(rect.left, window.innerWidth - 244));
         let top = rect.bottom + 9;
-        if (top > window.innerHeight - (150 + extraH)) top = Math.max(10, rect.top - (132 + extraH));
-        onSelChange({ text: txt, threadId, msgId, x: left, y: top, meta });
+        if (top > window.innerHeight - (190 + extraH)) top = Math.max(10, rect.top - (172 + extraH));
+        onSelChange({ text: txt, threadId, msgId, x: left, y: top, meta, prefix, suffix });
       }, 10);
     };
     const onMouseDown = (e: MouseEvent) => {
       if (!(e.target as HTMLElement).closest?.(".sel-bubble")) onSelChange(null);
     };
-    const onScroll = () => onSelChange(null);
+    const onScroll = (e: Event) => {
+      // 气泡内部的滚动（输入长问题时 textarea 自增高/内滚）不算「用户离开」——
+      // capture 监听会先于一切收到它，必须放行，否则打字打到换行气泡就自毁
+      const t = e.target as Partial<HTMLElement> | null;
+      if (t?.closest?.(".sel-bubble")) return;
+      onSelChange(null);
+    };
     document.addEventListener("mouseup", onMouseUp);
     document.addEventListener("mousedown", onMouseDown);
     document.addEventListener("scroll", onScroll, true);
@@ -157,11 +208,27 @@ export function SelectionBubble({
     ? previewPlacement(mode, slots, { sourceId: sel.threadId, maxExpanded, lastActiveOf, hint })
     : null;
 
+  const hasQuestion = question.trim().length > 0;
   const btnLabel = ov
     ? `开启并${mode === "replace" ? "替换" : "折叠"}『${threadTitle(state, ov)}』`
     : metaHeld
       ? "在右侧新列打开"
-      : "开启分支讨论";
+      : hasQuestion
+        ? "带着问题开分支"
+        : "开启分支讨论";
+
+  /** 统一提交：按钮点击与输入框 Enter 共用（metaFromEvent 与跟踪态任一为真即 keepSource） */
+  const submit = (metaFromEvent: boolean) => {
+    const h: PlacementHint | undefined = ov
+      ? { targetId: ov }
+      : metaFromEvent || metaHeld
+        ? { keepSource: true }
+        : undefined;
+    const q = question.trim();
+    window.getSelection()?.removeAllRanges();
+    onSelChange(null);
+    onFork(sel, h, q || undefined);
+  };
 
   /* —— 迷你列条：主线 + 各槽位（+ 插入位置的幽灵格），标注将替换 / 将折叠 / 本列 —— */
   const ghost = (
@@ -234,23 +301,42 @@ export function SelectionBubble({
     <div className="sel-bubble" style={{ left: sel.x, top: sel.y }}>
       <div className="lbl">在新分支中讨论这段</div>
       <div className="quote">{sel.text}</div>
+      <div className="ask">
+        <textarea
+          ref={taRef}
+          rows={1}
+          value={question}
+          placeholder="就这段问点什么…（可留空）"
+          aria-label="就这段划选文字提出你的问题（可留空，留空则自动展开讨论）"
+          onChange={(e) => {
+            setQuestion(e.target.value);
+            const ta = e.currentTarget;
+            ta.style.height = "auto";
+            ta.style.height = Math.min(ta.scrollHeight, 68) + "px";
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              const meta = e.metaKey || e.ctrlKey;
+              const q = question.trim();
+              // 纯 Enter 带问 = 轻对话；⌘Enter / override 点选 = 直接开列
+              if (q && !meta && !ov && onStartBubble) {
+                window.getSelection()?.removeAllRanges();
+                onSelChange(null);
+                onStartBubble(sel, q);
+                return;
+              }
+              submit(meta);
+            }
+          }}
+        />
+      </div>
       {hasMap && (
         <div className="slotmap" role="group" aria-label="新分支的放置目标（点小格指定让位列）">
           {cells}
         </div>
       )}
-      <button
-        onClick={(e) => {
-          const h: PlacementHint | undefined = ov
-            ? { targetId: ov }
-            : e.metaKey || e.ctrlKey
-              ? { keepSource: true }
-              : undefined;
-          window.getSelection()?.removeAllRanges();
-          onSelChange(null);
-          onFork(sel, h);
-        }}
-      >
+      <button onClick={(e) => submit(e.metaKey || e.ctrlKey)}>
         <GitFork size={14} />
         {btnLabel}
       </button>
