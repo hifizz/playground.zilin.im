@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>从 0 到 1 实现一个 Agent Harness — 爆炸图</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400&display=swap"
+    />
+    <link rel="stylesheet" href="hark.css" />
+    <link rel="stylesheet" href="hark-hero.css" />
+    <style>
+      :root {
+        color-scheme: light;
+        --x-paper: #fbfaf7;
+        --x-ink: #1a1a1a;
+        --x-accent: #d9480f;
+        --x-accent-text: #b33a0b;
+        --x-grey: #6b675f;
+        --x-rule: #d8d3c7;
+        --x-mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+        --x-cjk: "Geist", -apple-system, "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+        --fill-primary-on: #fbfaf7;
+        --text-primary: #1a1a1a;
+        --text-secondary: #5f5b53;
+        --fill-tertiary: #f1eee6;
+        --stroke-primary: #cfc9bb;
+        --stroke-secondary: #e4dfd3;
+      }
+      html, body { background: var(--x-paper); color: var(--x-ink); }
+      body { font-family: var(--x-cjk); }
+      .x-wrap { max-width: var(--page-max); margin: 0 auto; padding: 0 var(--gutter); }
+
+      /* hero copy */
+      .x-hero { padding: 48px 0 20px; }
+      .x-kicker { font: 400 12px/1.4 var(--x-mono); letter-spacing: .08em; color: var(--x-accent-text); margin: 0 0 12px; }
+      .x-hero h1 { font-family: var(--x-cjk); font-weight: 600; font-size: clamp(30px, 5vw, 48px); line-height: 1.15; letter-spacing: -.01em; margin: 0 0 12px; color: var(--x-ink); }
+      .x-lede { font: 400 var(--size-body, 15px)/1.7 var(--x-cjk); color: var(--text-secondary); margin: 0; max-width: 46em; }
+
+      /* stage: drawing + bill of materials */
+      .x-stage { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 24px; align-items: start; padding-bottom: 32px; }
+      .x-sheet { position: relative; border: 1px solid var(--x-ink); outline: 1px solid var(--x-ink); outline-offset: 4px; margin: 5px; padding: 12px 12px 16px;
+        background-image: linear-gradient(var(--stroke-secondary) 1px, transparent 1px), linear-gradient(90deg, var(--stroke-secondary) 1px, transparent 1px);
+        background-size: 40px 40px; background-position: -1px -1px; }
+      .x-svgbox { position: relative; width: min(100%, max(560px, calc((100svh - 120px) * .7667))); min-width: 280px; aspect-ratio: 920 / 1200; margin: 0 auto; }
+      .x-svgbox svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: pan-y; cursor: grab; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+      .x-svgbox svg:active { cursor: grabbing; }
+
+      svg .ink { stroke: var(--x-ink); stroke-width: 1.4; fill: none; stroke-linejoin: round; stroke-linecap: round; }
+      svg .dash { stroke-dasharray: 5 4; }
+      svg .thin { stroke: var(--x-ink); stroke-width: .7; fill: none; opacity: .55; }
+      svg .axis { stroke: #c33; stroke-width: 1; stroke-dasharray: 2 6; fill: none; }
+      svg .face3 { fill: #f6f3ec; stroke: var(--x-ink); stroke-width: 1.2; }
+      svg .top3 { fill: #ece7dc; stroke: var(--x-ink); }
+      svg .side3 { fill: #e2dccd; stroke: var(--x-ink); }
+      svg .mod { cursor: pointer; transition: opacity .2s; }
+      svg .is-dim { opacity: .22; }
+      svg .is-active .ink, svg .is-active .thin, svg .is-active .face3, svg .is-active .top3, svg .is-active .side3 { stroke: var(--x-accent); }
+      svg .x-leader { stroke: var(--x-accent); stroke-width: 1; fill: none; pointer-events: none; }
+      svg .x-leader-dot { fill: var(--x-accent); stroke: none; pointer-events: none; }
+
+      .x-tag { position: absolute; transform: translateY(-50%); pointer-events: none; background: var(--x-paper); border: 1px solid var(--x-accent); padding: 6px 8px; max-width: 260px; }
+      .x-tag[hidden] { display: none; }
+      .x-tag b { display: block; font: 400 12px/1.4 var(--x-mono); color: var(--x-accent-text); letter-spacing: .02em; }
+      .x-tag span { display: block; font: 400 12px/1.5 var(--x-cjk); color: var(--x-ink); }
+
+      .x-titleblock { position: absolute; left: 12px; bottom: 16px; border: 1px solid var(--x-ink); background: var(--x-paper); font: 400 12px/1.5 var(--x-mono); color: var(--x-ink); padding: 4px 8px; pointer-events: none; }
+      .x-corner { position: absolute; right: 12px; top: 12px; font: 400 12px/1.4 var(--x-mono); color: var(--x-grey); pointer-events: none; }
+
+      .x-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-top: 12px; }
+      .x-range { display: flex; align-items: center; gap: 10px; font: 400 12px/1 var(--x-mono); color: var(--x-ink); flex: 1 1 260px; }
+      .x-range input { flex: 1; accent-color: var(--x-accent-text); min-height: var(--tap); }
+      .x-play { font: 400 12px/1 var(--x-mono); color: var(--x-ink); background: var(--x-paper); border: 1px solid var(--x-ink); border-radius: 0; min-height: var(--tap); padding: 0 14px; cursor: pointer; }
+      .x-play:hover, .x-play:focus-visible { border-color: var(--x-accent-text); color: var(--x-accent-text); }
+      .x-hint { font: 400 12px/1.4 var(--x-mono); color: var(--x-grey); margin: 0; }
+
+      /* bill of materials */
+      .x-bom { border: 1px solid var(--x-ink); background: var(--x-paper); position: sticky; top: 16px; }
+      .x-bom__head { display: flex; justify-content: space-between; font: 400 12px/1 var(--x-mono); padding: 10px 12px; border-bottom: 1px solid var(--x-ink); letter-spacing: .06em; }
+      .x-bom ol { list-style: none; margin: 0; padding: 0; }
+      .x-bom li + li { border-top: 1px solid var(--x-rule); }
+      .x-bom button { display: grid; grid-template-columns: 28px 1fr; gap: 0 8px; width: 100%; text-align: left; background: none; border: 0; padding: 8px 12px; min-height: var(--tap); cursor: pointer; color: var(--x-ink); font: inherit; }
+      .x-bom .n { font: 400 12px/1.5 var(--x-mono); color: var(--x-grey); }
+      .x-bom .t { font: 500 14px/1.5 var(--x-cjk); }
+      .x-bom .s { grid-column: 2; font: 400 12px/1.4 var(--x-cjk); color: var(--x-grey); }
+      .x-bom button:hover, .x-bom button.is-on { background: #f3efe6; }
+      .x-bom button.is-on .n, .x-bom button.is-on .t { color: var(--x-accent-text); }
+      .x-bom button.is-pinned { box-shadow: inset 3px 0 0 var(--x-accent); }
+
+      /* build order */
+      .x-order { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 6px; counter-reset: o; }
+      .x-order li { display: flex; align-items: center; gap: 6px; }
+      .x-order li + li::before { content: "→"; font: 400 12px/1 var(--x-mono); color: var(--x-grey); }
+      .x-order button { counter-increment: o; font: 500 14px/1 var(--x-cjk); color: var(--x-ink); background: var(--x-paper); border: 1px solid var(--x-ink); min-height: var(--tap); padding: 0 12px; cursor: pointer; }
+      .x-order button::before { content: counter(o, decimal-leading-zero) " "; font: 400 12px/1 var(--x-mono); color: var(--x-grey); }
+      .x-order button:hover, .x-order button.is-on { border-color: var(--x-accent-text); color: var(--x-accent-text); }
+
+      /* packages table */
+      .x-pkg tbody tr { cursor: pointer; }
+      .x-pkg tbody tr:hover > *, .x-pkg tbody tr.is-on > * { background: #f3efe6; }
+      .x-pkg tbody tr.is-pinned > th { box-shadow: inset 3px 0 0 var(--x-accent); }
+      .x-pkg__btn { font: 400 13px/1.4 var(--x-mono); color: var(--x-ink); background: none; border: 0; padding: 0; min-height: var(--tap); min-width: var(--tap); text-align: left; cursor: pointer; }
+      .x-pkg__btn small { display: block; font: 400 12px/1.4 var(--x-cjk); color: var(--x-grey); }
+      .x-pkg tr.is-on .x-pkg__btn { color: var(--x-accent-text); }
+      .x-pkg__mod { font: 400 12px/1.4 var(--x-mono); color: var(--x-grey); }
+      .x-rules { margin: 16px 0 0; padding-left: 1.4em; font: 400 14px/1.75 var(--x-cjk); color: var(--x-ink); max-width: 46em; }
+      .x-note { padding-left: 0; }
+      .x-rules code, .x-pkgcards code { font: 400 12.5px/1.5 var(--x-mono); }
+
+      /* detail panel */
+      .x-panel { position: fixed; z-index: 50; top: 0; right: 0; bottom: 0; width: min(400px, 92vw); background: var(--x-paper); border-left: 1px solid var(--x-ink); box-shadow: -12px 0 32px rgba(26,26,26,.08);
+        transform: translateX(105%); transition: transform var(--dur-quick, .25s) var(--ease-out, ease-out); overflow-y: auto; overscroll-behavior: contain; padding: 20px 22px 32px; visibility: hidden; }
+      .x-panel.is-open { transform: none; visibility: visible; }
+      .x-panel__bar { display: flex; justify-content: space-between; align-items: center; font: 400 12px/1 var(--x-mono); color: var(--x-grey); border-bottom: 1px solid var(--x-ink); padding-bottom: 10px; margin-bottom: 16px; }
+      .x-close { width: var(--tap); height: var(--tap); margin: -12px -12px -12px 0; background: none; border: 0; font: 400 18px/1 var(--x-mono); color: var(--x-ink); cursor: pointer; }
+      .x-close:hover { color: var(--x-accent-text); }
+      .x-panel__num { font: 400 12px/1.4 var(--x-mono); color: var(--x-accent-text); margin: 0 0 4px; }
+      .x-panel h2 { font: 600 24px/1.25 var(--x-cjk); margin: 0 0 4px; color: var(--x-ink); }
+      .x-panel__sub { font: 400 12px/1.5 var(--x-mono); color: var(--x-grey); margin: 0 0 8px; }
+      .x-panel__hover { font: 400 15px/1.7 var(--x-cjk); margin: 0 0 18px; }
+      .x-panel dl { margin: 0; }
+      .x-panel dt { font: 400 12px/1.4 var(--x-mono); color: var(--x-accent-text); letter-spacing: .06em; border-top: 1px dashed var(--x-rule); padding-top: 12px; margin-top: 12px; }
+      .x-panel dd { margin: 4px 0 0; font: 400 14px/1.75 var(--x-cjk); }
+      .x-panel code { font: 400 12.5px/1.5 var(--x-mono); background: #f1eee6; padding: 1px 4px; }
+      .x-panel__nav { display: flex; gap: 8px; margin-top: 24px; }
+
+      .x-foot { border-top: 1px solid var(--x-ink); margin-top: 40px; padding: 16px 0 40px; font: 400 12px/1.5 var(--x-mono); color: var(--x-grey); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+      .x-foot a { color: var(--x-ink); }
+
+      @media (max-width: 860px) {
+        .x-stage { grid-template-columns: 1fr; }
+        .x-bom { position: static; }
+        .x-bom ol { display: grid; grid-template-columns: 1fr 1fr; }
+        .x-bom li + li { border-top: 0; }
+        .x-bom li { border-bottom: 1px solid var(--x-rule); }
+        .x-bom li:nth-child(odd) { border-right: 1px solid var(--x-rule); }
+        .x-svgbox { width: 100%; max-width: 560px; }
+        .x-panel { top: auto; left: 0; width: auto; max-height: 72svh; border-left: 0; border-top: 1px solid var(--x-ink); box-shadow: 0 -12px 32px rgba(26,26,26,.1); transform: translateY(105%); padding-bottom: calc(28px + env(safe-area-inset-bottom)); }
+      }
+      @media (max-width: 520px) {
+        .x-hero { padding-top: 32px; }
+        .x-sheet { padding: 8px 6px 12px; }
+        .x-svgbox { min-width: 0; }
+        .x-bom .s { display: none; }
+        .x-titleblock { left: 6px; bottom: 8px; font-size: 12px; padding: 2px 6px; max-width: 70%; }
+      }
+      @media (prefers-reduced-motion: reduce) { .x-panel, svg .mod { transition: none; } }
+    </style>
+  </head>
+  <body>
+    <div class="page" id="top">
+      <main>
+        <div class="x-wrap">
+          <header class="x-hero">
+            <p class="x-kicker">2026 年 11 月 · 从 0 到 1</p>
+            <h1>实现一个 Agent Harness</h1>
+            <p class="x-lede">模型接入层借用，从 Loop 往上全部自己写；每一节都拿 Pi Durable 当标准答案对照。</p>
+          </header>
+
+          <section class="x-stage" id="drawing" aria-label="Agent Harness 爆炸图">
+            <div>
+              <div class="x-sheet">
+                <div class="x-svgbox" id="svgbox">
+                  <svg id="dwg" viewBox="0 0 920 1200" role="img" aria-label="Agent Harness 爆炸图：自下而上十三个模块，从模型接入层到评测"></svg>
+                  <div class="x-tag" id="tag" hidden><b id="tag-id"></b><span id="tag-text"></span></div>
+                </div>
+                <p class="x-corner">A–A · 爆炸视图</p>
+                <p class="x-titleblock">DWG: HARNESS-001 · REV 0.2 · 2026-11 · SCALE NTS</p>
+              </div>
+              <div class="x-controls">
+                <label class="x-range">组装 <input type="range" id="explode" min="0" max="1" step="0.01" value="1" aria-label="组装 ⟷ 拆解" /> 拆解</label>
+                <button class="x-play" id="play" type="button">▶ 播放拆解</button>
+                <p class="x-hint">拖动旋转 · 悬停查看 · 点击展开</p>
+              </div>
+            </div>
+            <aside class="x-bom" aria-label="零件表">
+              <div class="x-bom__head"><span>零件表 · BOM</span><span>13 件</span></div>
+              <ol id="bom"></ol>
+            </aside>
+          </section>
+
+          <section class="section" id="order">
+            <div class="head">
+              <p class="head__eyebrow">构建顺序</p>
+              <h2>先让 Loop 转起来，再一层层往上加。</h2>
+              <p class="head__sub">点任意一步，在图上定位对应模块。</p>
+            </div>
+            <ol class="x-order" id="order-list">
+              <li><button type="button" data-mod="loop">Loop</button></li>
+              <li><button type="button" data-mod="tools">工具</button></li>
+              <li><button type="button" data-mod="eventlog">事件日志</button></li>
+              <li><button type="button" data-mod="policy">权限与沙箱</button></li>
+              <li><button type="button" data-mod="context">上下文</button></li>
+              <li><button type="button" data-mod="skills">Skills</button></li>
+              <li><button type="button" data-mod="memory">记忆</button></li>
+              <li><button type="button" data-mod="loop">Runtime 组装</button></li>
+              <li><button type="button" data-mod="gateway">入口与会话</button></li>
+              <li><button type="button" data-mod="subagents">子 Agent</button></li>
+              <li><button type="button" data-mod="telemetry">可观测性</button></li>
+              <li><button type="button" data-mod="eval">Eval</button></li>
+            </ol>
+          </section>
+
+          <section class="section" id="packages">
+            <div class="head">
+              <p class="head__eyebrow">分包</p>
+              <h2>分包：11 个主包 + 2 个横切包</h2>
+              <p class="head__sub">点任意一行，在图上定位对应模块。</p>
+            </div>
+            <div class="table-wrap x-pkg">
+              <table id="pkg-list">
+                <thead>
+                  <tr><th scope="col">包</th><th scope="col">职责</th><th scope="col">对应模块</th></tr>
+                </thead>
+                <tbody>
+                  <tr data-mod="provider"><th scope="row"><button class="x-pkg__btn" type="button">@h/ai</button></th><td>多厂商模型调用、流式、重试、降级</td><td class="x-pkg__mod">provider</td></tr>
+                  <tr data-mod="loop"><th scope="row"><button class="x-pkg__btn" type="button">@h/core</button></th><td>消息与事件类型、Agent loop，以及 Tool / Store / Policy / Sandbox 接口；不做 I/O</td><td class="x-pkg__mod">loop</td></tr>
+                  <tr data-mod="tools"><th scope="row"><button class="x-pkg__btn" type="button">@h/tools</button></th><td>内置工具（文件、shell、网页）与 MCP 客户端</td><td class="x-pkg__mod">tools</td></tr>
+                  <tr data-mod="eventlog"><th scope="row"><button class="x-pkg__btn" type="button">@h/store</button></th><td>事件日志、快照、续跑；内存、SQLite、Postgres 适配器</td><td class="x-pkg__mod">eventlog</td></tr>
+                  <tr data-mod="context"><th scope="row"><button class="x-pkg__btn" type="button">@h/context</button></th><td>prompt 组装、压缩、token 预算</td><td class="x-pkg__mod">context</td></tr>
+                  <tr data-mod="skills"><th scope="row"><button class="x-pkg__btn" type="button">@h/skills</button></th><td>Skill 发现、索引、按需加载</td><td class="x-pkg__mod">skills</td></tr>
+                  <tr data-mod="memory"><th scope="row"><button class="x-pkg__btn" type="button">@h/memory</button></th><td>记忆写入、召回、去重、过期、删除</td><td class="x-pkg__mod">memory</td></tr>
+                  <tr data-mod="policy"><th scope="row"><button class="x-pkg__btn" type="button">@h/policy</button></th><td>权限、审批、预算与步数上限、hooks</td><td class="x-pkg__mod">policy</td></tr>
+                  <tr data-mod="sandbox"><th scope="row"><button class="x-pkg__btn" type="button">@h/sandbox</button></th><td>本地、Docker、云沙箱执行器；密钥注入</td><td class="x-pkg__mod">sandbox</td></tr>
+                  <tr data-mod="subagents"><th scope="row"><button class="x-pkg__btn" type="button">@h/runtime</button></th><td>组装所有包成 session；持久执行、子 agent</td><td class="x-pkg__mod">subagents</td></tr>
+                  <tr data-mod="gateway"><th scope="row"><button class="x-pkg__btn" type="button">@h/gateway</button></th><td>CLI、HTTP/SSE、IM、定时任务、webhook</td><td class="x-pkg__mod">gateway</td></tr>
+                  <tr data-mod="telemetry"><th scope="row"><button class="x-pkg__btn" type="button">@h/telemetry<small>横切</small></button></th><td>订阅事件，输出 OTel trace 与费用</td><td class="x-pkg__mod">telemetry</td></tr>
+                  <tr data-mod="eval"><th scope="row"><button class="x-pkg__btn" type="button">@h/eval<small>横切</small></button></th><td>数据集、事件重放、评分、CI 门禁</td><td class="x-pkg__mod">eval</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <ol class="x-rules">
+              <li>core 不做 I/O，mock 模型即可单测。</li>
+              <li>只有 runtime 负责组装，各实现包互不依赖。</li>
+              <li>事件是跨包合同：store 记录、telemetry 订阅、eval 重放，schema 带版本号（Pi 的 pi-telemetry 就是这样一份零依赖合同）。</li>
+            </ol>
+          </section>
+
+          <section class="section" id="others">
+            <div class="head">
+              <p class="head__eyebrow">对照</p>
+              <h2>别人怎么分包</h2>
+              <p class="head__sub">源码读于 2026-10-29</p>
+            </div>
+            <div class="cards x-pkgcards">
+              <div>
+                <h3>Pi <small class="x-pkg__mod">earendil-works/pi，v1.4.0</small></h3>
+                <p>按层拆成 11 个小包，全部在 <code>@earendil-works</code> 下。<code>pi-ai</code> 统一多厂商模型；<code>pi-agent-core</code> 是 agent 运行时，只依赖 pi-ai；<code>pi-durable</code> 是持久化的对话、任务与文档运行时，依赖 pi-ai、pi-codemode、pi-telemetry、chord；<code>pi-env</code> 是 pi-durable 的远程执行环境（SSH 部署的守护进程）；<code>pi-mcp</code> 是独立的 MCP 客户端；<code>pi-codemode</code> 是只能调用注入工具的沙箱 JS；<code>pi-telemetry</code> 是零依赖的遥测合同；<code>pi-evals</code> 做评测；<code>pi-tui</code> 是终端 UI；<code>chord</code> 负责插件、复制状态与 RPC；<code>pi-coding-agent</code> 是 CLI，把上面的包拼起来。Skills 和上下文压缩放在 pi-coding-agent 里，没有跨会话记忆。</p>
+              </div>
+              <div>
+                <h3>AI SDK 7 <small class="x-pkg__mod">ai@7.0.156</small></h3>
+                <p>按合同拆小包。provider 接口包零依赖；<code>ai</code> 内核；约 45 个模型厂商包；harness 定义 HarnessV1，已有 claude-code、codex、cursor、fx、pi 等 11 个适配器；另有 workflow、sandbox-vercel、policy-opa、tool-bash、mcp、otel。没有记忆与 skills。</p>
+              </div>
+              <div>
+                <h3>Mastra</h3>
+                <p>一个大 <code>@mastra/core</code>（agent、loop、memory、skills、workspace、hooks、storage、evals 等 60 多个子模块）＋按类别分目录的适配器：stores 32 个、workspaces 20 个沙箱、observability 15 个、channels、server-adapters、deployers。memory 单独成包。</p>
+              </div>
+              <div>
+                <h3>fx <small class="x-pkg__mod">vercel-labs</small></h3>
+                <p>Zig 单个二进制，<code>src/core</code> 内分 agent、session、compactor、permissions、hooks、skills、subagent、mcp、workspace；对 JS 只发一个 <code>libfx</code> 包，用子路径导出 node、wasm、durable-*、mcp、skills。没有跨会话记忆。</p>
+              </div>
+            </div>
+            <p class="x-rules x-note">借鉴：telemetry 和 MCP 做成零依赖的独立包（Pi）、接口带版本号（AI SDK）、适配器按类别分目录（Mastra）、对外一个包加子路径导出（fx）。</p>
+          </section>
+
+          <footer class="x-foot">
+            <span>线描渲染：<a class="link" href="https://github.com/isaacrowntree/linework" target="_blank" rel="noopener">linework</a>（MIT）</span>
+            <span>DWG HARNESS-001 · REV 0.2</span>
+          </footer>
+        </div>
+      </main>
+    </div>
+
+    <aside class="x-panel" id="panel" role="dialog" aria-modal="false" aria-labelledby="p-name" tabindex="-1">
+      <div class="x-panel__bar"><span id="p-ref">DETAIL</span><button class="x-close" id="close" type="button" aria-label="关闭">✕</button></div>
+      <p class="x-panel__num" id="p-num"></p>
+      <h2 id="p-name"></h2>
+      <p class="x-panel__sub" id="p-sub"></p>
+      <p class="x-panel__hover" id="p-hover"></p>
+      <dl>
+        <dt>做什么</dt><dd id="p-what"></dd>
+        <dt>怎么实现</dt><dd id="p-how"></dd>
+        <dt>坑</dt><dd id="p-pit"></dd>
+        <dt>对照</dt><dd id="p-pi"></dd>
+      </dl>
+      <div class="x-panel__nav">
+        <button class="x-play" id="prev" type="button">↓ 下一层</button>
+        <button class="x-play" id="next" type="button">↑ 上一层</button>
+      </div>
+    </aside>
+
+    <script src="hark.js"></script>
+    <script src="linework.bundle.js"></script>
+    <script src="harness-scene.js"></script>
+    <script>
+      (function () {
+        var INFO = {
+          provider: { name: "模型接入层", sub: "借用，虚线表示", hover: "多厂商流式调用，直接用 pi-ai 或 AI SDK core。",
+            what: "统一各家模型的流式输出、工具调用格式、重试与限流。",
+            how: "不自己写，只包一层 <code>stream(messages, tools)</code> 接口；重试、限流退避、主模型失败时降级到备用模型。",
+            pit: "reasoning/thinking 签名要原样回传；切模型时历史消息格式不兼容。",
+            pi: "Pi 用自家 pi-ai，同样把它放在 harness 之外。" },
+          loop: { name: "Agent Loop", sub: "心脏", hover: "约 200 行的心脏：调模型 → 执行工具 → 回填 → 判断停止。",
+            what: "每一轮的状态机。",
+            how: "while 循环 + 显式状态（idle/streaming/tool_running/waiting_approval/done），最大轮数和预算熔断。",
+            pit: "停止条件不止「没有工具调用」，还有预算、错误、用户中断。",
+            pi: "Pi 的 <code>conversation.submit().wait()</code> 背后就是这一层。" },
+          tools: { name: "工具层 / MCP", sub: "统一注册表", hover: "统一的工具注册表，内置工具和 MCP 工具走同一条链路。",
+            what: "schema 声明、参数校验、执行、结果截断、错误回填。",
+            how: "<code>Tool = {name, schema, run(ctx)}</code>；MCP client 支持 stdio 和 streamable HTTP，把远端工具映射进同一注册表。",
+            pit: "各家支持的 JSON Schema 子集不同；stdio 进程管理与断线重连；错误要当作内容回给模型而不是抛异常。",
+            pi: "Pi 的工具用 TypeBox 声明。" },
+          eventlog: { name: "事件日志", sub: "唯一事实源", hover: "只追加的 JSONL，唯一事实源；记忆、UI、续跑都是它的投影。",
+            what: "记录每条消息、工具调用、token 用量。",
+            how: "append-only 文件或 SQLite 表，状态全部由 <code>reduce(events)</code> 推导。",
+            pit: "schema 演进与迁移；trace 必须 agent 改不了。",
+            pi: "Pi Durable 用 SQLite 存事件，迁移单向。" },
+          context: { name: "上下文与压缩", sub: "token 预算", hover: "带 token 预算的组装流水线，压缩策略可插拔。",
+            what: "system → skills 索引 → 记忆 → 历史 → 工具结果，按预算组装。",
+            how: "前缀稳定以命中 prompt cache；三种压缩：截断旧工具结果、大结果存文件只留引用、摘要旧轮次。",
+            pit: "tool_call 与 tool_result 必须成对保留；压缩会破坏缓存前缀导致成本突跳。",
+            pi: "Pi 内置 compaction。" },
+          skills: { name: "Skills", sub: "渐进式披露", hover: "渐进式披露：prompt 里只放名字和描述，用时才加载。",
+            what: "让「怎么做」按需进入上下文。",
+            how: "扫描 <code>skills/*/SKILL.md</code> 生成索引；<code>load_skill</code> 是普通工具。",
+            pit: "索引太长同样吃上下文；多个 skill 描述相近时模型选错。",
+            pi: "与 Claude Code 的 Skills 机制同构；fx 也读取 <code>.claude/skills</code> 与 <code>.agents/skills</code>。" },
+          memory: { name: "Memory 记忆", sub: "跨会话", hover: "跨会话的「记得什么」：事实与偏好的写入、召回、去重、过期、删除。",
+            what: "让 agent 记得用户和项目，而不是每次从零开始。",
+            how: "记忆是 markdown 文件或带 embedding 的表；写入经过去重与冲突合并，召回按语义 + 时间排序注入上下文；记忆读写也是工具。",
+            pit: "提示注入污染记忆；新旧事实冲突要以最近、用户亲口说的为准；用户要求删除时必须删干净。",
+            pi: "Mastra 把 memory 单独成包；AI SDK 和 fx 都不内置跨会话记忆。" },
+          policy: { name: "控制面", sub: "权限 · 审批 · 预算", hover: "权限、人工审批、预算和步数上限、hooks，全部在这一层拦截。",
+            what: "决定每个工具调用是允许、拒绝还是问人；限制 token、费用和轮数。",
+            how: "策略引擎在工具调用前后挂 hooks；审批进入 <code>waiting_approval</code> 状态并持久化暂停；预算超限熔断。",
+            pit: "审批可能要等一天；策略写死在 prompt 里等于没有。",
+            pi: "AI SDK 有 policy-opa 包；fx 有 permissions 与 hooks 模块。" },
+          sandbox: { name: "执行环境", sub: "ExecEnv · 沙箱", hover: "一套执行接口跑本地、Docker、云沙箱；密钥在出站代理注入，永不进沙箱。",
+            what: "文件、进程、端口预览、快照。",
+            how: "ExecEnv 接口 + 出站代理按需注入 token + 网络 allowlist。",
+            pit: "不可信内容里的提示注入。",
+            pi: "Pi 的 ExecutionEnv。" },
+          subagents: { name: "子 Agent 编排", sub: "fan-out", hover: "子 agent 就是一个工具：独立上下文，只回传摘要。",
+            what: "fan-out 并行、递归深度和预算限制。",
+            how: "<code>spawn_agent(task)</code> 新开一个 loop 实例，共享 ExecEnv 或独立 worktree，结果压缩后回填。",
+            pit: "共享工作目录写冲突；kill switch 要级联停掉所有子 agent 并吊销凭证。",
+            pi: "Pi 有子 agent 与任务图；Codeg 默认深度 1。" },
+          gateway: { name: "入口与会话", sub: "CLI · HTTP/SSE · IM", hover: "CLI、HTTP/SSE、IM、定时任务、webhook 都汇入同一个 session。",
+            what: "接收输入、流式推送输出、处理插话与打断、同一会话的并发排队。",
+            how: "每个入口是一个适配器，把消息转成 session 事件；AbortSignal 贯穿模型请求、子进程、MCP；steer 消息在当前工具批结束后注入，follow-up 排队。",
+            pit: "同一会话两条消息同时到；僵尸进程；插话语义（等还是打断）要定清楚。",
+            pi: "Pi 区分 steer 与 follow-up；fx 用 ACP 对接编辑器；Mastra 有 channels 与 server-adapters。" },
+          telemetry: { name: "可观测性", sub: "trace · 成本", hover: "订阅事件流，输出 trace、工具耗时与失败率、token 与费用。",
+            what: "出了问题能回放，能看到钱花在哪。",
+            how: "横切包订阅事件日志，导出 OpenTelemetry span；按会话、工具、模型聚合成本。",
+            pit: "trace 里的密钥与隐私要脱敏；采样率太低时抓不到偶发故障。",
+            pi: "AI SDK 有 otel 与 devtools；Mastra 有 15 个 observability 适配器。" },
+          eval: { name: "评测", sub: "Eval", hover: "20 个小任务的测试集，每加一层都用数据证明它有用。",
+            what: "记录成功率、轮数、token、成本。",
+            how: "固定任务集 + 可重放 trace，CI 每次跑。",
+            pit: "模型随机性，需要多次采样取均值。",
+            pi: "作者此前的 GUI bench：无障碍树让成功率从 18% 到 100%。" }
+        };
+
+        var HS = window.HarnessScene;
+        var IDS = HS.MODULES.map(function (m) { return m.id; });
+        function num(id) { var i = IDS.indexOf(id); return (i < 10 ? "0" : "") + i; }
+        function title(id) { return num(id) + " · " + INFO[id].name; }
+
+        var svg = document.getElementById("dwg");
+        var VB = (HS.VIEWBOX || "0 0 920 1200").split(/\s+/).map(Number);
+        svg.setAttribute("viewBox", VB.join(" "));
+        document.getElementById("svgbox").style.aspectRatio = VB[2] + " / " + VB[3];
+        var tag = document.getElementById("tag");
+        var tagId = document.getElementById("tag-id");
+        var tagText = document.getElementById("tag-text");
+        var slider = document.getElementById("explode");
+        var panel = document.getElementById("panel");
+        var bom = document.getElementById("bom");
+        var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+        var view = Object.assign({}, HS.VIEW);
+        var explode = 1, hoverId = null, pinnedId = null;
+
+        // bill of materials
+        bom.innerHTML = IDS.map(function (id) {
+          return '<li><button type="button" data-mod="' + id + '"><span class="n">' + num(id) + '</span><span class="t">' +
+            INFO[id].name + '</span><span class="s">' + INFO[id].sub + "</span></button></li>";
+        }).join("");
+
+        function active() { return hoverId || pinnedId; }
+
+        function redraw() {
+          var a = active();
+          var out = HS.draw(view, { explode: explode, active: a });
+          if (a) {
+            var p = HS.anchors(view, { explode: explode, active: a })[a];
+            var x = p[0], y = p[1];
+            out += '<circle class="x-leader-dot" cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="3.5"/>' +
+              '<path class="x-leader" d="M' + x.toFixed(1) + " " + y.toFixed(1) + " L" + (x + 22).toFixed(1) + " " + (y - 14).toFixed(1) + " L" + (x + 48).toFixed(1) + " " + (y - 14).toFixed(1) + '"/>';
+            var left = ((x + 50 - VB[0]) / VB[2]) * 100;
+            tag.style.left = left + "%";
+            tag.style.top = ((y - 14 - VB[1]) / VB[3]) * 100 + "%";
+            tag.style.maxWidth = "min(260px, calc(" + (100 - left) + "% - 2px))";
+            tagId.textContent = title(a);
+            tagText.textContent = INFO[a].hover;
+            tag.hidden = false;
+          } else {
+            tag.hidden = true;
+          }
+          svg.innerHTML = out;
+          var rows = document.querySelectorAll("[data-mod]");
+          for (var i = 0; i < rows.length; i++) {
+            var el = rows[i];
+            if (el instanceof SVGElement) continue;
+            var id = el.getAttribute("data-mod");
+            el.classList.toggle("is-on", id === a);
+            el.classList.toggle("is-pinned", id === pinnedId);
+          }
+        }
+
+        function setHover(id) { if (id === hoverId) return; hoverId = id; redraw(); }
+
+        function fillPanel(id) {
+          var d = INFO[id];
+          document.getElementById("p-ref").textContent = "DETAIL · HARNESS-001 / " + num(id);
+          document.getElementById("p-num").textContent = num(id) + " · " + id;
+          document.getElementById("p-name").textContent = d.name;
+          document.getElementById("p-sub").textContent = d.sub;
+          document.getElementById("p-hover").textContent = d.hover;
+          document.getElementById("p-what").innerHTML = d.what;
+          document.getElementById("p-how").innerHTML = d.how;
+          document.getElementById("p-pit").innerHTML = d.pit;
+          document.getElementById("p-pi").innerHTML = d.pi;
+          var i = IDS.indexOf(id);
+          document.getElementById("prev").disabled = i === 0;
+          document.getElementById("next").disabled = i === IDS.length - 1;
+        }
+
+        function pin(id) {
+          pinnedId = id;
+          hoverId = null;
+          fillPanel(id);
+          panel.classList.add("is-open");
+          redraw();
+        }
+        function unpin() {
+          pinnedId = null;
+          panel.classList.remove("is-open");
+          redraw();
+        }
+
+        // drawing: hover via delegation (innerHTML is replaced every frame)
+        var down = null, dragging = false;
+        function modAt(t) { var g = t && t.closest ? t.closest("g[data-mod]") : null; return g ? g.getAttribute("data-mod") : null; }
+        svg.addEventListener("pointerover", function (e) { if (e.pointerType === "mouse" && !dragging) setHover(modAt(e.target)); });
+        svg.addEventListener("pointermove", function (e) {
+          if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6) dragging = true;
+          if (e.pointerType === "mouse" && !down) setHover(modAt(e.target));
+        });
+        svg.addEventListener("pointerleave", function () { if (!down) setHover(null); });
+        svg.addEventListener("pointerdown", function (e) { down = { x: e.clientX, y: e.clientY }; dragging = false; });
+        function endPointer(e) {
+          if (!down) return;
+          var wasTap = !dragging && Math.hypot(e.clientX - down.x, e.clientY - down.y) <= 6;
+          down = null; dragging = false;
+          if (!wasTap || e.type === "pointercancel") return;
+          var el = document.elementFromPoint(e.clientX, e.clientY);
+          var id = el && svg.contains(el) ? modAt(el) : null;
+          if (id) pin(id);
+          else if (pinnedId) unpin();
+        }
+        svg.addEventListener("pointerup", endPointer);
+        svg.addEventListener("pointercancel", endPointer);
+
+        // legend and build order: same behaviour as the drawing
+        function bindList(root) {
+          root.addEventListener("pointerover", function (e) {
+            if (e.pointerType !== "mouse") return;
+            var b = e.target.closest("[data-mod]"); if (b) setHover(b.getAttribute("data-mod"));
+          });
+          root.addEventListener("pointerout", function (e) {
+            if (e.pointerType !== "mouse") return;
+            var b = e.target.closest("[data-mod]");
+            if (b && !b.contains(e.relatedTarget)) setHover(null);
+          });
+          root.addEventListener("focusin", function (e) { var b = e.target.closest("[data-mod]"); if (b) setHover(b.getAttribute("data-mod")); });
+          root.addEventListener("focusout", function () { setHover(null); });
+          root.addEventListener("click", function (e) {
+            var b = e.target.closest("[data-mod]"); if (!b) return;
+            var id = b.getAttribute("data-mod");
+            if (root.id !== "bom") document.getElementById("drawing").scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+            pin(id);
+          });
+        }
+        bindList(bom);
+        bindList(document.getElementById("order-list"));
+        bindList(document.getElementById("pkg-list"));
+
+        document.getElementById("close").addEventListener("click", unpin);
+        document.getElementById("prev").addEventListener("click", function () { var i = IDS.indexOf(pinnedId); if (i > 0) pin(IDS[i - 1]); });
+        document.getElementById("next").addEventListener("click", function () { var i = IDS.indexOf(pinnedId); if (i < IDS.length - 1) pin(IDS[i + 1]); });
+        document.addEventListener("keydown", function (e) { if (e.key === "Escape" && pinnedId) unpin(); });
+
+        // explode slider + animation
+        var anim = 0;
+        function setExplode(v) { explode = v; slider.value = v; redraw(); }
+        slider.addEventListener("input", function () { cancelAnimationFrame(anim); explode = parseFloat(slider.value); redraw(); });
+        function play() {
+          cancelAnimationFrame(anim);
+          if (reduce) { setExplode(1); return; }
+          var t0 = performance.now(), D = 1200;
+          function step(t) {
+            var k = Math.min(1, (t - t0) / D);
+            var e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+            setExplode(e);
+            if (k < 1) anim = requestAnimationFrame(step);
+          }
+          setExplode(0);
+          anim = requestAnimationFrame(step);
+        }
+        document.getElementById("play").addEventListener("click", play);
+
+        // orbit: drag to rotate, idle sway
+        Linework.orbit(svg, {
+          view: Object.assign({}, HS.VIEW),
+          onFrame: function (v) { view = v; redraw(); },
+          yawRange: [-1.2, 1.2],
+          pitchRange: [0.05, 0.6]
+        });
+
+        play();
+      })();
+    </script>
+  </body>
+</html>
