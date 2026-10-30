@@ -44,6 +44,7 @@ import { DotAnimationThumb } from "./thumbs/dot-animation";
 import { FloatingMenuThumb } from "./thumbs/floating-menu";
 import { SquircleCornersThumb } from "./thumbs/squircle-corners";
 import { MetrixDashboardThumb } from "./thumbs/metrix-dashboard";
+import { MebiusChartsThumb } from "./thumbs/mebius-charts";
 
 export type DemoCategory = "Interaction" | "Text Demo" | "Explored Demo" | "Agent UX/UI";
 
@@ -448,5 +449,14 @@ export const demos: DemoEntry[] = [
     category: "Explored Demo",
     tags: ["CSS", "Experimental"],
     preview: <SquircleCornersThumb />,
+  },
+  {
+    title: "Mebius Charts · 图表画廊",
+    description:
+      "灵感复刻 mebius.design 的 62 个金融图表组件：recharts 实现的暗黑卡片画廊，15 种图表 + 搜索与类型筛选 + masonry 网格。",
+    route: "/mebius-charts",
+    category: "Explored Demo",
+    tags: ["recharts", "Chart", "mebius"],
+    preview: <MebiusChartsThumb />,
   },
 ];
