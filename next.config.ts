@@ -3,6 +3,15 @@ import createMDX from "@next/mdx";
 
 const nextConfig: NextConfig = {
   pageExtensions: ["js", "jsx", "ts", "tsx", "md", "mdx"],
+  async rewrites() {
+    return [
+      // 静态页面：public/harness-exploded-view/index.html
+      {
+        source: "/harness-exploded-view",
+        destination: "/harness-exploded-view/index.html",
+      },
+    ];
+  },
 };
 
 const withMDX = createMDX({
