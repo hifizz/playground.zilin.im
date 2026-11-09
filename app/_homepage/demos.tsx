@@ -44,6 +44,7 @@ import { DotAnimationThumb } from "./thumbs/dot-animation";
 import { FloatingMenuThumb } from "./thumbs/floating-menu";
 import { SquircleCornersThumb } from "./thumbs/squircle-corners";
 import { MetrixDashboardThumb } from "./thumbs/metrix-dashboard";
+import { HarnessExplodedViewThumb } from "./thumbs/harness-exploded-view";
 
 export type DemoCategory = "Interaction" | "Text Demo" | "Explored Demo" | "Agent UX/UI";
 
@@ -75,6 +76,15 @@ export const demos: DemoEntry[] = [
     category: "Agent UX/UI",
     tags: ["Composer", "Beautiful UI", "glimm"],
     preview: <PromptComposerThumb />,
+  },
+  {
+    title: "Agent Harness 爆炸图",
+    description:
+      "十三个模块的工程图纸式爆炸图：可拖拽旋转、滑杆拆解组装、悬停高亮与详情面板；附构建顺序、分包表与 Pi / AI SDK / Mastra / fx 分包对照。",
+    route: "/harness-exploded-view",
+    category: "Agent UX/UI",
+    tags: ["Agent", "SVG", "Blueprint"],
+    preview: <HarnessExplodedViewThumb />,
   },
   {
     title: "Dot Grid Loader",
