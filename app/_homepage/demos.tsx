@@ -1,4 +1,5 @@
 import { DevinComposerThumb } from "./thumbs/devin-composer";
+import { HarkProSigninThumb } from "./thumbs/hark-pro-signin";
 import { PromptComposerThumb } from "./thumbs/prompt-composer";
 import { DynamicIslandThumb } from "./thumbs/dynamic-island";
 import { NotificationStackThumb } from "./thumbs/notification-stack";
@@ -60,6 +61,15 @@ export type DemoEntry = {
 export const ALL_CATEGORIES = ["All", "Interaction", "Explored Demo", "Agent UX/UI"] as const;
 
 export const demos: DemoEntry[] = [
+  {
+    title: "Hark Pro Sign-in",
+    description:
+      "像素级复刻 Hark Pro macOS 登录窗：草甸壁纸、深海军蓝渐变窗体、人像卡片、Google / Apple / 邮箱登录，按 1046×703 画板等比缩放。",
+    route: "/hark-pro-signin",
+    category: "Agent UX/UI",
+    tags: ["Replica", "Auth", "macOS"],
+    preview: <HarkProSigninThumb />,
+  },
   {
     title: "Devin Prompt Composer",
     description:
