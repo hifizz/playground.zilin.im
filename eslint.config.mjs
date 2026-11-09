@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Independent Vite sub-project with its own tsconfig and rules:
     "shanghai-station-map/**",
+    // Minified third-party bundle, converted to an ES module export:
+    "app/harness-exploded-view/scene/linework.bundle.js",
   ]),
 ]);
 
